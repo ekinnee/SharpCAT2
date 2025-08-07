@@ -1,14 +1,27 @@
 ﻿using System.IO.Ports;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Collections.Concurrent;
 
 namespace SharpCAT2.Server;
 
 class Program
 {
+
+    private static readonly ConcurrentDictionary<string, NetworkStream> _tcpClients = new();
+    private static SerialPort? _serialPort;
+    private static TcpListener? _tcpListener;
+    private static CancellationTokenSource? _cancellationTokenSource;
+
+    private static async Task Main(string[] args)
+
     // Supported baud rates for serial communication
     private static readonly int[] SupportedBaudRates = { 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 };
     
     private static void Main(string[] args)
+
     {
         Console.WriteLine("SharpCAT2 Server - Cross-Platform Serial Port Communication");
         Console.WriteLine("============================================================");
@@ -37,31 +50,20 @@ class Program
             string portName = ValidateOrPromptPortName(options.PortName);
             
             // Open and configure serial port
-            using var serialPort = OpenSerialPort(portName, options.BaudRate);
+            _serialPort = OpenSerialPort(portName, options.BaudRate);
             
             Console.WriteLine($"Successfully opened serial port: {portName}");
             Console.WriteLine($"Baud rate: {options.BaudRate}");
-            Console.WriteLine("Press 'q' to quit, or type messages to send...");
             
-            // Start listening for incoming data
-            serialPort.DataReceived += (sender, e) =>
-            {
-                try
-                {
-                    if (sender is SerialPort port && port.IsOpen)
-                    {
-                        string data = port.ReadExisting();
-                        if (!string.IsNullOrEmpty(data))
-                        {
-                            Console.Write($"Received: {data}");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error reading data: {ex.Message}");
-                }
-            };
+            // Start TCP server
+            _cancellationTokenSource = new CancellationTokenSource();
+            await StartTcpServerAsync(options.TcpPort, _cancellationTokenSource.Token);
+            
+            Console.WriteLine($"TCP server listening on port {options.TcpPort}");
+            Console.WriteLine("Press 'q' to quit, or type messages to send to serial port...");
+            
+            // Set up serial port data received handler
+            _serialPort.DataReceived += OnSerialDataReceived;
             
             // Main communication loop
             string? input;
@@ -71,7 +73,7 @@ class Program
                 {
                     try
                     {
-                        serialPort.WriteLine(input);
+                        await SendToSerialPortAsync(input);
                         Console.WriteLine($"Sent: {input}");
                     }
                     catch (Exception ex)
@@ -81,11 +83,153 @@ class Program
                     }
                 }
             }
+            
+            // Cleanup
+            _cancellationTokenSource.Cancel();
+            _tcpListener?.Stop();
+            _serialPort?.Close();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Fatal error: {ex.Message}");
             Environment.Exit(1);
+        }
+    }
+    
+    private static async Task StartTcpServerAsync(int port, CancellationToken cancellationToken)
+    {
+        _tcpListener = new TcpListener(IPAddress.Any, port);
+        _tcpListener.Start();
+        
+        // Accept TCP clients in the background
+        _ = Task.Run(async () =>
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var tcpClient = await _tcpListener.AcceptTcpClientAsync();
+                    var clientId = $"{tcpClient.Client.RemoteEndPoint}";
+                    var networkStream = tcpClient.GetStream();
+                    
+                    _tcpClients[clientId] = networkStream;
+                    Console.WriteLine($"TCP client connected: {clientId}");
+                    
+                    // Handle client communication in background
+                    _ = Task.Run(async () => await HandleTcpClientAsync(clientId, tcpClient, networkStream, cancellationToken));
+                }
+                catch (ObjectDisposedException)
+                {
+                    // TCP listener was stopped
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error accepting TCP client: {ex.Message}");
+                }
+            }
+        }, cancellationToken);
+        
+        // Wait a moment to ensure the listener is ready
+        await Task.Delay(100, cancellationToken);
+    }
+    
+    private static async Task HandleTcpClientAsync(string clientId, TcpClient tcpClient, NetworkStream networkStream, CancellationToken cancellationToken)
+    {
+        var buffer = new byte[1024];
+        
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested && tcpClient.Connected)
+            {
+                int bytesRead = await networkStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+                
+                if (bytesRead > 0)
+                {
+                    string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
+                    Console.WriteLine($"TCP client {clientId} sent: {command}");
+                    
+                    // Send command to serial port
+                    await SendToSerialPortAsync(command);
+                }
+                else
+                {
+                    break; // Client disconnected
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error handling TCP client {clientId}: {ex.Message}");
+        }
+        finally
+        {
+            _tcpClients.TryRemove(clientId, out _);
+            tcpClient.Close();
+            Console.WriteLine($"TCP client disconnected: {clientId}");
+        }
+    }
+    
+    private static async Task SendToSerialPortAsync(string command)
+    {
+        if (_serialPort?.IsOpen == true)
+        {
+            try
+            {
+                await Task.Run(() => _serialPort.WriteLine(command));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending to serial port: {ex.Message}");
+            }
+        }
+    }
+    
+    private static async void OnSerialDataReceived(object sender, SerialDataReceivedEventArgs e)
+    {
+        try
+        {
+            if (sender is SerialPort port && port.IsOpen)
+            {
+                string data = port.ReadExisting();
+                if (!string.IsNullOrEmpty(data))
+                {
+                    Console.Write($"Received: {data}");
+                    
+                    // Send data to all connected TCP clients
+                    await SendToTcpClientsAsync(data);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error reading serial data: {ex.Message}");
+        }
+    }
+    
+    private static async Task SendToTcpClientsAsync(string data)
+    {
+        var clientsToRemove = new List<string>();
+        var dataBytes = Encoding.UTF8.GetBytes(data);
+        
+        foreach (var kvp in _tcpClients)
+        {
+            try
+            {
+                await kvp.Value.WriteAsync(dataBytes, 0, dataBytes.Length);
+                await kvp.Value.FlushAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending to TCP client {kvp.Key}: {ex.Message}");
+                clientsToRemove.Add(kvp.Key);
+            }
+        }
+        
+        // Remove disconnected clients
+        foreach (string clientId in clientsToRemove)
+        {
+            _tcpClients.TryRemove(clientId, out _);
         }
     }
     
@@ -145,6 +289,11 @@ class Program
                         }
                     }
                     break;
+                case "-t":
+                case "--tcp-port":
+                    if (i + 1 < args.Length && int.TryParse(args[++i], out int tcpPort))
+                        options.TcpPort = tcpPort;
+                    break;
                 case "-l":
                 case "--list":
                     options.ListPorts = true;
@@ -166,7 +315,11 @@ class Program
         Console.WriteLine("Options:");
         Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0)");
         Console.WriteLine("  -b, --baud <rate>     Baud rate (default: 9600)");
+
+        Console.WriteLine("  -t, --tcp-port <port> TCP server port (default: 8080)");
+
         Console.WriteLine("                        Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000");
+
         Console.WriteLine("  -l, --list            List available serial ports");
         Console.WriteLine("  -h, --help            Show this help message");
         Console.WriteLine();
@@ -175,21 +328,23 @@ class Program
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             Console.WriteLine("  Server --port COM1 --baud 115200");
-            Console.WriteLine("  Server -p COM3");
+            Console.WriteLine("  Server -p COM3 --tcp-port 9090");
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             Console.WriteLine("  Server --port /dev/ttyUSB0 --baud 115200");
-            Console.WriteLine("  Server -p /dev/ttyACM0");
+            Console.WriteLine("  Server -p /dev/ttyACM0 --tcp-port 9090");
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             Console.WriteLine("  Server --port /dev/cu.usbserial-1410 --baud 115200");
-            Console.WriteLine("  Server -p /dev/cu.usbmodem1411");
+            Console.WriteLine("  Server -p /dev/cu.usbmodem1411 --tcp-port 9090");
         }
         
         Console.WriteLine();
         Console.WriteLine("  Server --list         # List all available ports");
+        Console.WriteLine();
+        Console.WriteLine("The server provides both console interface and TCP server for remote clients.");
     }
     
     private static void ListAvailablePorts()
@@ -438,6 +593,7 @@ public class CommandLineOptions
 {
     public string? PortName { get; set; }
     public int BaudRate { get; set; } = 9600;
+    public int TcpPort { get; set; } = 8080;
     public bool ListPorts { get; set; }
     public bool ShowHelp { get; set; }
 }

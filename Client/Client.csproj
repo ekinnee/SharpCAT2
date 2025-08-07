@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>SharpCAT2.Client</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="ClientLib.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="SharpCAT2.ClientLib.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -9,6 +9,10 @@ A cross-platform .NET serial port communication server application that provides
 - **Robust Error Handling**: Comprehensive error messages and troubleshooting guidance
 - **Interactive Port Selection**: Smart port discovery and selection
 - **Command-Line Interface**: Flexible command-line options for automation and scripting
+- **TCP Server**: Remote client access via TCP connections
+- **Client Library**: .NET library for programmatic access to remote serial ports
+- **Client Console App**: Interactive console application for remote serial communication
+- **Graceful Error Handling**: Both server and client handle connection and communication errors without crashing
 
 ## Requirements
 
@@ -43,7 +47,11 @@ dotnet run --configuration Release
 
 ## Usage
 
-### Basic Usage
+### Server Application
+
+The server application opens a serial port and provides both console interface and TCP server for remote clients.
+
+#### Basic Usage
 
 ```bash
 # Show help
@@ -52,35 +60,117 @@ dotnet run -- --help
 # List available serial ports
 dotnet run -- --list
 
-# Connect to a specific port with default settings
+# Connect to a specific port with default settings and default TCP port (8080)
 dotnet run -- --port COM1              # Windows
 dotnet run -- --port /dev/ttyUSB0      # Linux
 dotnet run -- --port /dev/cu.usbserial-1410  # macOS
 
-# Connect with custom baud rate
-dotnet run -- --port COM1 --baud 115200
+# Connect with custom baud rate and TCP port
+dotnet run -- --port COM1 --baud 115200 --tcp-port 9090
 ```
 
-### Command-Line Options
+#### Command-Line Options
 
 | Option | Short | Description | Example |
 |--------|-------|-------------|---------|
 | `--port` | `-p` | Serial port name | `--port COM1` |
+
+| `--baud` | `-b` | Baud rate (default: 9600) | `--baud 115200` |
+| `--tcp-port` | `-t` | TCP server port (default: 8080) | `--tcp-port 9090` |
+
 | `--baud` | `-b` | Baud rate (default: 9600)<br/>Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 | `--baud 115200` |
+
 | `--list` | `-l` | List available ports | `--list` |
 | `--help` | `-h` | Show help message | `--help` |
 
+### Client Library and Application
+
+The client library (`SharpCAT2.ClientLib`) provides methods for connecting to the SharpCAT2 server over TCP and sending commands to the remote serial port. The client console application provides an interactive interface.
+
+#### Building the Client
+
+```bash
+# Navigate to the Client directory
+cd Client
+
+# Build the client library
+dotnet build SharpCAT2.ClientLib.csproj
+
+# Build the client console application
+dotnet build Client.csproj
+```
+
+#### Running the Client Application
+
+```bash
+# Navigate to the Client directory
+cd Client
+
+# Connect to server on localhost:8080
+dotnet run --project Client.csproj
+
+# Connect to a remote server
+dotnet run --project Client.csproj -- --host 192.168.1.100
+
+# Connect to a custom port
+dotnet run --project Client.csproj -- --host localhost --port 9090
+
+# Show help
+dotnet run --project Client.csproj -- --help
+```
+
+#### Client Command-Line Options
+
+| Option | Short | Description | Example |
+|--------|-------|-------------|---------|
+| `--host` | `-h` | Server hostname or IP (default: localhost) | `--host 192.168.1.100` |
+| `--port` | `-p` | Server TCP port (default: 8080) | `--port 9090` |
+| `--help` | | Show help message | `--help` |
+
+#### Client Library Usage
+
+```csharp
+using SharpCAT2.ClientLib;
+
+// Create client instance
+using var client = new SharpCAT2Client("localhost", 8080);
+
+// Connect to server
+bool connected = await client.ConnectAsync();
+if (connected)
+{
+    // Send command and get response
+    string? response = await client.SendCommandAsync("AT");
+    if (response != null)
+    {
+        Console.WriteLine($"Response: {response}");
+    }
+}
+```
+
 ### Interactive Mode
 
-When no port is specified, the application will:
+#### Server Interactive Mode
+
+When no port is specified, the server application will:
 1. Scan for available ports
 2. Display found ports for selection
 3. Allow manual port name entry if needed
+4. Start TCP server and console interface
 
 ```bash
 # Interactive mode - will prompt for port selection
 dotnet run
 ```
+
+
+#### Client Interactive Mode
+
+The client application provides an interactive command loop:
+- Type commands to send to the remote serial port
+- Type `help` for available client commands
+- Type `status` to check connection status
+- Type `quit` or `exit` to disconnect and exit
 
 ## Supported Baud Rates
 
@@ -104,6 +194,7 @@ dotnet run -- --port COM1 --baud 12345
 # Output: Error: Unsupported baud rate '12345'.
 #         Supported baud rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000
 ```
+
 
 ## Platform-Specific Setup
 
@@ -246,8 +337,14 @@ system_profiler SPUSBDataType
 ```
 SharpCAT2/
 ├── Server/
-│   ├── Program.cs          # Main application logic
-│   ├── Server.csproj       # Project file with dependencies
+│   ├── Program.cs          # Server application with serial port and TCP functionality
+│   ├── Server.csproj       # Server project file with dependencies
+│   └── bin/Debug/          # Build output
+├── Client/
+│   ├── ClientLib.cs        # Client library implementation
+│   ├── Program.cs          # Client console application
+│   ├── SharpCAT2.ClientLib.csproj  # Client library project file
+│   ├── Client.csproj       # Client console app project file
 │   └── bin/Debug/          # Build output
 ├── README.md               # This file
 └── LICENSE                 # License information
