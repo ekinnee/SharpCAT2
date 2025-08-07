@@ -1,0 +1,7 @@
+{
+  "serialPort": "/dev/ttyUSB0",
+  "radio": "Kenwood TS-2000",
+  "baudRate": 38400,
+  "tcpPort": 9090,
+  "autoDetectRadio": false
+}

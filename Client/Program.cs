@@ -5,29 +5,28 @@ namespace SharpCAT2.Client;
 
 class Program
 {
+    private static ClientConfig? _config;
+    
     private static async Task Main(string[] args)
     {
         Console.WriteLine("SharpCAT2 Client - Remote Serial Port Communication");
         Console.WriteLine("===================================================");
         
-        // Parse command line arguments for server host/port
-        string serverHost = "localhost";
-        int serverPort = 8080;
+        // Load configuration
+        const string configPath = "client_config.json";
+        _config = await ClientConfig.LoadAsync(configPath);
+        
+        // Update configuration with command line arguments
+        _config.UpdateFromArgs(args);
+        
+        // Use configuration values
+        string serverHost = _config.ServerHost;
+        int serverPort = _config.ServerPort;
         
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i].ToLower())
             {
-                case "-h":
-                case "--host":
-                    if (i + 1 < args.Length)
-                        serverHost = args[++i];
-                    break;
-                case "-p":
-                case "--port":
-                    if (i + 1 < args.Length && int.TryParse(args[++i], out int port))
-                        serverPort = port;
-                    break;
                 case "--help":
                     ShowHelp();
                     return;
@@ -67,6 +66,15 @@ class Program
         Console.WriteLine("Type 'help' for command help.");
         Console.WriteLine();
 
+        // Set up graceful shutdown handler
+        Console.CancelKeyPress += async (sender, e) =>
+        {
+            e.Cancel = true;
+            Console.WriteLine("\nShutting down gracefully...");
+            await SaveConfigurationAsync();
+            Environment.Exit(0);
+        };
+
         // Main command loop
         string? input;
         while (true)
@@ -83,6 +91,7 @@ class Program
                 case "quit":
                 case "exit":
                     Console.WriteLine("Disconnecting...");
+                    await SaveConfigurationAsync();
                     return;
                     
                 case "help":
@@ -162,6 +171,21 @@ class Program
                 Console.WriteLine($"Unexpected error: {ex.Message}");
                 Console.WriteLine("The application will continue. Type 'quit' to exit.");
             }
+        }
+        
+        // Save configuration on normal exit
+        await SaveConfigurationAsync();
+    }
+    
+    /// <summary>
+    /// Saves the current configuration to file
+    /// </summary>
+    private static async Task SaveConfigurationAsync()
+    {
+        if (_config != null)
+        {
+            const string configPath = "client_config.json";
+            await _config.SaveAsync(configPath);
         }
     }
     
