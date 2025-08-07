@@ -1,5 +1,8 @@
 ﻿using System.Reflection;
 using SharpCAT2.Radio.Models;
+using SharpCAT2.Radio.Models.Yaesu;
+using SharpCAT2.Radio.Models.Kenwood;
+using SharpCAT2.Radio.Models.Elecraft;
 
 namespace SharpCAT2.Radio;
 
