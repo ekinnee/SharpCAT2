@@ -111,9 +111,8 @@ class Program
             // Validate or prompt for port name
             string portName = ValidateOrPromptPortName(options.PortName);
             
-            // Open and configure serial port
-            var serialPort = OpenSerialPort(portName, options.BaudRate);
-            _wrappedSerialPort = SerialPortFactory.CreateRealSerialPort(serialPort);
+            // Open and configure serial port using the factory
+            _wrappedSerialPort = CreateSerialPort(portName, options.BaudRate);
             
             Console.WriteLine($"Successfully opened serial port: {portName}");
             Console.WriteLine($"Baud rate: {options.BaudRate}");
@@ -944,6 +943,50 @@ class Program
         {
             // If we can't check, assume it might be valid
             return true;
+        }
+    }
+    
+    /// <summary>
+    /// Creates the appropriate serial port implementation based on port name
+    /// </summary>
+    /// <param name="portName">Port name to create</param>
+    /// <param name="baudRate">Baud rate for communication</param>
+    /// <returns>Configured and opened ISerialPort implementation</returns>
+    private static ISerialPort CreateSerialPort(string portName, int baudRate)
+    {
+        try
+        {
+            // Use factory to create appropriate implementation
+            var serialPort = SerialPortFactory.CreateSerialPort(portName, baudRate);
+            
+            // Open the port
+            if (!serialPort.IsOpen)
+            {
+                serialPort.Open();
+            }
+            
+            return serialPort;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            string guidance = GetPermissionGuidance();
+            throw new InvalidOperationException(
+                $"Access denied to port '{portName}'. {guidance}");
+        }
+        catch (ArgumentException)
+        {
+            throw new ArgumentException(
+                $"Invalid port name '{portName}'. Use --list to see available ports.");
+        }
+        catch (FileNotFoundException)
+        {
+            throw new FileNotFoundException(
+                $"Port '{portName}' not found. Use --list to see available ports.");
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                $"Failed to open port '{portName}': {ex.Message}");
         }
     }
     
