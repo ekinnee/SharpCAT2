@@ -9,9 +9,9 @@
         "**/obj": true
     },
     "omnisharp.enableEditorConfigSupport": true,
-    "omnisharp.enableImportCompletion": true,
-    "omnisharp.organizeImportsOnFormat": true,
     "dotnet.defaultSolution": "SharpCAT2.sln",
     "csharp.semanticHighlighting.enabled": true,
-    "csharp.format.enable": true
+    "csharp.format.enable": true,
+    "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true,
+    "dotnet.formatting.organizeImportsOnFormat": true
 }
