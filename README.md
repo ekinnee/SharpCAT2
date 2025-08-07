@@ -89,31 +89,68 @@ dotnet run -- --port COM1 --auto-detect
 | `--auto-detect` | | Auto-detect radio type | `--auto-detect` |
 | `--list` | `-l` | List available ports | `--list` |
 | `--list-radios` | | List available radio models | `--list-radios` |
+| `--radio-info` | | Show detailed information about a radio model | `--radio-info "Elecraft K3"` |
 | `--help` | `-h` | Show help message | `--help` |
 
 #### Supported Radio Models
 
-The following radio models are currently supported:
+SharpCAT2 now supports **28 radio models** across **7 major manufacturers**:
 
-- **Kenwood TS-2000** - Full CAT command support
-- **Elecraft K3** - Full CAT command support  
-- **Yaesu FT-991A** - Basic CAT command support
+- **Kenwood**: TS-2000, TS-890S, TS-590SG, TH-D74A, TM-D710GA
+- **Elecraft**: K3, K4, KX3, K2, K1  
+- **Yaesu**: FT-991A, FT-710, FT-DX101D, FT-891, FT-65
+- **Icom**: IC-7300, IC-9700
+- **FlexRadio**: FLEX-6400, FLEX-6600, FLEX-6700
+- **Alinco**: DX-SR8T, DJ-MD5TGP, DR-638T, DX-70T
+- **Ten-Tec**: OMNI VII, Eagle, Argonaut V, Jupiter
 
-To see all available radio models:
+Each radio model supports a specific set of features from a comprehensive list of **47 radio capabilities** including:
+- Frequency and mode control
+- VFO operations (dual VFO, swap, split)
+- RIT/XIT incremental tuning
+- Power output and metering (S-meter, SWR)
+- Memory channel management
+- CW keyer operation
+- Noise reduction and DSP features
+- Antenna selection
+- Digital mode support
+
+For detailed information about supported features for each radio model, see [SUPPORTED_RADIOS.md](SUPPORTED_RADIOS.md).
+
+To see all available radio models with feature counts:
 ```bash
 dotnet run -- --list-radios
+```
+
+To see detailed information about a specific radio:
+```bash
+dotnet run -- --radio-info "Elecraft K3"
+dotnet run -- --radio-info "FlexRadio FLEX-6600"
 ```
 
 #### Radio Commands
 
 When a radio is connected, you can use these additional commands in the server console:
 
-- `s` - Show current radio status (frequency, mode, etc.)
+- `s` - Show current radio status (frequency, mode, supported features, etc.)
 - `FA;` - Get frequency (VFO A)
 - `FA14074000;` - Set frequency to 14.074 MHz
 - `MD;` - Get operating mode
 - `MD2;` - Set mode to USB
 - `ID;` - Get radio identification
+
+#### Radio Features and Capabilities
+
+Each radio model exposes a `SupportedFeatures` property that indicates which advanced features are available. The server will display this information when showing radio status or using the `--radio-info` command.
+
+**Feature Categories:**
+- **Basic Operation**: Frequency control, mode selection, transmit/receive status
+- **HF Operation**: Dual VFO, split operation, RIT/XIT, S-meter, power control
+- **VHF/UHF Operation**: Squelch control, CTCSS/DCS tones, repeater operation
+- **Advanced Operation**: IF bandwidth, noise reduction, memory channels, CW keyer
+- **SDR Features**: Waterfall display, panadapter, multiple receivers
+
+The system gracefully handles unsupported features by returning appropriate defaults or error messages.
 
 ### Client Library and Application
 
@@ -389,15 +426,20 @@ SharpCAT2/
 │   ├── Client.csproj       # Client console app project file
 │   └── bin/Debug/          # Build output
 ├── SharpCAT2.Radio/        # Radio support library
-│   ├── IRadio.cs           # Radio interface definition
+│   ├── IRadio.cs           # Radio interface definition with SupportedFeatures
+│   ├── SupportedFeatures.cs # Comprehensive feature enumeration
 │   ├── RadioCommand.cs     # Radio command abstraction
 │   ├── RadioStatus.cs      # Radio status information
 │   ├── RadioFactory.cs     # Dynamic radio creation and discovery
-│   ├── Models/             # Radio model implementations
+│   ├── Models/             # Radio model implementations by brand
 │   │   ├── BaseRadio.cs    # Abstract base radio implementation
-│   │   ├── KenwoodTS2000.cs # Kenwood TS-2000 implementation
-│   │   ├── ElecraftK3.cs   # Elecraft K3 implementation
-│   │   └── YaesuFT991A.cs  # Yaesu FT-991A implementation
+│   │   ├── Kenwood/        # Kenwood radio models (TS-2000, TS-890S, etc.)
+│   │   ├── Elecraft/       # Elecraft radio models (K3, K4, KX3, etc.)
+│   │   ├── Yaesu/          # Yaesu radio models (FT-991A, FT-710, etc.)
+│   │   ├── Icom/           # Icom radio models (IC-7300, IC-9700)
+│   │   ├── FlexRadio/      # FlexRadio models (FLEX-6400, 6600, 6700)
+│   │   ├── Alinco/         # Alinco radio models (DX-SR8T, DJ-MD5TGP, etc.)
+│   │   └── TenTec/         # Ten-Tec radio models (OMNI VII, Eagle, etc.)
 │   ├── SharpCAT2.Radio.csproj # Radio library project file
 ```
 
@@ -411,19 +453,34 @@ SharpCAT2/
 
 The radio support is implemented through the `SharpCAT2.Radio` namespace which provides:
 
-- **IRadio Interface**: Defines the contract for radio communication
+- **IRadio Interface**: Defines the contract for radio communication with SupportedFeatures property
+- **SupportedFeatures Enum**: Comprehensive enumeration of 47 radio capabilities
 - **RadioCommand**: Encapsulates radio commands with parameters and metadata
 - **RadioStatus**: Represents radio state information
-- **RadioFactory**: Dynamic radio discovery and instantiation
-- **BaseRadio**: Abstract base class providing common functionality
-- **Model-Specific Implementations**: Concrete radio classes for different manufacturers
+- **RadioFactory**: Dynamic radio discovery and instantiation with auto-detection
+- **BaseRadio**: Abstract base class providing common functionality and default implementations
+- **Brand-Organized Models**: Radio implementations organized by manufacturer folders
+
+**Supported Features Include:**
+- Frequency and mode control
+- VFO operations (dual VFO, swap, split)  
+- RIT/XIT incremental tuning
+- Power output and metering (S-meter, SWR, ALC)
+- Antenna selection
+- Memory channel management
+- CW keyer and message sending
+- Noise reduction and DSP features
+- Filter selection and bandwidth control
+- Digital mode support (PSK31, RTTY, DMR)
+- SDR features (waterfall, panadapter)
 
 To add support for a new radio model:
 
-1. Create a new class inheriting from `BaseRadio`
-2. Implement radio-specific command parsing
-3. Register the radio in `RadioFactory` or let auto-discovery find it
-4. The radio will be automatically available in both server and client
+1. Create a new class inheriting from `BaseRadio` in the appropriate brand folder
+2. Define the `SupportedFeatures` property with applicable capabilities
+3. Implement radio-specific command parsing and feature methods
+4. Register the radio in `RadioFactory` and add auto-detection patterns
+5. The radio will be automatically available in both server and client
 
 ### Building from Source
 

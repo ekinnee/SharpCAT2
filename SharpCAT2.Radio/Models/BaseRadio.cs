@@ -23,6 +23,11 @@ public abstract class BaseRadio : IRadio
     public abstract string Manufacturer { get; }
 
     /// <summary>
+    /// Gets the features supported by this radio (default implementation)
+    /// </summary>
+    public virtual SupportedFeatures SupportedFeatures => SupportedFeatures.BasicOperation;
+
+    /// <summary>
     /// Gets whether the radio is currently connected
     /// </summary>
     public bool IsConnected => _serialPort?.IsOpen == true;
@@ -329,6 +334,321 @@ public abstract class BaseRadio : IRadio
     {
         // Default implementation for IF command response parsing
         // This is a simplified parser - actual implementation depends on radio protocol
+    }
+
+    // Default implementations for extended radio features
+    // These should be overridden by derived classes that support these features
+
+    /// <summary>
+    /// Gets the current VFO (A or B)
+    /// </summary>
+    public virtual async Task<string> GetVfoAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.DualVFO))
+            throw new NotSupportedException("Dual VFO not supported by this radio");
+        
+        // Default implementation - should be overridden
+        return "A";
+    }
+
+    /// <summary>
+    /// Sets the active VFO
+    /// </summary>
+    public virtual async Task<bool> SetVfoAsync(string vfo)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.DualVFO))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Swaps VFO A and VFO B frequencies
+    /// </summary>
+    public virtual async Task<bool> SwapVfoAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.VFOSwap))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Enables or disables split operation
+    /// </summary>
+    public virtual async Task<bool> SetSplitAsync(bool enabled)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.SplitOperation))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the current split operation status
+    /// </summary>
+    public virtual async Task<bool> GetSplitAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.SplitOperation))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Sets the RIT (Receiver Incremental Tuning) offset
+    /// </summary>
+    public virtual async Task<bool> SetRitAsync(int offsetHz)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.RIT))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the current RIT offset
+    /// </summary>
+    public virtual async Task<int> GetRitAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.RIT))
+            return 0;
+        
+        // Default implementation - should be overridden
+        return 0;
+    }
+
+    /// <summary>
+    /// Sets the XIT (Transmitter Incremental Tuning) offset
+    /// </summary>
+    public virtual async Task<bool> SetXitAsync(int offsetHz)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.XIT))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the current XIT offset
+    /// </summary>
+    public virtual async Task<int> GetXitAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.XIT))
+            return 0;
+        
+        // Default implementation - should be overridden
+        return 0;
+    }
+
+    /// <summary>
+    /// Sets the IF bandwidth
+    /// </summary>
+    public virtual async Task<bool> SetIfBandwidthAsync(int bandwidth)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.IFBandwidth))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the current IF bandwidth
+    /// </summary>
+    public virtual async Task<int> GetIfBandwidthAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.IFBandwidth))
+            return 0;
+        
+        // Default implementation - should be overridden
+        return 0;
+    }
+
+    /// <summary>
+    /// Sets the power output level
+    /// </summary>
+    public virtual async Task<bool> SetPowerOutputAsync(int powerPercent)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.PowerOutput))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the current power output level
+    /// </summary>
+    public virtual async Task<int> GetPowerOutputAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.PowerOutput))
+            return 0;
+        
+        // Default implementation - should be overridden
+        return 0;
+    }
+
+    /// <summary>
+    /// Gets the S-meter reading
+    /// </summary>
+    public virtual async Task<int> GetSMeterAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.SMeter))
+            return 0;
+        
+        // Default implementation - should be overridden
+        return 0;
+    }
+
+    /// <summary>
+    /// Gets the SWR reading
+    /// </summary>
+    public virtual async Task<double> GetSWRAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.SWRMeter))
+            return 1.0;
+        
+        // Default implementation - should be overridden
+        return 1.0;
+    }
+
+    /// <summary>
+    /// Sets the active antenna
+    /// </summary>
+    public virtual async Task<bool> SetAntennaAsync(int antenna)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.AntennaSelection))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the current active antenna
+    /// </summary>
+    public virtual async Task<int> GetAntennaAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.AntennaSelection))
+            return 1;
+        
+        // Default implementation - should be overridden
+        return 1;
+    }
+
+    /// <summary>
+    /// Sets a memory channel
+    /// </summary>
+    public virtual async Task<bool> SetMemoryChannelAsync(int channel, long frequency, string mode)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.MemoryChannels))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Recalls a memory channel
+    /// </summary>
+    public virtual async Task<bool> RecallMemoryChannelAsync(int channel)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.MemoryChannels))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Sets the CW keyer speed
+    /// </summary>
+    public virtual async Task<bool> SetCwSpeedAsync(int wpm)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.CWKeyer))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the current CW keyer speed
+    /// </summary>
+    public virtual async Task<int> GetCwSpeedAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.CWKeyer))
+            return 0;
+        
+        // Default implementation - should be overridden
+        return 0;
+    }
+
+    /// <summary>
+    /// Sends a CW message
+    /// </summary>
+    public virtual async Task<bool> SendCwMessageAsync(string message)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.CWMessage))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Sets the noise reduction level
+    /// </summary>
+    public virtual async Task<bool> SetNoiseReductionAsync(int level)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.NoiseReduction))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the current noise reduction level
+    /// </summary>
+    public virtual async Task<int> GetNoiseReductionAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.NoiseReduction))
+            return 0;
+        
+        // Default implementation - should be overridden
+        return 0;
+    }
+
+    /// <summary>
+    /// Powers the radio on or off
+    /// </summary>
+    public virtual async Task<bool> SetPowerAsync(bool powerOn)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.PowerOnOff))
+            return false;
+        
+        // Default implementation - should be overridden
+        return false;
+    }
+
+    /// <summary>
+    /// Gets whether the radio is powered on
+    /// </summary>
+    public virtual async Task<bool> GetPowerAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.PowerOnOff))
+            return true; // Assume powered on if we can't check
+        
+        // Default implementation - should be overridden
+        return true;
     }
 
     /// <summary>

@@ -10,6 +10,26 @@ public class KenwoodTS2000 : BaseRadio
     public override string ModelName => "TS-2000";
     public override string Manufacturer => "Kenwood";
 
+    /// <summary>
+    /// TS-2000 supports most HF features
+    /// </summary>
+    public override SupportedFeatures SupportedFeatures => 
+        SupportedFeatures.FrequencyControl | 
+        SupportedFeatures.ModeControl |
+        SupportedFeatures.DualVFO | 
+        SupportedFeatures.VFOSwap |
+        SupportedFeatures.SplitOperation |
+        SupportedFeatures.RIT | 
+        SupportedFeatures.XIT |
+        SupportedFeatures.PowerOutput |
+        SupportedFeatures.SMeter |
+        SupportedFeatures.AntennaSelection |
+        SupportedFeatures.MemoryChannels |
+        SupportedFeatures.TransmitStatus |
+        SupportedFeatures.ReceiveStatus |
+        SupportedFeatures.RadioID |
+        SupportedFeatures.PowerOnOff;
+
     protected override long ParseFrequency(string response)
     {
         // Kenwood TS-2000 format: FA00014074000;
