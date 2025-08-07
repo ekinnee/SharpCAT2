@@ -10,6 +10,22 @@ public class YaesuFT991A : BaseRadio
     public override string ModelName => "FT-991A";
     public override string Manufacturer => "Yaesu";
 
+    /// <summary>
+    /// FT-991A supports basic to intermediate features
+    /// </summary>
+    public override SupportedFeatures SupportedFeatures => 
+        SupportedFeatures.FrequencyControl | 
+        SupportedFeatures.ModeControl |
+        SupportedFeatures.DualVFO | 
+        SupportedFeatures.SplitOperation |
+        SupportedFeatures.PowerOutput |
+        SupportedFeatures.SMeter |
+        SupportedFeatures.MemoryChannels |
+        SupportedFeatures.TransmitStatus |
+        SupportedFeatures.ReceiveStatus |
+        SupportedFeatures.RadioID |
+        SupportedFeatures.DigitalModes;
+
     protected override long ParseFrequency(string response)
     {
         // Yaesu format may be different, but let's use similar to Kenwood for compatibility

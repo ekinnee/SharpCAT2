@@ -3,6 +3,10 @@ using SharpCAT2.Radio.Models;
 using SharpCAT2.Radio.Models.Yaesu;
 using SharpCAT2.Radio.Models.Kenwood;
 using SharpCAT2.Radio.Models.Elecraft;
+using SharpCAT2.Radio.Models.Icom;
+using SharpCAT2.Radio.Models.FlexRadio;
+using SharpCAT2.Radio.Models.Alinco;
+using SharpCAT2.Radio.Models.TenTec;
 
 namespace SharpCAT2.Radio;
 
@@ -15,10 +19,49 @@ public static class RadioFactory
 
     static RadioFactory()
     {
-        // Register built-in radio types
+        // Register built-in radio types by brand
+        
+        // Kenwood radios
         RegisterRadio<KenwoodTS2000>();
+        RegisterRadio<KenwoodTS890S>();
+        RegisterRadio<KenwoodTS590SG>();
+        RegisterRadio<KenwoodTHD74A>();
+        RegisterRadio<KenwoodTMD710GA>();
+        
+        // Elecraft radios
         RegisterRadio<ElecraftK3>();
+        RegisterRadio<ElecraftK4>();
+        RegisterRadio<ElecraftKX3>();
+        RegisterRadio<ElecraftK2>();
+        RegisterRadio<ElecraftK1>();
+        
+        // Yaesu radios
         RegisterRadio<YaesuFT991A>();
+        RegisterRadio<YaesuFT710>();
+        RegisterRadio<YaesuFTDX101D>();
+        RegisterRadio<YaesuFT891>();
+        RegisterRadio<YaesuFT65>();
+        
+        // Icom radios
+        RegisterRadio<IcomIC7300>();
+        RegisterRadio<IcomIC9700>();
+        
+        // FlexRadio radios
+        RegisterRadio<FlexRadio6400>();
+        RegisterRadio<FlexRadio6600>();
+        RegisterRadio<FlexRadio6700>();
+        
+        // Alinco radios
+        RegisterRadio<AlincoDXSR8T>();
+        RegisterRadio<AlincoDJMD5TGP>();
+        RegisterRadio<AlincoDR638T>();
+        RegisterRadio<AlincoDX70T>();
+        
+        // Ten-Tec radios
+        RegisterRadio<TenTecOMNIVII>();
+        RegisterRadio<TenTecEagle>();
+        RegisterRadio<TenTecArgonautV>();
+        RegisterRadio<TenTecJupiter>();
         
         // Discover additional radio types from assemblies
         DiscoverRadioTypes();
@@ -244,14 +287,72 @@ public static class RadioFactory
         // Kenwood patterns
         if (response.Contains("ID020") || response.Contains("TS-2000"))
             return CreateRadio("Kenwood", "TS-2000");
+        if (response.Contains("ID033") || response.Contains("TS-890"))
+            return CreateRadio("Kenwood", "TS-890S");
+        if (response.Contains("ID023") || response.Contains("TS-590"))
+            return CreateRadio("Kenwood", "TS-590SG");
+        if (response.Contains("TH-D74") || response.Contains("THD74"))
+            return CreateRadio("Kenwood", "TH-D74A");
+        if (response.Contains("TM-D710") || response.Contains("TMD710"))
+            return CreateRadio("Kenwood", "TM-D710GA");
 
         // Elecraft patterns  
-        if (response.Contains("K3") || response.Contains("ELECRAFT"))
+        if (response.Contains("K3") || response.Contains("ELECRAFT K3"))
             return CreateRadio("Elecraft", "K3");
+        if (response.Contains("K4") || response.Contains("ELECRAFT K4"))
+            return CreateRadio("Elecraft", "K4");
+        if (response.Contains("KX3") || response.Contains("ELECRAFT KX3"))
+            return CreateRadio("Elecraft", "KX3");
+        if (response.Contains("K2") || response.Contains("ELECRAFT K2"))
+            return CreateRadio("Elecraft", "K2");
+        if (response.Contains("K1") || response.Contains("ELECRAFT K1"))
+            return CreateRadio("Elecraft", "K1");
 
         // Yaesu patterns
         if (response.Contains("FT-991") || response.Contains("991"))
             return CreateRadio("Yaesu", "FT-991A");
+        if (response.Contains("FT-710") || response.Contains("710"))
+            return CreateRadio("Yaesu", "FT-710");
+        if (response.Contains("FT-DX101") || response.Contains("FTDX101"))
+            return CreateRadio("Yaesu", "FT-DX101D");
+        if (response.Contains("FT-891") || response.Contains("891"))
+            return CreateRadio("Yaesu", "FT-891");
+        if (response.Contains("FT-65") || response.Contains("FT65"))
+            return CreateRadio("Yaesu", "FT-65");
+
+        // Icom patterns
+        if (response.Contains("IC-7300") || response.Contains("7300"))
+            return CreateRadio("Icom", "IC-7300");
+        if (response.Contains("IC-9700") || response.Contains("9700"))
+            return CreateRadio("Icom", "IC-9700");
+
+        // FlexRadio patterns
+        if (response.Contains("FLEX-6400") || response.Contains("6400"))
+            return CreateRadio("FlexRadio", "FLEX-6400");
+        if (response.Contains("FLEX-6600") || response.Contains("6600"))
+            return CreateRadio("FlexRadio", "FLEX-6600");
+        if (response.Contains("FLEX-6700") || response.Contains("6700"))
+            return CreateRadio("FlexRadio", "FLEX-6700");
+
+        // Alinco patterns
+        if (response.Contains("DX-SR8") || response.Contains("DXSR8"))
+            return CreateRadio("Alinco", "DX-SR8T");
+        if (response.Contains("DJ-MD5") || response.Contains("DJMD5"))
+            return CreateRadio("Alinco", "DJ-MD5TGP");
+        if (response.Contains("DR-638") || response.Contains("DR638"))
+            return CreateRadio("Alinco", "DR-638T");
+        if (response.Contains("DX-70") || response.Contains("DX70"))
+            return CreateRadio("Alinco", "DX-70T");
+
+        // Ten-Tec patterns
+        if (response.Contains("OMNI") && response.Contains("VII"))
+            return CreateRadio("Ten-Tec", "OMNI VII");
+        if (response.Contains("EAGLE"))
+            return CreateRadio("Ten-Tec", "Eagle");
+        if (response.Contains("ARGONAUT") && response.Contains("V"))
+            return CreateRadio("Ten-Tec", "Argonaut V");
+        if (response.Contains("JUPITER"))
+            return CreateRadio("Ten-Tec", "Jupiter");
 
         return null;
     }

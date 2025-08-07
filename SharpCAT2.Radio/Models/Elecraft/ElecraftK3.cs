@@ -10,6 +10,31 @@ public class ElecraftK3 : BaseRadio
     public override string ModelName => "K3";
     public override string Manufacturer => "Elecraft";
 
+    /// <summary>
+    /// K3 supports advanced HF features
+    /// </summary>
+    public override SupportedFeatures SupportedFeatures => 
+        SupportedFeatures.FrequencyControl | 
+        SupportedFeatures.ModeControl |
+        SupportedFeatures.DualVFO | 
+        SupportedFeatures.VFOSwap |
+        SupportedFeatures.SplitOperation |
+        SupportedFeatures.RIT | 
+        SupportedFeatures.XIT |
+        SupportedFeatures.IFBandwidth |
+        SupportedFeatures.PowerOutput |
+        SupportedFeatures.SMeter |
+        SupportedFeatures.AntennaSelection |
+        SupportedFeatures.MemoryChannels |
+        SupportedFeatures.CWKeyer |
+        SupportedFeatures.CWSpeed |
+        SupportedFeatures.NoiseReduction |
+        SupportedFeatures.AGC |
+        SupportedFeatures.TransmitStatus |
+        SupportedFeatures.ReceiveStatus |
+        SupportedFeatures.RadioID |
+        SupportedFeatures.PowerOnOff;
+
     protected override long ParseFrequency(string response)
     {
         // Elecraft K3 format: FA00014074000;

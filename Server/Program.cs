@@ -51,6 +51,12 @@ class Program
                 ListAvailableRadios();
                 return;
             }
+
+            if (!string.IsNullOrEmpty(options.ShowRadioInfo))
+            {
+                ShowRadioInfo(options.ShowRadioInfo);
+                return;
+            }
             
             // Validate or prompt for port name
             string portName = ValidateOrPromptPortName(options.PortName);
@@ -244,6 +250,12 @@ class Program
             Console.WriteLine($"  Transmitting: {status.IsTransmitting}");
             Console.WriteLine($"  Power: {status.IsPoweredOn}");
             Console.WriteLine($"  Timestamp: {status.Timestamp:HH:mm:ss}");
+            
+            // Display supported features
+            Console.WriteLine();
+            Console.WriteLine("Supported Features:");
+            Console.WriteLine($"  Feature Count: {_connectedRadio.SupportedFeatures.GetFeatureCount()}");
+            Console.WriteLine($"  Features: {_connectedRadio.SupportedFeatures.GetDescription()}");
         }
         catch (Exception ex)
         {
@@ -266,13 +278,104 @@ class Program
         {
             foreach (var radio in radios.OrderBy(r => r.Key))
             {
-                Console.WriteLine($"  {radio.Key}");
+                // Create instance to get supported features
+                var instance = RadioFactory.CreateRadio(radio.Key);
+                if (instance != null)
+                {
+                    var featureCount = instance.SupportedFeatures.GetFeatureCount();
+                    Console.WriteLine($"  {radio.Key} ({featureCount} features)");
+                    instance.Dispose();
+                }
+                else
+                {
+                    Console.WriteLine($"  {radio.Key}");
+                }
             }
             
             Console.WriteLine();
             Console.WriteLine($"Found {radios.Count} radio model(s).");
             Console.WriteLine("Use --radio \"Manufacturer Model\" to specify a radio.");
             Console.WriteLine("Use --auto-detect to automatically detect the radio type.");
+        }
+    }
+
+    private static void ShowRadioInfo(string radioName)
+    {
+        Console.WriteLine($"Radio Information: {radioName}");
+        Console.WriteLine("====================================");
+
+        var radio = RadioFactory.CreateRadio(radioName);
+        if (radio == null)
+        {
+            Console.WriteLine($"Radio '{radioName}' not found.");
+            Console.WriteLine();
+            Console.WriteLine("Available radios:");
+            ListAvailableRadios();
+            return;
+        }
+
+        try
+        {
+            Console.WriteLine($"Manufacturer: {radio.Manufacturer}");
+            Console.WriteLine($"Model: {radio.ModelName}");
+            Console.WriteLine($"Feature Count: {radio.SupportedFeatures.GetFeatureCount()}");
+            Console.WriteLine();
+            
+            Console.WriteLine("Supported Features:");
+            Console.WriteLine("==================");
+            
+            // Display individual features
+            var features = radio.SupportedFeatures;
+            
+            if (features == SupportedFeatures.FullFeatureSet)
+            {
+                Console.WriteLine("  All features supported (Full Feature Set)");
+            }
+            else
+            {
+                var featureNames = Enum.GetValues<SupportedFeatures>()
+                    .Where(f => f != SupportedFeatures.None && 
+                               f != SupportedFeatures.FullFeatureSet && 
+                               f != SupportedFeatures.BasicOperation &&
+                               f != SupportedFeatures.HFOperation &&
+                               f != SupportedFeatures.VHFUHFOperation &&
+                               f != SupportedFeatures.AdvancedOperation &&
+                               features.HasFeature(f))
+                    .ToList();
+
+                if (featureNames.Count == 0)
+                {
+                    Console.WriteLine("  Basic operation only");
+                }
+                else
+                {
+                    foreach (var feature in featureNames.OrderBy(f => f.ToString()))
+                    {
+                        Console.WriteLine($"  ✓ {feature}");
+                    }
+                }
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("Feature Categories:");
+            Console.WriteLine("==================");
+            
+            // Check feature categories
+            if (features.HasFeature(SupportedFeatures.BasicOperation))
+                Console.WriteLine("  ✓ Basic Operation (Frequency, Mode, Status)");
+            if (features.HasFeature(SupportedFeatures.HFOperation))
+                Console.WriteLine("  ✓ HF Operation (VFO, Split, RIT/XIT, S-Meter)");
+            if (features.HasFeature(SupportedFeatures.VHFUHFOperation))
+                Console.WriteLine("  ✓ VHF/UHF Operation (Squelch, CTCSS, Repeater)");
+            if (features.HasFeature(SupportedFeatures.AdvancedOperation))
+                Console.WriteLine("  ✓ Advanced Operation (DSP, Memory, CW Keyer)");
+            
+            if (features == SupportedFeatures.FullFeatureSet)
+                Console.WriteLine("  ✓ Full Feature Set (All features supported)");
+        }
+        finally
+        {
+            radio.Dispose();
         }
     }
     
@@ -493,6 +596,10 @@ class Program
                 case "--list-radios":
                     options.ListRadios = true;
                     break;
+                case "--radio-info":
+                    if (i + 1 < args.Length)
+                        options.ShowRadioInfo = args[++i];
+                    break;
             }
         }
         
@@ -512,6 +619,7 @@ class Program
         Console.WriteLine("  --auto-detect         Auto-detect radio type");
         Console.WriteLine("  -l, --list            List available serial ports");
         Console.WriteLine("  --list-radios         List available radio models");
+        Console.WriteLine("  --radio-info <model>  Show detailed information about a radio model");
         Console.WriteLine("  -h, --help            Show this help message");
         Console.WriteLine();
         Console.WriteLine("Examples:");
@@ -538,6 +646,7 @@ class Program
         Console.WriteLine();
         Console.WriteLine("  Server --list         # List all available ports");
         Console.WriteLine("  Server --list-radios  # List all available radio models");
+        Console.WriteLine("  Server --radio-info \"Elecraft K3\"  # Show detailed radio information");
         Console.WriteLine();
         Console.WriteLine("The server provides both console interface and TCP server for remote clients.");
         Console.WriteLine("With radio support, you can send CAT commands and get radio status information.");
@@ -795,4 +904,5 @@ public class CommandLineOptions
     public string? RadioModel { get; set; }
     public bool AutoDetectRadio { get; set; }
     public bool ListRadios { get; set; }
+    public string? ShowRadioInfo { get; set; }
 }
