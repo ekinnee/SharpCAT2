@@ -238,11 +238,13 @@ class Program
             var status = await _connectedRadio.GetStatusAsync();
             Console.WriteLine("Radio Status:");
             Console.WriteLine($"  Model: {_connectedRadio.Manufacturer} {_connectedRadio.ModelName}");
-            Console.WriteLine($"  Frequency: {status.Frequency:N0} Hz");
-            Console.WriteLine($"  Mode: {status.Mode}");
-            Console.WriteLine($"  VFO: {status.CurrentVfo}");
+            Console.WriteLine($"  VFO A: {status.VfoA}");
+            Console.WriteLine($"  VFO B: {status.VfoB}");
+            Console.WriteLine($"  Active VFO: {status.CurrentVfo}");
             Console.WriteLine($"  Transmitting: {status.IsTransmitting}");
             Console.WriteLine($"  Power: {status.IsPoweredOn}");
+            Console.WriteLine($"  Antenna: {status.Antenna}");
+            Console.WriteLine($"  Signal Strength: {status.SignalStrength}");
             Console.WriteLine($"  Timestamp: {status.Timestamp:HH:mm:ss}");
         }
         catch (Exception ex)

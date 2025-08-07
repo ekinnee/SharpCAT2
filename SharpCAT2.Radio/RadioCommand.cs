@@ -85,6 +85,11 @@ public class RadioCommand
         public static RadioCommand GetFrequency => new("FA;", "Get frequency (VFO A)", true);
         public static RadioCommand SetFrequency(long frequency) => new($"FA{frequency:D11};", $"Set frequency to {frequency} Hz", true);
         
+        public static RadioCommand GetFrequencyVfoA => new("FA;", "Get frequency (VFO A)", true);
+        public static RadioCommand GetFrequencyVfoB => new("FB;", "Get frequency (VFO B)", true);
+        public static RadioCommand SetFrequencyVfoA(long frequency) => new($"FA{frequency:D11};", $"Set VFO A frequency to {frequency} Hz", true);
+        public static RadioCommand SetFrequencyVfoB(long frequency) => new($"FB{frequency:D11};", $"Set VFO B frequency to {frequency} Hz", true);
+        
         public static RadioCommand GetMode => new("MD;", "Get mode", true);
         public static RadioCommand SetMode(string mode) => new($"MD{mode};", $"Set mode to {mode}", true);
         
@@ -95,5 +100,8 @@ public class RadioCommand
         public static RadioCommand GetRigId => new("ID;", "Get rig ID", true);
         public static RadioCommand GetAntenna => new("AN;", "Get antenna", true);
         public static RadioCommand SetAntenna(int antenna) => new($"AN{antenna};", $"Set antenna to {antenna}", true);
+        
+        public static RadioCommand SwitchToVfoA => new("FR0;", "Switch to VFO A", false);
+        public static RadioCommand SwitchToVfoB => new("FR1;", "Switch to VFO B", false);
     }
 }

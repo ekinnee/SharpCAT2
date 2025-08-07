@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 
 namespace SharpCAT2.Radio.Models.Yaesu;
 
@@ -14,6 +14,17 @@ public class YaesuFT991A : BaseRadio
     {
         // Yaesu format may be different, but let's use similar to Kenwood for compatibility
         var match = Regex.Match(response, @"FA(\d{8,11})");
+        if (match.Success && long.TryParse(match.Groups[1].Value, out long freq))
+        {
+            return freq;
+        }
+        return 0;
+    }
+
+    protected override long ParseFrequencyVfoB(string response)
+    {
+        // Yaesu format may be different, but let's use similar to Kenwood for compatibility
+        var match = Regex.Match(response, @"FB(\d{8,11})");
         if (match.Success && long.TryParse(match.Groups[1].Value, out long freq))
         {
             return freq;
@@ -52,7 +63,17 @@ public class YaesuFT991A : BaseRadio
                 // Extract frequency (assuming similar position)
                 if (response.Length >= 13 && long.TryParse(response.Substring(2, 8), out long freq))
                 {
-                    status.Frequency = freq * 10; // Yaesu might use different scaling
+                    freq = freq * 10; // Yaesu might use different scaling
+                    
+                    // Update the active VFO
+                    if (status.CurrentVfo == "A")
+                    {
+                        status.VfoA.Frequency = freq;
+                    }
+                    else
+                    {
+                        status.VfoB.Frequency = freq;
+                    }
                 }
 
                 // Extract other status info - this would need to be adjusted based on actual Yaesu protocol

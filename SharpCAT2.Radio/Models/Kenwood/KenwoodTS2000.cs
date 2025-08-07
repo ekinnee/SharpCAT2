@@ -29,10 +29,18 @@ public class KenwoodTS2000 : BaseRadio
         {
             try
             {
-                // Extract frequency (positions 2-12)
+                // Extract frequency (positions 2-12) - this is the active VFO frequency
                 if (long.TryParse(response.Substring(2, 11), out long freq))
                 {
-                    status.Frequency = freq;
+                    // Update the active VFO with the frequency from IF command
+                    if (status.CurrentVfo == "A")
+                    {
+                        status.VfoA.Frequency = freq;
+                    }
+                    else
+                    {
+                        status.VfoB.Frequency = freq;
+                    }
                 }
 
                 // Extract TX status (position 28)
@@ -41,10 +49,18 @@ public class KenwoodTS2000 : BaseRadio
                     status.IsTransmitting = response[28] == '1';
                 }
 
-                // Extract mode (position 29)
+                // Extract mode (position 29) - applies to active VFO
                 if (response.Length > 29 && int.TryParse(response[29].ToString(), out int mode))
                 {
-                    status.Mode = MapModeNumber(mode);
+                    var modeString = MapModeNumber(mode);
+                    if (status.CurrentVfo == "A")
+                    {
+                        status.VfoA.Mode = modeString;
+                    }
+                    else
+                    {
+                        status.VfoB.Mode = modeString;
+                    }
                 }
 
                 // Extract VFO (position 30)

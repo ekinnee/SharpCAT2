@@ -184,28 +184,42 @@ public abstract class BaseRadio : IRadio
 
         try
         {
-            // Get frequency
-            var freqResponse = await SendCommandAsync(RadioCommand.Common.GetFrequency);
-            if (!string.IsNullOrEmpty(freqResponse))
+            // Get VFO A frequency
+            var freqAResponse = await SendCommandAsync(RadioCommand.Common.GetFrequencyVfoA);
+            if (!string.IsNullOrEmpty(freqAResponse))
             {
-                status.Frequency = ParseFrequency(freqResponse);
-                Frequency = status.Frequency;
+                var vfoAFreq = ParseFrequency(freqAResponse);
+                status.VfoA.Frequency = vfoAFreq;
             }
 
-            // Get mode
+            // Get VFO B frequency
+            var freqBResponse = await SendCommandAsync(RadioCommand.Common.GetFrequencyVfoB);
+            if (!string.IsNullOrEmpty(freqBResponse))
+            {
+                var vfoBFreq = ParseFrequencyVfoB(freqBResponse);
+                status.VfoB.Frequency = vfoBFreq;
+            }
+
+            // Get mode (this typically returns the mode for the active VFO)
             var modeResponse = await SendCommandAsync(RadioCommand.Common.GetMode);
             if (!string.IsNullOrEmpty(modeResponse))
             {
-                status.Mode = ParseMode(modeResponse);
-                Mode = status.Mode;
+                var mode = ParseMode(modeResponse);
+                // Set mode for both VFOs initially (may be overridden by transceiver info)
+                status.VfoA.Mode = mode;
+                status.VfoB.Mode = mode;
+                Mode = mode;
             }
 
-            // Get transceiver info
+            // Get transceiver info which contains active VFO and other details
             var txResponse = await SendCommandAsync(RadioCommand.Common.GetTransmitStatus);
             if (!string.IsNullOrEmpty(txResponse))
             {
                 ParseTransceiverInfo(txResponse, status);
             }
+
+            // Update local frequency property to match active VFO
+            Frequency = status.Frequency;
         }
         catch (Exception ex)
         {
@@ -276,6 +290,22 @@ public abstract class BaseRadio : IRadio
     {
         // Default implementation for Kenwood/Elecraft style: FA00014074000;
         var match = Regex.Match(response, @"FA(\d{11})");
+        if (match.Success && long.TryParse(match.Groups[1].Value, out long freq))
+        {
+            return freq;
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Parses VFO B frequency from response (can be overridden by derived classes)
+    /// </summary>
+    /// <param name="response">Response string</param>
+    /// <returns>Frequency in Hz</returns>
+    protected virtual long ParseFrequencyVfoB(string response)
+    {
+        // Default implementation for Kenwood/Elecraft style: FB00014074000;
+        var match = Regex.Match(response, @"FB(\d{11})");
         if (match.Success && long.TryParse(match.Groups[1].Value, out long freq))
         {
             return freq;
