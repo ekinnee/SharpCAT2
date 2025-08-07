@@ -5,6 +5,9 @@ namespace SharpCAT2.Server;
 
 class Program
 {
+    // Supported baud rates for serial communication
+    private static readonly int[] SupportedBaudRates = { 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 };
+    
     private static void Main(string[] args)
     {
         Console.WriteLine("SharpCAT2 Server - Cross-Platform Serial Port Communication");
@@ -129,7 +132,18 @@ class Program
                 case "-b":
                 case "--baud":
                     if (i + 1 < args.Length && int.TryParse(args[++i], out int baud))
-                        options.BaudRate = baud;
+                    {
+                        if (IsValidBaudRate(baud))
+                        {
+                            options.BaudRate = baud;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Error: Unsupported baud rate '{baud}'.");
+                            ShowSupportedBaudRates();
+                            Environment.Exit(1);
+                        }
+                    }
                     break;
                 case "-l":
                 case "--list":
@@ -152,6 +166,7 @@ class Program
         Console.WriteLine("Options:");
         Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0)");
         Console.WriteLine("  -b, --baud <rate>     Baud rate (default: 9600)");
+        Console.WriteLine("                        Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000");
         Console.WriteLine("  -l, --list            List available serial ports");
         Console.WriteLine("  -h, --help            Show this help message");
         Console.WriteLine();
@@ -405,6 +420,17 @@ class Program
         {
             return "Check that the port is not in use by another application";
         }
+    }
+    
+    private static bool IsValidBaudRate(int baudRate)
+    {
+        return SupportedBaudRates.Contains(baudRate);
+    }
+    
+    private static void ShowSupportedBaudRates()
+    {
+        Console.WriteLine("Supported baud rates:");
+        Console.WriteLine(string.Join(", ", SupportedBaudRates));
     }
 }
 

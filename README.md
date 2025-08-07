@@ -66,7 +66,7 @@ dotnet run -- --port COM1 --baud 115200
 | Option | Short | Description | Example |
 |--------|-------|-------------|---------|
 | `--port` | `-p` | Serial port name | `--port COM1` |
-| `--baud` | `-b` | Baud rate (default: 9600) | `--baud 115200` |
+| `--baud` | `-b` | Baud rate (default: 9600)<br/>Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 | `--baud 115200` |
 | `--list` | `-l` | List available ports | `--list` |
 | `--help` | `-h` | Show help message | `--help` |
 
@@ -80,6 +80,29 @@ When no port is specified, the application will:
 ```bash
 # Interactive mode - will prompt for port selection
 dotnet run
+```
+
+## Supported Baud Rates
+
+The server supports the following standard baud rates for serial communication:
+
+- **9600** (default)
+- **14400**
+- **19200**
+- **28800**
+- **38400**
+- **57600**
+- **115200**
+- **128000**
+- **256000**
+
+If you specify an unsupported baud rate, the application will display an error message with the list of supported rates and exit. This restriction ensures compatibility with common serial devices and prevents configuration errors.
+
+**Example with unsupported baud rate:**
+```bash
+dotnet run -- --port COM1 --baud 12345
+# Output: Error: Unsupported baud rate '12345'.
+#         Supported baud rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000
 ```
 
 ## Platform-Specific Setup
