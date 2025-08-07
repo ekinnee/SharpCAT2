@@ -1,4 +1,4 @@
-﻿using System.IO.Ports;
+﻿using SharpCAT2.Radio.Serial;
 
 namespace SharpCAT2.Radio;
 
@@ -42,7 +42,7 @@ public interface IRadio : IDisposable
     /// </summary>
     /// <param name="port">Serial port to use for communication</param>
     /// <returns>True if connection successful, false otherwise</returns>
-    Task<bool> ConnectAsync(SerialPort port);
+    Task<bool> ConnectAsync(ISerialPort port);
 
     /// <summary>
     /// Disconnects from the radio
