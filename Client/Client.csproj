@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <Compile Remove="ClientLib.cs" />
+    <Compile Remove="ClientConfig.cs" />
   </ItemGroup>
 
   <ItemGroup>

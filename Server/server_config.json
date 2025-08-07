@@ -1,0 +1,7 @@
+{
+  "serialPort": "COM1",
+  "radio": "",
+  "baudRate": 9600,
+  "tcpPort": 8080,
+  "autoDetectRadio": true
+}

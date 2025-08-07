@@ -43,6 +43,11 @@ class Program
     private static CancellationTokenSource? _cancellationTokenSource;
 
     /// <summary>
+    /// Configuration for the server application
+    /// </summary>
+    private static ServerConfig? _config;
+
+    /// <summary>
     /// Array of supported baud rates for serial communication.
     /// These rates are validated to ensure compatibility with common radio interfaces.
     /// </summary>
@@ -68,8 +73,15 @@ class Program
             // Display platform information
             DisplayPlatformInfo();
             
+            // Load configuration
+            const string configPath = "server_config.json";
+            _config = await ServerConfig.LoadAsync(configPath);
+            
             // Parse command line arguments
             var options = ParseArguments(args);
+            
+            // Apply configuration to options if not overridden by command line
+            _config.ApplyToCommandLineOptions(options);
             
             if (options.ShowHelp)
             {
@@ -126,6 +138,15 @@ class Program
             // Set up serial port data received handler
             _serialPort.DataReceived += OnSerialDataReceived;
             
+            // Set up graceful shutdown handler
+            Console.CancelKeyPress += async (sender, e) =>
+            {
+                e.Cancel = true;
+                Console.WriteLine("\nShutting down gracefully...");
+                await SaveConfigurationAsync(options);
+                Environment.Exit(0);
+            };
+            
             // Main communication loop
             string? input;
             while ((input = Console.ReadLine()) != "q")
@@ -160,11 +181,14 @@ class Program
                 }
             }
             
-            // Cleanup
+            // Cleanup and save configuration
             _cancellationTokenSource.Cancel();
             _tcpListener?.Stop();
             _connectedRadio?.Dispose();
             _serialPort?.Close();
+            
+            // Save configuration on normal shutdown
+            await SaveConfigurationAsync(options);
         }
         catch (Exception ex)
         {
@@ -983,6 +1007,26 @@ class Program
     {
         Console.WriteLine("Supported baud rates:");
         Console.WriteLine(string.Join(", ", SupportedBaudRates));
+    }
+
+    #endregion
+
+    #region Configuration Management
+
+    /// <summary>
+    /// Saves the current configuration to file
+    /// </summary>
+    /// <param name="options">Current command line options to save</param>
+    private static async Task SaveConfigurationAsync(CommandLineOptions options)
+    {
+        if (_config != null)
+        {
+            // Update configuration with current settings
+            _config.UpdateFromCommandLineOptions(options);
+            
+            const string configPath = "server_config.json";
+            await _config.SaveAsync(configPath);
+        }
     }
 
     #endregion
