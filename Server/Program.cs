@@ -15,12 +15,10 @@ class Program
     private static TcpListener? _tcpListener;
     private static CancellationTokenSource? _cancellationTokenSource;
 
-    private static async Task Main(string[] args)
-
     // Supported baud rates for serial communication
     private static readonly int[] SupportedBaudRates = { 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 };
     
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
 
     {
         Console.WriteLine("SharpCAT2 Server - Cross-Platform Serial Port Communication");
