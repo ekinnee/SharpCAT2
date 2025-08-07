@@ -1,5 +1,7 @@
 ﻿using System.IO.Ports;
 using System.Runtime.InteropServices;
+using SharpCAT2.Radio;
+using SharpCAT2.Radio.Models;
 
 namespace SharpCAT2.Server;
 
@@ -8,7 +10,7 @@ class Program
     // Supported baud rates for serial communication
     private static readonly int[] SupportedBaudRates = { 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 };
     
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         Console.WriteLine("SharpCAT2 Server - Cross-Platform Serial Port Communication");
         Console.WriteLine("============================================================");
@@ -33,53 +35,25 @@ class Program
                 return;
             }
             
+            if (options.ListRadios)
+            {
+                ListSupportedRadios();
+                return;
+            }
+            
             // Validate or prompt for port name
             string portName = ValidateOrPromptPortName(options.PortName);
             
-            // Open and configure serial port
-            using var serialPort = OpenSerialPort(portName, options.BaudRate);
-            
-            Console.WriteLine($"Successfully opened serial port: {portName}");
-            Console.WriteLine($"Baud rate: {options.BaudRate}");
-            Console.WriteLine("Press 'q' to quit, or type messages to send...");
-            
-            // Start listening for incoming data
-            serialPort.DataReceived += (sender, e) =>
+            // Determine operation mode
+            if (options.RawMode || (string.IsNullOrEmpty(options.Manufacturer) && string.IsNullOrEmpty(options.Model)))
             {
-                try
-                {
-                    if (sender is SerialPort port && port.IsOpen)
-                    {
-                        string data = port.ReadExisting();
-                        if (!string.IsNullOrEmpty(data))
-                        {
-                            Console.Write($"Received: {data}");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error reading data: {ex.Message}");
-                }
-            };
-            
-            // Main communication loop
-            string? input;
-            while ((input = Console.ReadLine()) != "q")
+                // Raw serial mode
+                await RunRawSerialMode(portName, options.BaudRate);
+            }
+            else
             {
-                if (!string.IsNullOrEmpty(input))
-                {
-                    try
-                    {
-                        serialPort.WriteLine(input);
-                        Console.WriteLine($"Sent: {input}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error sending data: {ex.Message}");
-                        break;
-                    }
-                }
+                // Radio abstraction mode
+                await RunRadioMode(portName, options);
             }
         }
         catch (Exception ex)
@@ -149,6 +123,23 @@ class Program
                 case "--list":
                     options.ListPorts = true;
                     break;
+                case "-m":
+                case "--manufacturer":
+                    if (i + 1 < args.Length)
+                        options.Manufacturer = args[++i];
+                    break;
+                case "-r":
+                case "--radio":
+                case "--model":
+                    if (i + 1 < args.Length)
+                        options.Model = args[++i];
+                    break;
+                case "--list-radios":
+                    options.ListRadios = true;
+                    break;
+                case "--raw":
+                    options.RawMode = true;
+                    break;
                 case "-h":
                 case "--help":
                     options.ShowHelp = true;
@@ -164,32 +155,57 @@ class Program
         Console.WriteLine("Usage: Server [options]");
         Console.WriteLine();
         Console.WriteLine("Options:");
-        Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0)");
-        Console.WriteLine("  -b, --baud <rate>     Baud rate (default: 9600)");
-        Console.WriteLine("                        Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000");
-        Console.WriteLine("  -l, --list            List available serial ports");
-        Console.WriteLine("  -h, --help            Show this help message");
+        Console.WriteLine("  -p, --port <name>         Serial port name (e.g., COM1, /dev/ttyUSB0)");
+        Console.WriteLine("  -b, --baud <rate>         Baud rate (default: 9600)");
+        Console.WriteLine("                            Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000");
+        Console.WriteLine("  -m, --manufacturer <name> Radio manufacturer (Icom, Yaesu, Kenwood, Elecraft, FlexRadio)");
+        Console.WriteLine("  -r, --model <name>        Radio model");
+        Console.WriteLine("  -l, --list                List available serial ports");
+        Console.WriteLine("  --list-radios             List supported radio models");
+        Console.WriteLine("  --raw                     Force raw serial communication mode");
+        Console.WriteLine("  -h, --help                Show this help message");
         Console.WriteLine();
         Console.WriteLine("Examples:");
+        Console.WriteLine("  # Radio abstraction mode:");
         
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            Console.WriteLine("  Server --port COM1 --baud 115200");
-            Console.WriteLine("  Server -p COM3");
+            Console.WriteLine("  Server --manufacturer Icom --model IC-7300 --port COM1 --baud 115200");
+            Console.WriteLine("  Server -m Yaesu -r FT-991A -p COM3");
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            Console.WriteLine("  Server --port /dev/ttyUSB0 --baud 115200");
-            Console.WriteLine("  Server -p /dev/ttyACM0");
+            Console.WriteLine("  Server --manufacturer Icom --model IC-7300 --port /dev/ttyUSB0 --baud 115200");
+            Console.WriteLine("  Server -m Yaesu -r FT-991A -p /dev/ttyACM0");
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            Console.WriteLine("  Server --port /dev/cu.usbserial-1410 --baud 115200");
-            Console.WriteLine("  Server -p /dev/cu.usbmodem1411");
+            Console.WriteLine("  Server --manufacturer Icom --model IC-7300 --port /dev/cu.usbserial-1410 --baud 115200");
+            Console.WriteLine("  Server -m Yaesu -r FT-991A -p /dev/cu.usbmodem1411");
         }
         
         Console.WriteLine();
-        Console.WriteLine("  Server --list         # List all available ports");
+        Console.WriteLine("  # Raw serial mode:");
+        
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Console.WriteLine("  Server --raw --port COM1 --baud 115200");
+            Console.WriteLine("  Server --port COM3       # Defaults to raw mode when no radio specified");
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            Console.WriteLine("  Server --raw --port /dev/ttyUSB0 --baud 115200");
+            Console.WriteLine("  Server --port /dev/ttyACM0       # Defaults to raw mode when no radio specified");
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            Console.WriteLine("  Server --raw --port /dev/cu.usbserial-1410 --baud 115200");
+            Console.WriteLine("  Server --port /dev/cu.usbmodem1411       # Defaults to raw mode when no radio specified");
+        }
+        
+        Console.WriteLine();
+        Console.WriteLine("  Server --list             # List all available ports");
+        Console.WriteLine("  Server --list-radios      # List all supported radios");
     }
     
     private static void ListAvailablePorts()
@@ -432,6 +448,228 @@ class Program
         Console.WriteLine("Supported baud rates:");
         Console.WriteLine(string.Join(", ", SupportedBaudRates));
     }
+    
+    private static async Task RunRawSerialMode(string portName, int baudRate)
+    {
+        // Open and configure serial port
+        using var serialPort = OpenSerialPort(portName, baudRate);
+        
+        Console.WriteLine($"Successfully opened serial port: {portName}");
+        Console.WriteLine($"Baud rate: {baudRate}");
+        Console.WriteLine("Press 'q' to quit, or type messages to send...");
+        
+        // Start listening for incoming data
+        serialPort.DataReceived += (sender, e) =>
+        {
+            try
+            {
+                if (sender is SerialPort port && port.IsOpen)
+                {
+                    string data = port.ReadExisting();
+                    if (!string.IsNullOrEmpty(data))
+                    {
+                        Console.Write($"Received: {data}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading data: {ex.Message}");
+            }
+        };
+        
+        // Main communication loop
+        string? input;
+        while ((input = Console.ReadLine()) != "q")
+        {
+            if (!string.IsNullOrEmpty(input))
+            {
+                try
+                {
+                    serialPort.WriteLine(input);
+                    Console.WriteLine($"Sent: {input}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error sending data: {ex.Message}");
+                    break;
+                }
+            }
+        }
+        
+        await Task.CompletedTask;
+    }
+    
+    private static async Task RunRadioMode(string portName, CommandLineOptions options)
+    {
+        // Prompt for radio selection if not provided
+        if (string.IsNullOrEmpty(options.Manufacturer) || string.IsNullOrEmpty(options.Model))
+        {
+            PromptForRadioSelection(options);
+        }
+        
+        // Create radio instance
+        var radio = RadioFactory.CreateRadio(options.Manufacturer!, options.Model!);
+        Console.WriteLine($"Created radio: {radio.Manufacturer} {radio.Model} ({radio.Protocol})");
+        
+        // Connect to radio
+        Console.WriteLine($"Connecting to {radio.Manufacturer} {radio.Model} on {portName}...");
+        bool connected = await radio.ConnectAsync(portName, options.BaudRate);
+        
+        if (!connected)
+        {
+            Console.WriteLine("Failed to connect to radio.");
+            return;
+        }
+        
+        Console.WriteLine("Successfully connected to radio!");
+        Console.WriteLine("Commands: freq, mode, quit");
+        
+        // Interactive command loop
+        await RunRadioInteractiveSession(radio);
+    }
+    
+    private static async Task RunRadioInteractiveSession(IRadio radio)
+    {
+        using (radio)
+        {
+            while (true)
+            {
+                Console.Write("CAT> ");
+                var input = Console.ReadLine()?.Trim().ToLowerInvariant();
+                
+                if (string.IsNullOrEmpty(input))
+                    continue;
+                
+                try
+                {
+                    switch (input)
+                    {
+                        case "quit":
+                        case "exit":
+                        case "q":
+                            return;
+                            
+                        case "freq":
+                        case "frequency":
+                            var freq = await radio.GetFrequencyAsync();
+                            Console.WriteLine($"Frequency: {freq:N0} Hz ({freq / 1_000_000.0:F3} MHz)");
+                            break;
+                            
+                        case "mode":
+                            var mode = await radio.GetModeAsync();
+                            Console.WriteLine($"Mode: {mode}");
+                            break;
+                            
+                        case "help":
+                            Console.WriteLine("Available commands:");
+                            Console.WriteLine("  freq     - Get current frequency");
+                            Console.WriteLine("  mode     - Get current mode");
+                            Console.WriteLine("  quit     - Exit application");
+                            break;
+                            
+                        default:
+                            if (input.StartsWith("freq "))
+                            {
+                                var freqStr = input.Substring(5);
+                                if (long.TryParse(freqStr, out long newFreq))
+                                {
+                                    await radio.SetFrequencyAsync(newFreq);
+                                    Console.WriteLine($"Frequency set to {newFreq:N0} Hz");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Invalid frequency format. Use Hz (e.g., 14230000)");
+                                }
+                            }
+                            else if (input.StartsWith("mode "))
+                            {
+                                var modeStr = input.Substring(5).ToUpperInvariant();
+                                if (Enum.TryParse<RadioMode>(modeStr, out var newMode))
+                                {
+                                    await radio.SetModeAsync(newMode);
+                                    Console.WriteLine($"Mode set to {newMode}");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Invalid mode. Available: LSB, USB, CW, FM, AM, Digital");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Unknown command. Type 'help' for available commands.");
+                            }
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Command error: {ex.Message}");
+                }
+            }
+        }
+    }
+    
+    private static void ListSupportedRadios()
+    {
+        Console.WriteLine("Supported Radio Manufacturers and Models:");
+        Console.WriteLine("========================================");
+        
+        foreach (var manufacturer in RadioFactory.GetSupportedManufacturers())
+        {
+            Console.WriteLine($"\n{manufacturer}:");
+            var models = RadioFactory.GetSupportedModels(manufacturer);
+            foreach (var model in models)
+            {
+                Console.WriteLine($"  - {model}");
+            }
+        }
+    }
+    
+    private static void PromptForRadioSelection(CommandLineOptions options)
+    {
+        if (string.IsNullOrEmpty(options.Manufacturer))
+        {
+            Console.WriteLine("Available manufacturers:");
+            var manufacturers = RadioFactory.GetSupportedManufacturers().ToArray();
+            for (int i = 0; i < manufacturers.Length; i++)
+            {
+                Console.WriteLine($"{i + 1}. {manufacturers[i]}");
+            }
+            
+            Console.Write($"Select manufacturer (1-{manufacturers.Length}): ");
+            var input = Console.ReadLine();
+            if (int.TryParse(input, out int selection) && selection >= 1 && selection <= manufacturers.Length)
+            {
+                options.Manufacturer = manufacturers[selection - 1];
+            }
+            else
+            {
+                throw new ArgumentException("Invalid manufacturer selection");
+            }
+        }
+        
+        if (string.IsNullOrEmpty(options.Model))
+        {
+            Console.WriteLine($"\nAvailable {options.Manufacturer} models:");
+            var models = RadioFactory.GetSupportedModels(options.Manufacturer!).ToArray();
+            for (int i = 0; i < models.Length; i++)
+            {
+                Console.WriteLine($"{i + 1}. {models[i]}");
+            }
+            
+            Console.Write($"Select model (1-{models.Length}): ");
+            var input = Console.ReadLine();
+            if (int.TryParse(input, out int selection) && selection >= 1 && selection <= models.Length)
+            {
+                options.Model = models[selection - 1];
+            }
+            else
+            {
+                throw new ArgumentException("Invalid model selection");
+            }
+        }
+    }
 }
 
 public class CommandLineOptions
@@ -440,4 +678,8 @@ public class CommandLineOptions
     public int BaudRate { get; set; } = 9600;
     public bool ListPorts { get; set; }
     public bool ShowHelp { get; set; }
+    public string? Manufacturer { get; set; }
+    public string? Model { get; set; }
+    public bool ListRadios { get; set; }
+    public bool RawMode { get; set; }
 }
