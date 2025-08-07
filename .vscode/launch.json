@@ -2,13 +2,38 @@
     "version": "0.2.0",
     "configurations": [
         {
+            // Debug configuration for the SharpCAT2 Server
+            "name": "Launch Server",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-server",
+            "program": "${workspaceFolder}/Server/bin/Debug/net8.0/Server.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/Server",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
+            // Debug configuration for the SharpCAT2 Client
+            "name": "Launch Client",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-client",
+            "program": "${workspaceFolder}/Client/bin/Debug/net8.0/SharpCAT2.Client.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/Client",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
+            // Legacy configuration for backward compatibility
             "name": ".NET Launch (console)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/SharpCAT2/bin/Debug/net8.0/SharpCAT2.dll",
+            "program": "${workspaceFolder}/Server/bin/Debug/net8.0/Server.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/SharpCAT2",
+            "cwd": "${workspaceFolder}/Server",
             "stopAtEntry": false,
             "console": "internalConsole"
         }
