@@ -12,6 +12,9 @@ A cross-platform .NET serial port communication server application that provides
 - **TCP Server**: Remote client access via TCP connections
 - **Client Library**: .NET library for programmatic access to remote serial ports
 - **Client Console App**: Interactive console application for remote serial communication
+- **Radio Support**: Built-in support for popular amateur radio models with CAT (Computer Aided Transceiver) control
+- **Auto-Detection**: Automatic radio type detection and configuration
+- **Extensible Architecture**: Plugin-style radio model support through the SharpCAT2.Radio namespace
 - **Graceful Error Handling**: Both server and client handle connection and communication errors without crashing
 
 ## Requirements
@@ -67,6 +70,12 @@ dotnet run -- --port /dev/cu.usbserial-1410  # macOS
 
 # Connect with custom baud rate and TCP port
 dotnet run -- --port COM1 --baud 115200 --tcp-port 9090
+
+# Connect with radio support
+dotnet run -- --port COM1 --radio "Kenwood TS-2000"
+
+# Auto-detect radio type
+dotnet run -- --port COM1 --auto-detect
 ```
 
 #### Command-Line Options
@@ -74,14 +83,37 @@ dotnet run -- --port COM1 --baud 115200 --tcp-port 9090
 | Option | Short | Description | Example |
 |--------|-------|-------------|---------|
 | `--port` | `-p` | Serial port name | `--port COM1` |
-
-| `--baud` | `-b` | Baud rate (default: 9600) | `--baud 115200` |
-| `--tcp-port` | `-t` | TCP server port (default: 8080) | `--tcp-port 9090` |
-
 | `--baud` | `-b` | Baud rate (default: 9600)<br/>Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 | `--baud 115200` |
-
+| `--tcp-port` | `-t` | TCP server port (default: 8080) | `--tcp-port 9090` |
+| `--radio` | `-r` | Radio model name | `--radio "Kenwood TS-2000"` |
+| `--auto-detect` | | Auto-detect radio type | `--auto-detect` |
 | `--list` | `-l` | List available ports | `--list` |
+| `--list-radios` | | List available radio models | `--list-radios` |
 | `--help` | `-h` | Show help message | `--help` |
+
+#### Supported Radio Models
+
+The following radio models are currently supported:
+
+- **Kenwood TS-2000** - Full CAT command support
+- **Elecraft K3** - Full CAT command support  
+- **Yaesu FT-991A** - Basic CAT command support
+
+To see all available radio models:
+```bash
+dotnet run -- --list-radios
+```
+
+#### Radio Commands
+
+When a radio is connected, you can use these additional commands in the server console:
+
+- `s` - Show current radio status (frequency, mode, etc.)
+- `FA;` - Get frequency (VFO A)
+- `FA14074000;` - Set frequency to 14.074 MHz
+- `MD;` - Get operating mode
+- `MD2;` - Set mode to USB
+- `ID;` - Get radio identification
 
 ### Client Library and Application
 
@@ -167,10 +199,20 @@ dotnet run
 #### Client Interactive Mode
 
 The client application provides an interactive command loop:
-- Type commands to send to the remote serial port
+- Type commands to send to the remote serial port/radio
 - Type `help` for available client commands
 - Type `status` to check connection status
+- Type `radio-status` or `rs` to get radio status
+- Type `list-radios` or `radios` to see available radio models
 - Type `quit` or `exit` to disconnect and exit
+
+#### Client Radio Commands
+
+When connected to a server with radio support, you can send these commands:
+- `FA;` - Get frequency
+- `FA14074000;` - Set frequency to 14.074 MHz
+- `MD;` - Get mode
+- `ID;` - Get radio ID
 
 ## Supported Baud Rates
 
@@ -346,26 +388,56 @@ SharpCAT2/
 │   ├── SharpCAT2.ClientLib.csproj  # Client library project file
 │   ├── Client.csproj       # Client console app project file
 │   └── bin/Debug/          # Build output
-├── README.md               # This file
-└── LICENSE                 # License information
+├── SharpCAT2.Radio/        # Radio support library
+│   ├── IRadio.cs           # Radio interface definition
+│   ├── RadioCommand.cs     # Radio command abstraction
+│   ├── RadioStatus.cs      # Radio status information
+│   ├── RadioFactory.cs     # Dynamic radio creation and discovery
+│   ├── Models/             # Radio model implementations
+│   │   ├── BaseRadio.cs    # Abstract base radio implementation
+│   │   ├── KenwoodTS2000.cs # Kenwood TS-2000 implementation
+│   │   ├── ElecraftK3.cs   # Elecraft K3 implementation
+│   │   └── YaesuFT991A.cs  # Yaesu FT-991A implementation
+│   ├── SharpCAT2.Radio.csproj # Radio library project file
 ```
 
 ### Dependencies
 
 - **System.IO.Ports**: Cross-platform serial port communication
 - **.NET 8.0**: Runtime platform
+- **SharpCAT2.Radio**: Radio control and CAT interface library
+
+### Radio Architecture
+
+The radio support is implemented through the `SharpCAT2.Radio` namespace which provides:
+
+- **IRadio Interface**: Defines the contract for radio communication
+- **RadioCommand**: Encapsulates radio commands with parameters and metadata
+- **RadioStatus**: Represents radio state information
+- **RadioFactory**: Dynamic radio discovery and instantiation
+- **BaseRadio**: Abstract base class providing common functionality
+- **Model-Specific Implementations**: Concrete radio classes for different manufacturers
+
+To add support for a new radio model:
+
+1. Create a new class inheriting from `BaseRadio`
+2. Implement radio-specific command parsing
+3. Register the radio in `RadioFactory` or let auto-discovery find it
+4. The radio will be automatically available in both server and client
 
 ### Building from Source
 
 ```bash
 # Clone repository
 git clone https://github.com/ekinnee/SharpCAT2.git
-cd SharpCAT2/Server
+cd SharpCAT2
 
-# Restore dependencies
+# Build entire solution
+dotnet build SharpCAT2.sln
+
+# Or build individual projects
+cd Server
 dotnet restore
-
-# Build
 dotnet build
 
 # Run tests (if any)

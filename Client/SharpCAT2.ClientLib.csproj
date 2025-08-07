@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../SharpCAT2.Radio/SharpCAT2.Radio.csproj" />
+  </ItemGroup>
+
 </Project>
