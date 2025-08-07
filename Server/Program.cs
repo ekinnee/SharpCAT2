@@ -8,18 +8,55 @@ using SharpCAT2.Radio;
 
 namespace SharpCAT2.Server;
 
+/// <summary>
+/// Main program class for the SharpCAT2 Server application.
+/// Provides cross-platform serial port communication with TCP server capabilities
+/// and comprehensive amateur radio control features.
+/// </summary>
 class Program
 {
+    #region Private Fields
 
+    /// <summary>
+    /// Thread-safe collection of connected TCP clients and their network streams
+    /// </summary>
     private static readonly ConcurrentDictionary<string, NetworkStream> _tcpClients = new();
+    
+    /// <summary>
+    /// The serial port connection for radio communication
+    /// </summary>
     private static SerialPort? _serialPort;
+    
+    /// <summary>
+    /// The connected radio instance providing CAT control
+    /// </summary>
     private static IRadio? _connectedRadio;
+    
+    /// <summary>
+    /// TCP listener for accepting remote client connections
+    /// </summary>
     private static TcpListener? _tcpListener;
+    
+    /// <summary>
+    /// Cancellation token source for graceful shutdown
+    /// </summary>
     private static CancellationTokenSource? _cancellationTokenSource;
 
-    // Supported baud rates for serial communication
+    /// <summary>
+    /// Array of supported baud rates for serial communication.
+    /// These rates are validated to ensure compatibility with common radio interfaces.
+    /// </summary>
     private static readonly int[] SupportedBaudRates = { 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 };
-    
+
+    #endregion
+
+    /// <summary>
+    /// Main entry point for the SharpCAT2 Server application.
+    /// Handles command line parsing, serial port setup, radio initialization, 
+    /// TCP server startup, and the main communication loop.
+    /// </summary>
+    /// <param name="args">Command line arguments</param>
+    /// <returns>Task representing the async operation</returns>
     private static async Task Main(string[] args)
 
     {
@@ -136,6 +173,16 @@ class Program
         }
     }
 
+    #region Radio Initialization
+
+    /// <summary>
+    /// Initializes radio communication based on command line options.
+    /// Supports both automatic radio detection and manual radio model specification.
+    /// If radio initialization fails, the application continues with basic serial communication.
+    /// </summary>
+    /// <param name="options">Parsed command line options containing radio settings</param>
+    /// <param name="serialPort">The serial port to use for radio communication</param>
+    /// <returns>Task representing the async initialization operation</returns>
     private static async Task InitializeRadioAsync(CommandLineOptions options, SerialPort serialPort)
     {
         try
@@ -186,6 +233,17 @@ class Program
         }
     }
 
+    #endregion
+
+    #region Radio Command Processing
+
+    /// <summary>
+    /// Attempts to process user input as a radio command.
+    /// Supports both CAT commands (ending with semicolon) and convenient shortcuts
+    /// like 'freq' and 'mode' for common operations.
+    /// </summary>
+    /// <param name="input">User input to process as a radio command</param>
+    /// <returns>True if the input was processed as a radio command, false otherwise</returns>
     private static async Task<bool> TryRadioCommandAsync(string input)
     {
         if (_connectedRadio == null)
@@ -231,6 +289,12 @@ class Program
         }
     }
 
+    /// <summary>
+    /// Displays comprehensive status information for the connected radio.
+    /// Shows current frequency, mode, VFO settings, transmission status,
+    /// supported features, and other relevant radio state information.
+    /// </summary>
+    /// <returns>Task representing the async status retrieval operation</returns>
     private static async Task ShowRadioStatusAsync()
     {
         if (_connectedRadio == null)
@@ -378,7 +442,19 @@ class Program
             radio.Dispose();
         }
     }
-    
+
+    #endregion
+
+    #region TCP Server Management
+
+    /// <summary>
+    /// Starts the TCP server for accepting remote client connections.
+    /// The server runs on a background task and accepts multiple concurrent clients.
+    /// Each client connection is handled independently with proper error handling.
+    /// </summary>
+    /// <param name="port">TCP port number to listen on</param>
+    /// <param name="cancellationToken">Token for graceful shutdown</param>
+    /// <returns>Task representing the async server startup operation</returns>
     private static async Task StartTcpServerAsync(int port, CancellationToken cancellationToken)
     {
         _tcpListener = new TcpListener(IPAddress.Any, port);
@@ -515,7 +591,16 @@ class Program
             _tcpClients.TryRemove(clientId, out _);
         }
     }
-    
+
+    #endregion
+
+    #region Platform and Configuration
+
+    /// <summary>
+    /// Displays platform-specific information and guidance for serial port usage.
+    /// Provides appropriate port naming conventions and setup instructions for 
+    /// Windows, Linux, and macOS platforms.
+    /// </summary>
     private static void DisplayPlatformInfo()
     {
         string platform = "Unknown";
@@ -543,6 +628,13 @@ class Program
         Console.WriteLine();
     }
     
+    /// <summary>
+    /// Parses command line arguments into a structured options object.
+    /// Handles all supported command line switches including port settings,
+    /// radio configuration, and information display options.
+    /// </summary>
+    /// <param name="args">Command line arguments array</param>
+    /// <returns>Parsed command line options</returns>
     private static CommandLineOptions ParseArguments(string[] args)
     {
         var options = new CommandLineOptions();
@@ -892,17 +984,80 @@ class Program
         Console.WriteLine("Supported baud rates:");
         Console.WriteLine(string.Join(", ", SupportedBaudRates));
     }
+
+    #endregion
 }
 
+/// <summary>
+/// Represents command line options for the SharpCAT2 Server application.
+/// Contains all configurable parameters that can be specified via command line arguments.
+/// </summary>
 public class CommandLineOptions
 {
+    #region Serial Port Configuration
+
+    /// <summary>
+    /// Gets or sets the serial port name (e.g., COM1, /dev/ttyUSB0).
+    /// If null, the application will prompt for port selection.
+    /// </summary>
     public string? PortName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the baud rate for serial communication.
+    /// Default is 9600. Must be one of the supported rates defined in SupportedBaudRates.
+    /// </summary>
     public int BaudRate { get; set; } = 9600;
+
+    #endregion
+
+    #region Network Configuration
+
+    /// <summary>
+    /// Gets or sets the TCP port for the remote client server.
+    /// Default is 8080. Remote clients connect to this port to send commands.
+    /// </summary>
     public int TcpPort { get; set; } = 8080;
-    public bool ListPorts { get; set; }
-    public bool ShowHelp { get; set; }
+
+    #endregion
+
+    #region Radio Configuration
+
+    /// <summary>
+    /// Gets or sets the radio model name for CAT control.
+    /// Should match one of the available radio models from RadioFactory.
+    /// </summary>
     public string? RadioModel { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to automatically detect the connected radio type.
+    /// When true, the application will attempt to identify the radio model.
+    /// </summary>
     public bool AutoDetectRadio { get; set; }
+
+    #endregion
+
+    #region Information Display Options
+
+    /// <summary>
+    /// Gets or sets whether to list available serial ports and exit.
+    /// </summary>
+    public bool ListPorts { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to show help information and exit.
+    /// </summary>
+    public bool ShowHelp { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to list available radio models and exit.
+    /// </summary>
     public bool ListRadios { get; set; }
+
+    /// <summary>
+    /// Gets or sets the radio model name to show detailed information for.
+    /// When set, displays comprehensive feature information for the specified radio and exits.
+    /// </summary>
     public string? ShowRadioInfo { get; set; }
+
+    #endregion
 }
