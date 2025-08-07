@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Collections.Concurrent;
+using SharpCAT2.Radio;
 
 namespace SharpCAT2.Server;
 
@@ -12,6 +13,7 @@ class Program
 
     private static readonly ConcurrentDictionary<string, NetworkStream> _tcpClients = new();
     private static SerialPort? _serialPort;
+    private static IRadio? _connectedRadio;
     private static TcpListener? _tcpListener;
     private static CancellationTokenSource? _cancellationTokenSource;
 
@@ -43,6 +45,12 @@ class Program
                 ListAvailablePorts();
                 return;
             }
+
+            if (options.ListRadios)
+            {
+                ListAvailableRadios();
+                return;
+            }
             
             // Validate or prompt for port name
             string portName = ValidateOrPromptPortName(options.PortName);
@@ -52,13 +60,25 @@ class Program
             
             Console.WriteLine($"Successfully opened serial port: {portName}");
             Console.WriteLine($"Baud rate: {options.BaudRate}");
+
+            // Initialize radio if specified
+            await InitializeRadioAsync(options, _serialPort);
             
             // Start TCP server
             _cancellationTokenSource = new CancellationTokenSource();
             await StartTcpServerAsync(options.TcpPort, _cancellationTokenSource.Token);
             
             Console.WriteLine($"TCP server listening on port {options.TcpPort}");
-            Console.WriteLine("Press 'q' to quit, or type messages to send to serial port...");
+            
+            if (_connectedRadio != null)
+            {
+                Console.WriteLine($"Connected to radio: {_connectedRadio.Manufacturer} {_connectedRadio.ModelName}");
+                Console.WriteLine("Press 'q' to quit, 's' for radio status, or type radio commands/messages...");
+            }
+            else
+            {
+                Console.WriteLine("Press 'q' to quit, or type messages to send to serial port...");
+            }
             
             // Set up serial port data received handler
             _serialPort.DataReceived += OnSerialDataReceived;
@@ -71,6 +91,21 @@ class Program
                 {
                     try
                     {
+                        // Handle special commands
+                        if (input.ToLower() == "s" && _connectedRadio != null)
+                        {
+                            await ShowRadioStatusAsync();
+                            continue;
+                        }
+
+                        // Try radio command first if radio is connected
+                        if (_connectedRadio != null && await TryRadioCommandAsync(input))
+                        {
+                            // Radio command was handled
+                            continue;
+                        }
+
+                        // Fall back to direct serial port communication
                         await SendToSerialPortAsync(input);
                         Console.WriteLine($"Sent: {input}");
                     }
@@ -85,12 +120,159 @@ class Program
             // Cleanup
             _cancellationTokenSource.Cancel();
             _tcpListener?.Stop();
+            _connectedRadio?.Dispose();
             _serialPort?.Close();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Fatal error: {ex.Message}");
             Environment.Exit(1);
+        }
+    }
+
+    private static async Task InitializeRadioAsync(CommandLineOptions options, SerialPort serialPort)
+    {
+        try
+        {
+            if (options.AutoDetectRadio)
+            {
+                Console.WriteLine("Auto-detecting radio...");
+                _connectedRadio = await RadioFactory.AutoDetectRadioAsync(serialPort);
+                
+                if (_connectedRadio == null)
+                {
+                    Console.WriteLine("No radio detected. Continuing with basic serial communication.");
+                    return;
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(options.RadioModel))
+            {
+                Console.WriteLine($"Connecting to radio: {options.RadioModel}");
+                _connectedRadio = RadioFactory.CreateRadio(options.RadioModel);
+                
+                if (_connectedRadio == null)
+                {
+                    Console.WriteLine($"Unknown radio model: {options.RadioModel}");
+                    Console.WriteLine("Use --list-radios to see available models.");
+                    return;
+                }
+            }
+            else
+            {
+                // No radio specified, continue with basic serial communication
+                return;
+            }
+
+            // Connect the radio to the serial port
+            bool connected = await _connectedRadio.ConnectAsync(serialPort);
+            if (!connected)
+            {
+                Console.WriteLine("Failed to connect to radio. Continuing with basic serial communication.");
+                _connectedRadio.Dispose();
+                _connectedRadio = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing radio: {ex.Message}");
+            _connectedRadio?.Dispose();
+            _connectedRadio = null;
+        }
+    }
+
+    private static async Task<bool> TryRadioCommandAsync(string input)
+    {
+        if (_connectedRadio == null)
+            return false;
+
+        try
+        {
+            // Check if it's a well-formed radio command (ends with semicolon)
+            if (input.EndsWith(";"))
+            {
+                var command = new RadioCommand(input, "User command");
+                var response = await _connectedRadio.SendCommandAsync(command);
+                
+                if (response != null)
+                {
+                    Console.WriteLine($"Radio response: {response}");
+                    return true;
+                }
+            }
+
+            // Try common command shortcuts
+            switch (input.ToLower().Trim())
+            {
+                case "freq":
+                case "frequency":
+                    var status = await _connectedRadio.GetStatusAsync();
+                    Console.WriteLine($"Current frequency: {status.Frequency:N0} Hz");
+                    return true;
+
+                case "mode":
+                    var modeStatus = await _connectedRadio.GetStatusAsync();
+                    Console.WriteLine($"Current mode: {modeStatus.Mode}");
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing radio command: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static async Task ShowRadioStatusAsync()
+    {
+        if (_connectedRadio == null)
+        {
+            Console.WriteLine("No radio connected.");
+            return;
+        }
+
+        try
+        {
+            var status = await _connectedRadio.GetStatusAsync();
+            Console.WriteLine("Radio Status:");
+            Console.WriteLine($"  Model: {_connectedRadio.Manufacturer} {_connectedRadio.ModelName}");
+            Console.WriteLine($"  Frequency: {status.Frequency:N0} Hz");
+            Console.WriteLine($"  Mode: {status.Mode}");
+            Console.WriteLine($"  VFO: {status.CurrentVfo}");
+            Console.WriteLine($"  Transmitting: {status.IsTransmitting}");
+            Console.WriteLine($"  Power: {status.IsPoweredOn}");
+            Console.WriteLine($"  Timestamp: {status.Timestamp:HH:mm:ss}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting radio status: {ex.Message}");
+        }
+    }
+
+    private static void ListAvailableRadios()
+    {
+        Console.WriteLine("Available Radio Models:");
+        Console.WriteLine("======================");
+        
+        var radios = RadioFactory.GetAvailableRadios();
+        
+        if (radios.Count == 0)
+        {
+            Console.WriteLine("No radio models found.");
+        }
+        else
+        {
+            foreach (var radio in radios.OrderBy(r => r.Key))
+            {
+                Console.WriteLine($"  {radio.Key}");
+            }
+            
+            Console.WriteLine();
+            Console.WriteLine($"Found {radios.Count} radio model(s).");
+            Console.WriteLine("Use --radio \"Manufacturer Model\" to specify a radio.");
+            Console.WriteLine("Use --auto-detect to automatically detect the radio type.");
         }
     }
     
@@ -300,6 +482,17 @@ class Program
                 case "--help":
                     options.ShowHelp = true;
                     break;
+                case "-r":
+                case "--radio":
+                    if (i + 1 < args.Length)
+                        options.RadioModel = args[++i];
+                    break;
+                case "--auto-detect":
+                    options.AutoDetectRadio = true;
+                    break;
+                case "--list-radios":
+                    options.ListRadios = true;
+                    break;
             }
         }
         
@@ -313,12 +506,12 @@ class Program
         Console.WriteLine("Options:");
         Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0)");
         Console.WriteLine("  -b, --baud <rate>     Baud rate (default: 9600)");
-
-        Console.WriteLine("  -t, --tcp-port <port> TCP server port (default: 8080)");
-
         Console.WriteLine("                        Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000");
-
+        Console.WriteLine("  -t, --tcp-port <port> TCP server port (default: 8080)");
+        Console.WriteLine("  -r, --radio <model>   Radio model (e.g., \"Kenwood TS-2000\")");
+        Console.WriteLine("  --auto-detect         Auto-detect radio type");
         Console.WriteLine("  -l, --list            List available serial ports");
+        Console.WriteLine("  --list-radios         List available radio models");
         Console.WriteLine("  -h, --help            Show this help message");
         Console.WriteLine();
         Console.WriteLine("Examples:");
@@ -327,22 +520,27 @@ class Program
         {
             Console.WriteLine("  Server --port COM1 --baud 115200");
             Console.WriteLine("  Server -p COM3 --tcp-port 9090");
+            Console.WriteLine("  Server --port COM1 --radio \"Kenwood TS-2000\"");
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             Console.WriteLine("  Server --port /dev/ttyUSB0 --baud 115200");
             Console.WriteLine("  Server -p /dev/ttyACM0 --tcp-port 9090");
+            Console.WriteLine("  Server --port /dev/ttyUSB0 --auto-detect");
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             Console.WriteLine("  Server --port /dev/cu.usbserial-1410 --baud 115200");
             Console.WriteLine("  Server -p /dev/cu.usbmodem1411 --tcp-port 9090");
+            Console.WriteLine("  Server --port /dev/cu.usbserial-1410 --radio \"Elecraft K3\"");
         }
         
         Console.WriteLine();
         Console.WriteLine("  Server --list         # List all available ports");
+        Console.WriteLine("  Server --list-radios  # List all available radio models");
         Console.WriteLine();
         Console.WriteLine("The server provides both console interface and TCP server for remote clients.");
+        Console.WriteLine("With radio support, you can send CAT commands and get radio status information.");
     }
     
     private static void ListAvailablePorts()
@@ -594,4 +792,7 @@ public class CommandLineOptions
     public int TcpPort { get; set; } = 8080;
     public bool ListPorts { get; set; }
     public bool ShowHelp { get; set; }
+    public string? RadioModel { get; set; }
+    public bool AutoDetectRadio { get; set; }
+    public bool ListRadios { get; set; }
 }

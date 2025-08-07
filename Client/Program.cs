@@ -1,4 +1,5 @@
 ﻿using SharpCAT2.ClientLib;
+using SharpCAT2.Radio;
 
 namespace SharpCAT2.Client;
 
@@ -92,6 +93,32 @@ class Program
                     Console.WriteLine($"Connection status: {(client.IsConnected ? "Connected" : "Disconnected")}");
                     Console.WriteLine($"Server: {serverHost}:{serverPort}");
                     continue;
+
+                case "radio-status":
+                case "rs":
+                    string? radioStatus = await client.GetRadioStatusAsync();
+                    if (radioStatus != null)
+                    {
+                        Console.WriteLine(radioStatus);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to get radio status");
+                    }
+                    continue;
+
+                case "radios":
+                case "list-radios":
+                    string? radioList = await client.GetAvailableRadiosAsync();
+                    if (radioList != null)
+                    {
+                        Console.WriteLine(radioList);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to get radio list");
+                    }
+                    continue;
             }
             
             // Send command to remote serial port
@@ -156,12 +183,21 @@ class Program
     private static void ShowCommandHelp()
     {
         Console.WriteLine("Available commands:");
-        Console.WriteLine("  help     - Show this help message");
-        Console.WriteLine("  status   - Show connection status");
-        Console.WriteLine("  quit     - Disconnect and exit");
-        Console.WriteLine("  exit     - Disconnect and exit");
+        Console.WriteLine("  help           - Show this help message");
+        Console.WriteLine("  status         - Show connection status");
+        Console.WriteLine("  radio-status   - Show radio status (rs)");
+        Console.WriteLine("  list-radios    - List available radio models (radios)");
+        Console.WriteLine("  quit           - Disconnect and exit");
+        Console.WriteLine("  exit           - Disconnect and exit");
         Console.WriteLine();
-        Console.WriteLine("Any other input will be sent to the remote serial port.");
-        Console.WriteLine("The response from the serial device will be displayed.");
+        Console.WriteLine("Radio Commands:");
+        Console.WriteLine("  FA;            - Get frequency (VFO A)");
+        Console.WriteLine("  FA14074000;    - Set frequency to 14.074 MHz");
+        Console.WriteLine("  MD;            - Get mode");
+        Console.WriteLine("  MD2;           - Set mode to USB");
+        Console.WriteLine("  ID;            - Get radio ID");
+        Console.WriteLine();
+        Console.WriteLine("Any other input will be sent to the remote serial port/radio.");
+        Console.WriteLine("Radio commands should end with semicolon (;) for most radios.");
     }
 }

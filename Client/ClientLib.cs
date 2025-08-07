@@ -1,5 +1,6 @@
 ﻿using System.Net.Sockets;
 using System.Text;
+using SharpCAT2.Radio;
 
 namespace SharpCAT2.ClientLib;
 
@@ -114,6 +115,44 @@ public class SharpCAT2Client : IDisposable
     public string? SendCommand(string command, int timeoutMs = 5000)
     {
         return SendCommandAsync(command, timeoutMs).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Sends a radio command to the remote radio and returns the response
+    /// </summary>
+    /// <param name="command">Radio command to send</param>
+    /// <returns>Response from the radio, or null if error occurred</returns>
+    public async Task<string?> SendRadioCommandAsync(RadioCommand command)
+    {
+        return await SendCommandAsync(command.Command, command.TimeoutMs);
+    }
+
+    /// <summary>
+    /// Sends a radio command to the remote radio (synchronous version)
+    /// </summary>
+    /// <param name="command">Radio command to send</param>
+    /// <returns>Response from the radio, or null if error occurred</returns>
+    public string? SendRadioCommand(RadioCommand command)
+    {
+        return SendRadioCommandAsync(command).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Gets the radio status from the remote server
+    /// </summary>
+    /// <returns>Response with radio status information</returns>
+    public async Task<string?> GetRadioStatusAsync()
+    {
+        return await SendCommandAsync("s");
+    }
+
+    /// <summary>
+    /// Gets available radio models from the server
+    /// </summary>
+    /// <returns>Response with available radio models</returns>
+    public async Task<string?> GetAvailableRadiosAsync()
+    {
+        return await SendCommandAsync("--list-radios");
     }
 
     /// <summary>
