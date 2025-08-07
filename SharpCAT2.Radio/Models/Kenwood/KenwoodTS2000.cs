@@ -1,18 +1,18 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace SharpCAT2.Radio.Models;
+namespace SharpCAT2.Radio.Models.Kenwood;
 
 /// <summary>
-/// Elecraft K3 radio implementation
+/// Kenwood TS-2000 radio implementation
 /// </summary>
-public class ElecraftK3 : BaseRadio
+public class KenwoodTS2000 : BaseRadio
 {
-    public override string ModelName => "K3";
-    public override string Manufacturer => "Elecraft";
+    public override string ModelName => "TS-2000";
+    public override string Manufacturer => "Kenwood";
 
     protected override long ParseFrequency(string response)
     {
-        // Elecraft K3 format: FA00014074000;
+        // Kenwood TS-2000 format: FA00014074000;
         var match = Regex.Match(response, @"FA(\d{11})");
         if (match.Success && long.TryParse(match.Groups[1].Value, out long freq))
         {
@@ -21,52 +21,41 @@ public class ElecraftK3 : BaseRadio
         return 0;
     }
 
-    protected override string MapModeNumber(int modeNumber)
-    {
-        // Elecraft K3 mode mapping
-        return modeNumber switch
-        {
-            1 => "LSB",
-            2 => "USB",
-            3 => "CW",
-            4 => "FM",
-            5 => "AM",
-            6 => "DATA",
-            7 => "CW-REV",
-            8 => "DATA-REV",
-            9 => "AM-S",
-            _ => "USB"
-        };
-    }
-
     protected override void ParseTransceiverInfo(string response, RadioStatus status)
     {
-        // Elecraft K3 IF response handling
+        // Kenwood IF response format: IF00014074000     +0000000000030000000;
+        // Positions: IF + freq(11) + space(5) + ritoffset(5) + ritflag(1) + xitflag(1) + ch(3) + tx(1) + mode(1) + fr(1) + scan(1) + split(1) + tone(1) + toneno(2) + shift(1)
         if (response.StartsWith("IF") && response.Length >= 38)
         {
             try
             {
-                // Extract frequency
+                // Extract frequency (positions 2-12)
                 if (long.TryParse(response.Substring(2, 11), out long freq))
                 {
                     status.Frequency = freq;
                 }
 
-                // Extract TX status
+                // Extract TX status (position 28)
                 if (response.Length > 28)
                 {
                     status.IsTransmitting = response[28] == '1';
                 }
 
-                // Extract mode
+                // Extract mode (position 29)
                 if (response.Length > 29 && int.TryParse(response[29].ToString(), out int mode))
                 {
                     status.Mode = MapModeNumber(mode);
                 }
+
+                // Extract VFO (position 30)
+                if (response.Length > 30)
+                {
+                    status.CurrentVfo = response[30] == '0' ? "A" : "B";
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error parsing K3 transceiver info: {ex.Message}");
+                Console.WriteLine($"Error parsing transceiver info: {ex.Message}");
             }
         }
     }
