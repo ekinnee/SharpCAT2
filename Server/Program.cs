@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Collections.Concurrent;
 using SharpCAT2.Radio;
+using SharpCAT2.Radio.Serial;
 
 namespace SharpCAT2.Server;
 
@@ -23,9 +24,9 @@ class Program
     private static readonly ConcurrentDictionary<string, NetworkStream> _tcpClients = new();
     
     /// <summary>
-    /// The serial port connection for radio communication
+    /// The wrapped serial port for radio communication
     /// </summary>
-    private static SerialPort? _serialPort;
+    private static ISerialPort? _wrappedSerialPort;
     
     /// <summary>
     /// The connected radio instance providing CAT control
@@ -111,13 +112,14 @@ class Program
             string portName = ValidateOrPromptPortName(options.PortName);
             
             // Open and configure serial port
-            _serialPort = OpenSerialPort(portName, options.BaudRate);
+            var serialPort = OpenSerialPort(portName, options.BaudRate);
+            _wrappedSerialPort = SerialPortFactory.CreateRealSerialPort(serialPort);
             
             Console.WriteLine($"Successfully opened serial port: {portName}");
             Console.WriteLine($"Baud rate: {options.BaudRate}");
 
             // Initialize radio if specified
-            await InitializeRadioAsync(options, _serialPort);
+            await InitializeRadioAsync(options, _wrappedSerialPort);
             
             // Start TCP server
             _cancellationTokenSource = new CancellationTokenSource();
@@ -136,7 +138,10 @@ class Program
             }
             
             // Set up serial port data received handler
-            _serialPort.DataReceived += OnSerialDataReceived;
+            if (_wrappedSerialPort != null)
+            {
+                _wrappedSerialPort.DataReceived += OnSerialDataReceived;
+            }
             
             // Set up graceful shutdown handler
             Console.CancelKeyPress += async (sender, e) =>
@@ -185,7 +190,7 @@ class Program
             _cancellationTokenSource.Cancel();
             _tcpListener?.Stop();
             _connectedRadio?.Dispose();
-            _serialPort?.Close();
+            _wrappedSerialPort?.Close();
             
             // Save configuration on normal shutdown
             await SaveConfigurationAsync(options);
@@ -207,7 +212,7 @@ class Program
     /// <param name="options">Parsed command line options containing radio settings</param>
     /// <param name="serialPort">The serial port to use for radio communication</param>
     /// <returns>Task representing the async initialization operation</returns>
-    private static async Task InitializeRadioAsync(CommandLineOptions options, SerialPort serialPort)
+    private static async Task InitializeRadioAsync(CommandLineOptions options, ISerialPort serialPort)
     {
         try
         {
@@ -555,11 +560,11 @@ class Program
     
     private static async Task SendToSerialPortAsync(string command)
     {
-        if (_serialPort?.IsOpen == true)
+        if (_wrappedSerialPort?.IsOpen == true)
         {
             try
             {
-                await Task.Run(() => _serialPort.WriteLine(command));
+                await Task.Run(() => _wrappedSerialPort.WriteLine(command));
             }
             catch (Exception ex)
             {
@@ -572,7 +577,7 @@ class Program
     {
         try
         {
-            if (sender is SerialPort port && port.IsOpen)
+            if (sender is ISerialPort port && port.IsOpen)
             {
                 string data = port.ReadExisting();
                 if (!string.IsNullOrEmpty(data))

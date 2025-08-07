@@ -8,6 +8,7 @@ using SharpCAT2.Radio.Models.FlexRadio;
 using SharpCAT2.Radio.Models.Alinco;
 using SharpCAT2.Radio.Models.TenTec;
 using SharpCAT2.Radio.Models.Testing;
+using SharpCAT2.Radio.Serial;
 
 namespace SharpCAT2.Radio;
 
@@ -230,7 +231,7 @@ public static class RadioFactory
     /// </summary>
     /// <param name="serialPort">Serial port connected to radio</param>
     /// <returns>Auto-detected radio instance or null</returns>
-    public static async Task<IRadio?> AutoDetectRadioAsync(System.IO.Ports.SerialPort serialPort)
+    public static async Task<IRadio?> AutoDetectRadioAsync(ISerialPort serialPort)
     {
         if (serialPort?.IsOpen != true)
             return null;
@@ -257,7 +258,7 @@ public static class RadioFactory
                 if (serialPort.BytesToRead > 0)
                 {
                     var buffer = new byte[256];
-                    int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
+                    int bytesRead = serialPort.Read(buffer, 0, Math.Min(buffer.Length, serialPort.BytesToRead));
                     string response = System.Text.Encoding.ASCII.GetString(buffer, 0, bytesRead).Trim();
 
                     var radio = IdentifyRadioFromResponse(response);

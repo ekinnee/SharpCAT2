@@ -1,4 +1,4 @@
-﻿using System.IO.Ports;
+﻿using SharpCAT2.Radio.Serial;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -9,7 +9,7 @@ namespace SharpCAT2.Radio.Models;
 /// </summary>
 public abstract class BaseRadio : IRadio
 {
-    protected SerialPort? _serialPort;
+    protected ISerialPort? _serialPort;
     protected bool _disposed = false;
 
     /// <summary>
@@ -47,7 +47,7 @@ public abstract class BaseRadio : IRadio
     /// </summary>
     /// <param name="port">Serial port to use for communication</param>
     /// <returns>True if connection successful, false otherwise</returns>
-    public virtual async Task<bool> ConnectAsync(SerialPort port)
+    public virtual async Task<bool> ConnectAsync(ISerialPort port)
     {
         try
         {
