@@ -94,7 +94,7 @@ dotnet run -- --port COM1 --auto-detect
 
 #### Supported Radio Models
 
-SharpCAT2 now supports **28 radio models** across **7 major manufacturers**:
+SharpCAT2 now supports **29 radio models** across **8 major manufacturers**:
 
 - **Kenwood**: TS-2000, TS-890S, TS-590SG, TH-D74A, TM-D710GA
 - **Elecraft**: K3, K4, KX3, K2, K1  
@@ -103,6 +103,7 @@ SharpCAT2 now supports **28 radio models** across **7 major manufacturers**:
 - **FlexRadio**: FLEX-6400, FLEX-6600, FLEX-6700
 - **Alinco**: DX-SR8T, DJ-MD5TGP, DR-638T, DX-70T
 - **Ten-Tec**: OMNI VII, Eagle, Argonaut V, Jupiter
+- **SharpCAT2**: DummyRadio (for testing and development)
 
 Each radio model supports a specific set of features from a comprehensive list of **47 radio capabilities** including:
 - Frequency and mode control
@@ -138,6 +139,55 @@ When a radio is connected, you can use these additional commands in the server c
 - `MD;` - Get operating mode
 - `MD2;` - Set mode to USB
 - `ID;` - Get radio identification
+
+#### DummyRadio for Testing and Development
+
+SharpCAT2 includes a **DummyRadio** implementation designed specifically for testing, development, and demonstration purposes. DummyRadio simulates a full-featured amateur radio without requiring actual hardware.
+
+**Features:**
+- Simulates responses for all radio interface methods
+- Supports 22 advanced features for comprehensive testing
+- Deterministic behavior perfect for automated testing
+- No hardware requirements - works entirely in software
+- Helpful console output showing what operations are being performed
+
+**Usage:**
+```bash
+# List available radios (DummyRadio will be shown)
+dotnet run -- --list-radios
+
+# Get detailed information about DummyRadio
+dotnet run -- --radio-info "SharpCAT2 DummyRadio"
+
+# Connect to DummyRadio for testing (requires any port name for interface compatibility)
+# Note: DummyRadio ignores the actual serial port and simulates all communication
+dotnet run -- --radio "SharpCAT2 DummyRadio" --port /dev/null
+```
+
+**DummyRadio Capabilities:**
+- Frequency control with realistic amateur radio frequencies
+- Mode selection (LSB, USB, CW, FM, AM, FSK, etc.)
+- VFO operations (dual VFO, swap, split operation)
+- RIT/XIT tuning simulation
+- Power output control and meter readings (S-meter, SWR)
+- Memory channel operations (100 channels)
+- CW keyer simulation with message sending
+- Noise reduction and IF bandwidth control
+- Antenna selection
+- All operations provide console feedback for educational purposes
+
+**DummyRadio is ideal for:**
+- Testing client applications without radio hardware
+- Demonstrating SharpCAT2 features in presentations
+- Development environment setup where no radios are available
+- Training new users on amateur radio control concepts
+- Automated testing of radio control software
+
+**Limitations:**
+- Simulated responses only - no actual RF communication
+- Settings reset when the application restarts
+- Fixed response timing (no real hardware delays)
+- Does not validate frequency ranges or band plans
 
 #### Radio Features and Capabilities
 

@@ -7,6 +7,7 @@ using SharpCAT2.Radio.Models.Icom;
 using SharpCAT2.Radio.Models.FlexRadio;
 using SharpCAT2.Radio.Models.Alinco;
 using SharpCAT2.Radio.Models.TenTec;
+using SharpCAT2.Radio.Models.Testing;
 
 namespace SharpCAT2.Radio;
 
@@ -62,6 +63,9 @@ public static class RadioFactory
         RegisterRadio<TenTecEagle>();
         RegisterRadio<TenTecArgonautV>();
         RegisterRadio<TenTecJupiter>();
+        
+        // Testing/Demo radios
+        RegisterRadio<DummyRadio>();
         
         // Discover additional radio types from assemblies
         DiscoverRadioTypes();
@@ -353,6 +357,10 @@ public static class RadioFactory
             return CreateRadio("Ten-Tec", "Argonaut V");
         if (response.Contains("JUPITER"))
             return CreateRadio("Ten-Tec", "Jupiter");
+
+        // Testing radios
+        if (response.Contains("DUMMY") || response.Contains("TEST") || response.Contains("ID999"))
+            return CreateRadio("SharpCAT2", "DummyRadio");
 
         return null;
     }
