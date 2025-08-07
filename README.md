@@ -13,6 +13,7 @@ A cross-platform .NET serial port communication server application that provides
 - **Client Library**: .NET library for programmatic access to remote serial ports
 - **Client Console App**: Interactive console application for remote serial communication
 - **Radio Support**: Built-in support for popular amateur radio models with CAT (Computer Aided Transceiver) control
+- **Dual VFO Support**: Full support for dual VFOs (VFO A and VFO B) with separate frequency and mode tracking
 - **Auto-Detection**: Automatic radio type detection and configuration
 - **Extensible Architecture**: Plugin-style radio model support through the SharpCAT2.Radio namespace
 - **Graceful Error Handling**: Both server and client handle connection and communication errors without crashing
@@ -93,11 +94,11 @@ dotnet run -- --port COM1 --auto-detect
 
 #### Supported Radio Models
 
-The following radio models are currently supported:
+The following radio models are currently supported with dual VFO functionality:
 
-- **Kenwood TS-2000** - Full CAT command support
-- **Elecraft K3** - Full CAT command support  
-- **Yaesu FT-991A** - Basic CAT command support
+- **Kenwood TS-2000** - Full CAT command support including dual VFO tracking
+- **Elecraft K3** - Full CAT command support including dual VFO tracking
+- **Yaesu FT-991A** - Basic CAT command support with dual VFO tracking
 
 To see all available radio models:
 ```bash
@@ -108,11 +109,15 @@ dotnet run -- --list-radios
 
 When a radio is connected, you can use these additional commands in the server console:
 
-- `s` - Show current radio status (frequency, mode, etc.)
+- `s` - Show current radio status (both VFOs, active VFO, frequency, mode, etc.)
 - `FA;` - Get frequency (VFO A)
-- `FA14074000;` - Set frequency to 14.074 MHz
+- `FB;` - Get frequency (VFO B)
+- `FA14074000;` - Set frequency to 14.074 MHz (VFO A)
+- `FB14074000;` - Set frequency to 14.074 MHz (VFO B)
 - `MD;` - Get operating mode
 - `MD2;` - Set mode to USB
+- `FR0;` - Switch to VFO A
+- `FR1;` - Switch to VFO B
 - `ID;` - Get radio identification
 
 ### Client Library and Application
@@ -209,8 +214,12 @@ The client application provides an interactive command loop:
 #### Client Radio Commands
 
 When connected to a server with radio support, you can send these commands:
-- `FA;` - Get frequency
-- `FA14074000;` - Set frequency to 14.074 MHz
+- `FA;` - Get VFO A frequency
+- `FB;` - Get VFO B frequency
+- `FA14074000;` - Set VFO A frequency to 14.074 MHz
+- `FB14074000;` - Set VFO B frequency to 14.074 MHz
+- `FR0;` - Switch to VFO A
+- `FR1;` - Switch to VFO B
 - `MD;` - Get mode
 - `ID;` - Get radio ID
 
@@ -391,13 +400,14 @@ SharpCAT2/
 ├── SharpCAT2.Radio/        # Radio support library
 │   ├── IRadio.cs           # Radio interface definition
 │   ├── RadioCommand.cs     # Radio command abstraction
-│   ├── RadioStatus.cs      # Radio status information
+│   ├── RadioStatus.cs      # Radio status information with dual VFO support
+│   ├── VfoInfo.cs          # VFO information class (frequency and mode)
 │   ├── RadioFactory.cs     # Dynamic radio creation and discovery
 │   ├── Models/             # Radio model implementations
 │   │   ├── BaseRadio.cs    # Abstract base radio implementation
-│   │   ├── KenwoodTS2000.cs # Kenwood TS-2000 implementation
+│   │   ├── KenwoodTS2000.cs # Kenwood TS-2000 implementation with dual VFO
 │   │   ├── ElecraftK3.cs   # Elecraft K3 implementation
-│   │   └── YaesuFT991A.cs  # Yaesu FT-991A implementation
+│   │   └── YaesuFT991A.cs  # Yaesu FT-991A implementation with dual VFO
 │   ├── SharpCAT2.Radio.csproj # Radio library project file
 ```
 
@@ -413,10 +423,21 @@ The radio support is implemented through the `SharpCAT2.Radio` namespace which p
 
 - **IRadio Interface**: Defines the contract for radio communication
 - **RadioCommand**: Encapsulates radio commands with parameters and metadata
-- **RadioStatus**: Represents radio state information
+- **RadioStatus**: Represents radio state information including dual VFO support
+- **VfoInfo**: Represents individual VFO data (frequency and mode)
 - **RadioFactory**: Dynamic radio discovery and instantiation
 - **BaseRadio**: Abstract base class providing common functionality
 - **Model-Specific Implementations**: Concrete radio classes for different manufacturers
+
+#### Dual VFO Support
+
+The radio status system now supports dual VFOs with the following features:
+
+- **VfoA and VfoB Properties**: Each VFO has its own frequency and mode
+- **Active VFO Tracking**: The `CurrentVfo` property indicates which VFO is active
+- **Backward Compatibility**: Existing `Frequency` and `Mode` properties reference the active VFO
+- **Enhanced Status Display**: Server shows both VFOs and active VFO information
+- **VFO-Specific Commands**: Commands to get/set frequency for individual VFOs
 
 To add support for a new radio model:
 
