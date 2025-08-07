@@ -122,6 +122,9 @@ class Program
                 }
             }
         }, cancellationToken);
+        
+        // Wait a moment to ensure the listener is ready
+        await Task.Delay(100, cancellationToken);
     }
     
     private static async Task HandleTcpClientAsync(string clientId, TcpClient tcpClient, NetworkStream networkStream, CancellationToken cancellationToken)
