@@ -2,10 +2,14 @@
     // Recommended VS Code extensions for SharpCAT2 development
     "recommendations": [
         "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.vscode-dotnet-runtime",
         "github.copilot",
         "editorconfig.editorconfig",
         "eamodio.gitlens",
         "streetsidesoftware.code-spell-checker",
-        "ms-azuretools.vscode-docker"
+        "ms-azuretools.vscode-docker",
+        "formulahendry.dotnet-test-explorer",
+        "jchannon.csharpextensions"
     ]
 }
