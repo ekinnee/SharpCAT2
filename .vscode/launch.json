@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": ".NET Launch (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/SharpCAT2/bin/Debug/net8.0/SharpCAT2.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/SharpCAT2",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        }
+    ]
+}
