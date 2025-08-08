@@ -128,6 +128,42 @@ class Program
                         Console.WriteLine("Failed to get radio list");
                     }
                     continue;
+
+                case "current-radio":
+                case "get-current-radio":
+                    string? currentRadio = await client.GetCurrentRadioAsync();
+                    if (currentRadio != null)
+                    {
+                        Console.WriteLine(currentRadio);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to get current radio");
+                    }
+                    continue;
+            }
+            
+            // Handle set-radio command (before sending to serial port)
+            if (input.ToLower().StartsWith("set-radio "))
+            {
+                string radioName = input.Substring(10).Trim(); // Remove "set-radio " prefix
+                if (!string.IsNullOrWhiteSpace(radioName))
+                {
+                    string? setRadioResponse = await client.SetRadioAsync(radioName);
+                    if (setRadioResponse != null)
+                    {
+                        Console.WriteLine(setRadioResponse);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to set radio");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Please specify a radio name. Example: set-radio Kenwood TS-2000");
+                }
+                continue;
             }
             
             // Send command to remote serial port
@@ -211,8 +247,16 @@ class Program
         Console.WriteLine("  status         - Show connection status");
         Console.WriteLine("  radio-status   - Show radio status (rs)");
         Console.WriteLine("  list-radios    - List available radio models (radios)");
+        Console.WriteLine("  current-radio  - Show current active radio (get-current-radio)");
+        Console.WriteLine("  set-radio <name> - Set active radio (e.g., set-radio Kenwood TS-2000)");
         Console.WriteLine("  quit           - Disconnect and exit");
         Console.WriteLine("  exit           - Disconnect and exit");
+        Console.WriteLine();
+        Console.WriteLine("Radio Management Examples:");
+        Console.WriteLine("  list-radios              - List all available radio models");
+        Console.WriteLine("  current-radio            - Show current active radio");
+        Console.WriteLine("  set-radio Kenwood TS-2000 - Change active radio to Kenwood TS-2000");
+        Console.WriteLine("  set-radio Elecraft K3     - Change active radio to Elecraft K3");
         Console.WriteLine();
         Console.WriteLine("Radio Commands:");
         Console.WriteLine("  FA;            - Get frequency (VFO A)");

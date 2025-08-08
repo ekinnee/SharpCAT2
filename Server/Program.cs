@@ -536,7 +536,14 @@ class Program
                     string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
                     Console.WriteLine($"TCP client {clientId} sent: {command}");
                     
-                    // Send command to serial port
+                    // Handle special radio management commands
+                    if (await HandleRadioManagementCommandAsync(command, networkStream))
+                    {
+                        // Command was handled, continue to next iteration
+                        continue;
+                    }
+                    
+                    // Send command to serial port for regular radio/serial commands
                     await SendToSerialPortAsync(command);
                 }
                 else
@@ -617,6 +624,219 @@ class Program
         foreach (string clientId in clientsToRemove)
         {
             _tcpClients.TryRemove(clientId, out _);
+        }
+    }
+
+    /// <summary>
+    /// Handles special radio management commands sent over TCP
+    /// </summary>
+    /// <param name="command">Command to handle</param>
+    /// <param name="networkStream">Network stream to send response</param>
+    /// <returns>True if command was handled, false if it should be sent to serial port</returns>
+    private static async Task<bool> HandleRadioManagementCommandAsync(string command, NetworkStream networkStream)
+    {
+        try
+        {
+            string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return false;
+            
+            string baseCommand = parts[0].ToLower();
+            
+            switch (baseCommand)
+            {
+                case "list-radios":
+                case "get-radios":
+                    await SendRadioListResponseAsync(networkStream);
+                    return true;
+                    
+                case "set-radio":
+                    if (parts.Length >= 2)
+                    {
+                        string radioName = string.Join(" ", parts.Skip(1));
+                        await HandleSetRadioCommandAsync(radioName, networkStream);
+                        return true;
+                    }
+                    else
+                    {
+                        await SendErrorResponseAsync(networkStream, "ERROR: set-radio command requires radio name");
+                        return true;
+                    }
+                    
+                case "get-current-radio":
+                case "current-radio":
+                    await SendCurrentRadioResponseAsync(networkStream);
+                    return true;
+                    
+                default:
+                    return false; // Not a radio management command
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error handling radio management command: {ex.Message}");
+            await SendErrorResponseAsync(networkStream, $"ERROR: {ex.Message}");
+            return true;
+        }
+    }
+    
+    /// <summary>
+    /// Sends the available radio list as a response
+    /// </summary>
+    private static async Task SendRadioListResponseAsync(NetworkStream networkStream)
+    {
+        try
+        {
+            var response = new StringBuilder();
+            response.AppendLine("RADIO_LIST_START");
+            
+            var radios = RadioFactory.GetAvailableRadios();
+            foreach (var radio in radios.OrderBy(r => r.Key))
+            {
+                // Create instance to get supported features count
+                var instance = RadioFactory.CreateRadio(radio.Key);
+                if (instance != null)
+                {
+                    var featureCount = instance.SupportedFeatures.GetFeatureCount();
+                    response.AppendLine($"{radio.Key}|{featureCount}");
+                    instance.Dispose();
+                }
+                else
+                {
+                    response.AppendLine($"{radio.Key}|0");
+                }
+            }
+            
+            response.AppendLine("RADIO_LIST_END");
+            
+            await SendTcpResponseAsync(networkStream, response.ToString());
+        }
+        catch (Exception ex)
+        {
+            await SendErrorResponseAsync(networkStream, $"ERROR: Failed to get radio list - {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Handles the set-radio command to change the active radio
+    /// </summary>
+    private static async Task HandleSetRadioCommandAsync(string radioName, NetworkStream networkStream)
+    {
+        try
+        {
+            // Check if radio exists
+            var newRadio = RadioFactory.CreateRadio(radioName);
+            if (newRadio == null)
+            {
+                await SendErrorResponseAsync(networkStream, $"ERROR: Unknown radio model '{radioName}'");
+                return;
+            }
+            
+            // Disconnect current radio if any
+            if (_connectedRadio != null)
+            {
+                Console.WriteLine($"Disconnecting current radio: {_connectedRadio.Manufacturer} {_connectedRadio.ModelName}");
+                _connectedRadio.Disconnect();
+                _connectedRadio.Dispose();
+                _connectedRadio = null;
+            }
+            
+            // Connect new radio
+            if (_wrappedSerialPort != null)
+            {
+                // Reopen the port if it was closed
+                if (!_wrappedSerialPort.IsOpen)
+                {
+                    try
+                    {
+                        _wrappedSerialPort.Open();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to reopen serial port: {ex.Message}");
+                        newRadio.Dispose();
+                        await SendErrorResponseAsync(networkStream, $"ERROR: Failed to reopen serial port for radio '{radioName}'");
+                        return;
+                    }
+                }
+                
+                bool connected = await newRadio.ConnectAsync(_wrappedSerialPort);
+                if (connected)
+                {
+                    _connectedRadio = newRadio;
+                    Console.WriteLine($"Successfully changed radio to: {_connectedRadio.Manufacturer} {_connectedRadio.ModelName}");
+                    await SendSuccessResponseAsync(networkStream, $"SUCCESS: Radio changed to {_connectedRadio.Manufacturer} {_connectedRadio.ModelName}");
+                }
+                else
+                {
+                    newRadio.Dispose();
+                    await SendErrorResponseAsync(networkStream, $"ERROR: Failed to connect to radio '{radioName}'");
+                }
+            }
+            else
+            {
+                newRadio.Dispose();
+                await SendErrorResponseAsync(networkStream, "ERROR: No serial port available for radio connection");
+            }
+        }
+        catch (Exception ex)
+        {
+            await SendErrorResponseAsync(networkStream, $"ERROR: Failed to set radio - {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Sends the current radio information as a response
+    /// </summary>
+    private static async Task SendCurrentRadioResponseAsync(NetworkStream networkStream)
+    {
+        try
+        {
+            if (_connectedRadio != null)
+            {
+                var response = $"CURRENT_RADIO:{_connectedRadio.Manufacturer} {_connectedRadio.ModelName}|{_connectedRadio.SupportedFeatures.GetFeatureCount()}|{(_connectedRadio.IsConnected ? "CONNECTED" : "DISCONNECTED")}";
+                await SendTcpResponseAsync(networkStream, response);
+            }
+            else
+            {
+                await SendTcpResponseAsync(networkStream, "CURRENT_RADIO:NONE");
+            }
+        }
+        catch (Exception ex)
+        {
+            await SendErrorResponseAsync(networkStream, $"ERROR: Failed to get current radio - {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Sends a success response to the TCP client
+    /// </summary>
+    private static async Task SendSuccessResponseAsync(NetworkStream networkStream, string message)
+    {
+        await SendTcpResponseAsync(networkStream, message);
+    }
+    
+    /// <summary>
+    /// Sends an error response to the TCP client
+    /// </summary>
+    private static async Task SendErrorResponseAsync(NetworkStream networkStream, string message)
+    {
+        await SendTcpResponseAsync(networkStream, message);
+    }
+    
+    /// <summary>
+    /// Sends a response to the TCP client
+    /// </summary>
+    private static async Task SendTcpResponseAsync(NetworkStream networkStream, string response)
+    {
+        try
+        {
+            byte[] responseBytes = Encoding.UTF8.GetBytes(response + "\n");
+            await networkStream.WriteAsync(responseBytes);
+            await networkStream.FlushAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending TCP response: {ex.Message}");
         }
     }
 
