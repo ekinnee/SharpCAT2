@@ -196,9 +196,23 @@ class Program
                         await SendToSerialPortAsync(input);
                         Console.WriteLine($"Sent: {input}");
                     }
+                    catch (OperationCanceledException)
+                    {
+                        // Cancellation is expected during shutdown
+                        break;
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        Console.WriteLine($"Operation error: {ex.Message}");
+                    }
+                    catch (IOException ex)
+                    {
+                        Console.WriteLine($"I/O error: {ex.Message}");
+                        break; // Likely a serious issue, exit the loop
+                    }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error sending data: {ex.Message}");
+                        Console.WriteLine($"Unexpected error sending data: {ex.Message}");
                         break;
                     }
                 }
@@ -637,9 +651,21 @@ class Program
             {
                 await Task.Run(() => _wrappedSerialPort.WriteLine(command));
             }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine($"Serial port operation failed: {ex.Message}");
+            }
+            catch (TimeoutException ex)
+            {
+                Console.WriteLine($"Serial port timeout: {ex.Message}");
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"Serial port I/O error: {ex.Message}");
+            }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending to serial port: {ex.Message}");
+                Console.WriteLine($"Unexpected error sending to serial port: {ex.Message}");
             }
         }
     }
@@ -660,9 +686,21 @@ class Program
                 }
             }
         }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Serial port operation error: {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Serial port I/O error: {ex.Message}");
+        }
+        catch (TimeoutException ex)
+        {
+            Console.WriteLine($"Serial port read timeout: {ex.Message}");
+        }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error reading serial data: {ex.Message}");
+            Console.WriteLine($"Unexpected error reading serial data: {ex.Message}");
         }
     }
     
@@ -959,28 +997,74 @@ class Program
                 case "-p":
                 case "--port":
                     if (i + 1 < args.Length)
-                        options.PortName = args[++i];
-                    break;
-                case "-b":
-                case "--baud":
-                    if (i + 1 < args.Length && int.TryParse(args[++i], out int baud))
                     {
-                        if (IsValidBaudRate(baud))
+                        var portName = args[++i];
+                        if (!string.IsNullOrWhiteSpace(portName))
                         {
-                            options.BaudRate = baud;
+                            options.PortName = portName.Trim();
                         }
                         else
                         {
-                            Console.WriteLine($"Error: Unsupported baud rate '{baud}'.");
+                            Console.WriteLine("Error: Port name cannot be empty.");
+                            Environment.Exit(1);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Missing port name argument.");
+                        Environment.Exit(1);
+                    }
+                    break;
+                case "-b":
+                case "--baud":
+                    if (i + 1 < args.Length)
+                    {
+                        if (int.TryParse(args[++i], out int baud))
+                        {
+                            if (IsValidBaudRate(baud))
+                            {
+                                options.BaudRate = baud;
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Error: Unsupported baud rate '{baud}'.");
+                                ShowSupportedBaudRates();
+                                Environment.Exit(1);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Error: Invalid baud rate '{args[i]}'. Must be a valid integer.");
                             ShowSupportedBaudRates();
                             Environment.Exit(1);
                         }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Missing baud rate argument.");
+                        ShowSupportedBaudRates();
+                        Environment.Exit(1);
                     }
                     break;
                 case "-t":
                 case "--tcp-port":
                     if (i + 1 < args.Length && int.TryParse(args[++i], out int tcpPort))
-                        options.TcpPort = tcpPort;
+                    {
+                        if (tcpPort > 0 && tcpPort <= 65535)
+                        {
+                            options.TcpPort = tcpPort;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Error: TCP port '{tcpPort}' is out of valid range (1-65535).");
+                            Environment.Exit(1);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Invalid or missing TCP port number.");
+                        Environment.Exit(1);
+                    }
                     break;
                 case "-l":
                 case "--list":
@@ -993,7 +1077,23 @@ class Program
                 case "-r":
                 case "--radio":
                     if (i + 1 < args.Length)
-                        options.RadioModel = args[++i];
+                    {
+                        var radioModel = args[++i];
+                        if (!string.IsNullOrWhiteSpace(radioModel))
+                        {
+                            options.RadioModel = radioModel.Trim();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error: Radio model cannot be empty.");
+                            Environment.Exit(1);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Missing radio model argument.");
+                        Environment.Exit(1);
+                    }
                     break;
                 case "--auto-detect":
                     options.AutoDetectRadio = true;
@@ -1003,7 +1103,31 @@ class Program
                     break;
                 case "--radio-info":
                     if (i + 1 < args.Length)
-                        options.ShowRadioInfo = args[++i];
+                    {
+                        var radioInfo = args[++i];
+                        if (!string.IsNullOrWhiteSpace(radioInfo))
+                        {
+                            options.ShowRadioInfo = radioInfo.Trim();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error: Radio info parameter cannot be empty.");
+                            Environment.Exit(1);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Missing radio info argument.");
+                        Environment.Exit(1);
+                    }
+                    break;
+                default:
+                    if (args[i].StartsWith("-"))
+                    {
+                        Console.WriteLine($"Error: Unknown argument '{args[i]}'.");
+                        Console.WriteLine("Use --help to see available options.");
+                        Environment.Exit(1);
+                    }
                     break;
             }
         }
