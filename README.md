@@ -291,7 +291,28 @@ The client application provides an interactive command loop:
 - Type `status` to check connection status
 - Type `radio-status` or `rs` to get radio status
 - Type `list-radios` or `radios` to see available radio models
+- Type `current-radio` or `get-current-radio` to show current active radio
+- Type `set-radio <name>` to change the active radio (e.g., `set-radio Kenwood TS-2000`)
 - Type `quit` or `exit` to disconnect and exit
+
+#### Client Radio Management Commands
+
+The client now supports full radio management over the TCP connection:
+
+**Radio Information Commands:**
+- `list-radios` - List all available radio models with feature counts
+- `current-radio` - Show current active radio and connection status
+
+**Radio Control Commands:**
+- `set-radio <manufacturer> <model>` - Change the server's active radio
+  - Example: `set-radio Kenwood TS-2000`
+  - Example: `set-radio Elecraft K3`
+  - Example: `set-radio SharpCAT2 DummyRadio`
+
+**Response Format:**
+- Radio list: Structured format with `RADIO_LIST_START` and `RADIO_LIST_END` markers
+- Current radio: `CURRENT_RADIO:<name>|<features>|<status>`
+- Set radio: `SUCCESS:` or `ERROR:` messages with details
 
 #### Client Radio Commands
 
