@@ -8,7 +8,7 @@ using SharpCAT2.Radio.Models.FlexRadio;
 using SharpCAT2.Radio.Models.Alinco;
 using SharpCAT2.Radio.Models.TenTec;
 using SharpCAT2.Radio.Models.Testing;
-using SharpCAT2.Radio.Serial;
+using SharpCAT2.Common.Serial;
 
 namespace SharpCAT2.Radio;
 

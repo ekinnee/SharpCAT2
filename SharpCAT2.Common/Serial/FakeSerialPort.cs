@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.IO.Ports;
 using System.Text;
 
-namespace SharpCAT2.Radio.Serial;
+namespace SharpCAT2.Common.Serial;
 
 /// <summary>
 /// Fake serial port implementation for testing and simulation.

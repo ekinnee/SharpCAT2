@@ -1,6 +1,6 @@
 using System.IO.Ports;
 
-namespace SharpCAT2.Radio.Serial;
+namespace SharpCAT2.Common.Serial;
 
 /// <summary>
 /// Interface for serial port communication abstraction.

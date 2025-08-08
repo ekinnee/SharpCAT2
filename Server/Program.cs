@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Collections.Concurrent;
 using SharpCAT2.Radio;
-using SharpCAT2.Radio.Serial;
+using SharpCAT2.Common.Serial;
 
 namespace SharpCAT2.Server;
 
