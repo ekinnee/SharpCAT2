@@ -1,6 +1,6 @@
 using System.IO.Ports;
 
-namespace SharpCAT2.Radio.Serial;
+namespace SharpCAT2.Common.Serial;
 
 /// <summary>
 /// Factory for creating serial port implementations.

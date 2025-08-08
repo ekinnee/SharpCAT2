@@ -1,6 +1,6 @@
 using System.IO.Ports;
 
-namespace SharpCAT2.Radio.Serial;
+namespace SharpCAT2.Common.Serial;
 
 /// <summary>
 /// Real serial port implementation that wraps System.IO.Ports.SerialPort.

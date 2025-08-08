@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Radio", "SharpCAT2.Radio\SharpCAT2.Radio.csproj", "{8B3D8F7E-4567-4567-8901-23456789ABCD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Common", "SharpCAT2.Common\SharpCAT2.Common.csproj", "{8B3D8F7E-5678-4567-8901-23456789ABCD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,5 +34,9 @@ Global
 		{8B3D8F7E-4567-4567-8901-23456789ABCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B3D8F7E-4567-4567-8901-23456789ABCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B3D8F7E-4567-4567-8901-23456789ABCD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B3D8F7E-5678-4567-8901-23456789ABCD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B3D8F7E-5678-4567-8901-23456789ABCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B3D8F7E-5678-4567-8901-23456789ABCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B3D8F7E-5678-4567-8901-23456789ABCD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

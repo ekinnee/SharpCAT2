@@ -1,4 +1,4 @@
-﻿using SharpCAT2.Radio.Serial;
+﻿using SharpCAT2.Common.Serial;
 using System.Text;
 using System.Text.RegularExpressions;
 
