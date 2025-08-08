@@ -56,6 +56,25 @@ class Program
 
     #endregion
 
+    #region Constants
+
+    /// <summary>
+    /// Default buffer size for TCP network communication
+    /// </summary>
+    private const int DefaultNetworkBufferSize = 1024;
+
+    /// <summary>
+    /// Default read timeout for serial port operations in milliseconds
+    /// </summary>
+    private const int DefaultSerialReadTimeout = 500;
+
+    /// <summary>
+    /// Default write timeout for serial port operations in milliseconds
+    /// </summary>
+    private const int DefaultSerialWriteTimeout = 500;
+
+    #endregion
+
     /// <summary>
     /// Main entry point for the SharpCAT2 Server application.
     /// Handles command line parsing, serial port setup, radio initialization, 
@@ -177,9 +196,23 @@ class Program
                         await SendToSerialPortAsync(input);
                         Console.WriteLine($"Sent: {input}");
                     }
+                    catch (OperationCanceledException)
+                    {
+                        // Cancellation is expected during shutdown
+                        break;
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        Console.WriteLine($"Operation error: {ex.Message}");
+                    }
+                    catch (IOException ex)
+                    {
+                        Console.WriteLine($"I/O error: {ex.Message}");
+                        break; // Likely a serious issue, exit the loop
+                    }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error sending data: {ex.Message}");
+                        Console.WriteLine($"Unexpected error sending data: {ex.Message}");
                         break;
                     }
                 }
@@ -194,9 +227,33 @@ class Program
             // Save configuration on normal shutdown
             await SaveConfigurationAsync(options);
         }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"Invalid argument: {ex.Message}");
+            ShowHelp();
+            Environment.Exit(1);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Configuration error: {ex.Message}");
+            Environment.Exit(1);
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"I/O error: {ex.Message}");
+            Environment.Exit(1);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($"Access denied: {ex.Message}");
+            Environment.Exit(1);
+        }
         catch (Exception ex)
         {
-            Console.WriteLine($"Fatal error: {ex.Message}");
+            Console.WriteLine($"Unexpected error: {ex.Message}");
+            Console.WriteLine($"Please report this issue with the following details:");
+            Console.WriteLine($"Exception type: {ex.GetType().Name}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             Environment.Exit(1);
         }
     }
@@ -502,10 +559,20 @@ class Program
                     _tcpClients[clientId] = networkStream;
                     Console.WriteLine($"TCP client connected: {clientId}");
                     
-                    // Handle client communication in background
+                    // Handle client communication in background with proper disposal
                     _ = Task.Run(async () => await HandleTcpClientAsync(clientId, tcpClient, networkStream, cancellationToken));
                 }
                 catch (ObjectDisposedException)
+                {
+                    // TCP listener was stopped
+                    break;
+                }
+                catch (SocketException ex) when (ex.SocketErrorCode == SocketError.OperationAborted)
+                {
+                    // TCP listener was stopped
+                    break;
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("not listening"))
                 {
                     // TCP listener was stopped
                     break;
@@ -521,36 +588,58 @@ class Program
         await Task.Delay(100, cancellationToken);
     }
     
+    /// <summary>
+    /// Handles communication with a connected TCP client, including command processing and resource cleanup.
+    /// Ensures proper disposal of client resources and handles various network error conditions.
+    /// </summary>
+    /// <param name="clientId">Unique identifier for the client connection</param>
+    /// <param name="tcpClient">TCP client connection to handle</param>
+    /// <param name="networkStream">Network stream for communication</param>
+    /// <param name="cancellationToken">Token for cancellation during shutdown</param>
+    /// <returns>Task representing the async client handling operation</returns>
     private static async Task HandleTcpClientAsync(string clientId, TcpClient tcpClient, NetworkStream networkStream, CancellationToken cancellationToken)
     {
-        var buffer = new byte[1024];
-        
         try
         {
-            while (!cancellationToken.IsCancellationRequested && tcpClient.Connected)
+            // Ensure proper disposal of client and stream
+            using (tcpClient)
+            using (networkStream)
             {
-                int bytesRead = await networkStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+                var buffer = new byte[DefaultNetworkBufferSize];
                 
-                if (bytesRead > 0)
+                while (!cancellationToken.IsCancellationRequested && tcpClient.Connected)
                 {
-                    string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
-                    Console.WriteLine($"TCP client {clientId} sent: {command}");
+                    int bytesRead = await networkStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
                     
-                    // Handle special radio management commands
-                    if (await HandleRadioManagementCommandAsync(command, networkStream))
+                    if (bytesRead > 0)
                     {
-                        // Command was handled, continue to next iteration
-                        continue;
+                        string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
+                        Console.WriteLine($"TCP client {clientId} sent: {command}");
+                        
+                        // Handle special radio management commands
+                        if (await HandleRadioManagementCommandAsync(command, networkStream))
+                        {
+                            // Command was handled, continue to next iteration
+                            continue;
+                        }
+                        
+                        // Send command to serial port for regular radio/serial commands
+                        await SendToSerialPortAsync(command);
                     }
-                    
-                    // Send command to serial port for regular radio/serial commands
-                    await SendToSerialPortAsync(command);
-                }
-                else
-                {
-                    break; // Client disconnected
+                    else
+                    {
+                        break; // Client disconnected
+                    }
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is expected, don't log as error
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Network I/O error with TCP client {clientId}: {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -559,11 +648,16 @@ class Program
         finally
         {
             _tcpClients.TryRemove(clientId, out _);
-            tcpClient.Close();
             Console.WriteLine($"TCP client disconnected: {clientId}");
         }
     }
     
+    /// <summary>
+    /// Sends a command to the serial port with comprehensive error handling.
+    /// Handles various serial port error conditions including timeouts and I/O errors.
+    /// </summary>
+    /// <param name="command">Command string to send to the serial port</param>
+    /// <returns>Task representing the async send operation</returns>
     private static async Task SendToSerialPortAsync(string command)
     {
         if (_wrappedSerialPort?.IsOpen == true)
@@ -572,9 +666,21 @@ class Program
             {
                 await Task.Run(() => _wrappedSerialPort.WriteLine(command));
             }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine($"Serial port operation failed: {ex.Message}");
+            }
+            catch (TimeoutException ex)
+            {
+                Console.WriteLine($"Serial port timeout: {ex.Message}");
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"Serial port I/O error: {ex.Message}");
+            }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending to serial port: {ex.Message}");
+                Console.WriteLine($"Unexpected error sending to serial port: {ex.Message}");
             }
         }
     }
@@ -595,27 +701,68 @@ class Program
                 }
             }
         }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Serial port operation error: {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Serial port I/O error: {ex.Message}");
+        }
+        catch (TimeoutException ex)
+        {
+            Console.WriteLine($"Serial port read timeout: {ex.Message}");
+        }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error reading serial data: {ex.Message}");
+            Console.WriteLine($"Unexpected error reading serial data: {ex.Message}");
         }
     }
     
+    /// <summary>
+    /// Sends data to all connected TCP clients with improved thread safety and error handling.
+    /// Takes a snapshot of current clients to avoid concurrent modification issues.
+    /// Automatically removes clients that fail to receive data.
+    /// </summary>
+    /// <param name="data">Data string to send to all connected clients</param>
+    /// <returns>Task representing the async broadcast operation</returns>
     private static async Task SendToTcpClientsAsync(string data)
     {
         var clientsToRemove = new List<string>();
         var dataBytes = Encoding.UTF8.GetBytes(data);
         
-        foreach (var kvp in _tcpClients)
+        // Take a snapshot of current clients to avoid concurrent modification issues
+        var currentClients = _tcpClients.ToArray();
+        
+        foreach (var kvp in currentClients)
         {
             try
             {
-                await kvp.Value.WriteAsync(dataBytes, 0, dataBytes.Length);
-                await kvp.Value.FlushAsync();
+                // Check if client still exists (might have been removed)
+                if (_tcpClients.ContainsKey(kvp.Key))
+                {
+                    await kvp.Value.WriteAsync(dataBytes, 0, dataBytes.Length);
+                    await kvp.Value.FlushAsync();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Stream was disposed, mark for removal
+                clientsToRemove.Add(kvp.Key);
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"Network I/O error sending to TCP client {kvp.Key}: {ex.Message}");
+                clientsToRemove.Add(kvp.Key);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine($"Invalid operation sending to TCP client {kvp.Key}: {ex.Message}");
+                clientsToRemove.Add(kvp.Key);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending to TCP client {kvp.Key}: {ex.Message}");
+                Console.WriteLine($"Unexpected error sending to TCP client {kvp.Key}: {ex.Message}");
                 clientsToRemove.Add(kvp.Key);
             }
         }
@@ -883,6 +1030,13 @@ class Program
     /// </summary>
     /// <param name="args">Command line arguments array</param>
     /// <returns>Parsed command line options</returns>
+    /// <summary>
+    /// Parses command-line arguments with comprehensive validation.
+    /// Validates parameter values, ranges, and provides clear error messages.
+    /// Exits the application with helpful error messages for invalid arguments.
+    /// </summary>
+    /// <param name="args">Command-line arguments array</param>
+    /// <returns>Parsed and validated command-line options</returns>
     private static CommandLineOptions ParseArguments(string[] args)
     {
         var options = new CommandLineOptions();
@@ -894,28 +1048,74 @@ class Program
                 case "-p":
                 case "--port":
                     if (i + 1 < args.Length)
-                        options.PortName = args[++i];
-                    break;
-                case "-b":
-                case "--baud":
-                    if (i + 1 < args.Length && int.TryParse(args[++i], out int baud))
                     {
-                        if (IsValidBaudRate(baud))
+                        var portName = args[++i];
+                        if (!string.IsNullOrWhiteSpace(portName))
                         {
-                            options.BaudRate = baud;
+                            options.PortName = portName.Trim();
                         }
                         else
                         {
-                            Console.WriteLine($"Error: Unsupported baud rate '{baud}'.");
+                            Console.WriteLine("Error: Port name cannot be empty.");
+                            Environment.Exit(1);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Missing port name argument.");
+                        Environment.Exit(1);
+                    }
+                    break;
+                case "-b":
+                case "--baud":
+                    if (i + 1 < args.Length)
+                    {
+                        if (int.TryParse(args[++i], out int baud))
+                        {
+                            if (IsValidBaudRate(baud))
+                            {
+                                options.BaudRate = baud;
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Error: Unsupported baud rate '{baud}'.");
+                                ShowSupportedBaudRates();
+                                Environment.Exit(1);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Error: Invalid baud rate '{args[i]}'. Must be a valid integer.");
                             ShowSupportedBaudRates();
                             Environment.Exit(1);
                         }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Missing baud rate argument.");
+                        ShowSupportedBaudRates();
+                        Environment.Exit(1);
                     }
                     break;
                 case "-t":
                 case "--tcp-port":
                     if (i + 1 < args.Length && int.TryParse(args[++i], out int tcpPort))
-                        options.TcpPort = tcpPort;
+                    {
+                        if (tcpPort > 0 && tcpPort <= 65535)
+                        {
+                            options.TcpPort = tcpPort;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Error: TCP port '{tcpPort}' is out of valid range (1-65535).");
+                            Environment.Exit(1);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Invalid or missing TCP port number.");
+                        Environment.Exit(1);
+                    }
                     break;
                 case "-l":
                 case "--list":
@@ -928,7 +1128,23 @@ class Program
                 case "-r":
                 case "--radio":
                     if (i + 1 < args.Length)
-                        options.RadioModel = args[++i];
+                    {
+                        var radioModel = args[++i];
+                        if (!string.IsNullOrWhiteSpace(radioModel))
+                        {
+                            options.RadioModel = radioModel.Trim();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error: Radio model cannot be empty.");
+                            Environment.Exit(1);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Missing radio model argument.");
+                        Environment.Exit(1);
+                    }
                     break;
                 case "--auto-detect":
                     options.AutoDetectRadio = true;
@@ -938,7 +1154,31 @@ class Program
                     break;
                 case "--radio-info":
                     if (i + 1 < args.Length)
-                        options.ShowRadioInfo = args[++i];
+                    {
+                        var radioInfo = args[++i];
+                        if (!string.IsNullOrWhiteSpace(radioInfo))
+                        {
+                            options.ShowRadioInfo = radioInfo.Trim();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error: Radio info parameter cannot be empty.");
+                            Environment.Exit(1);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Missing radio info argument.");
+                        Environment.Exit(1);
+                    }
+                    break;
+                default:
+                    if (args[i].StartsWith("-"))
+                    {
+                        Console.WriteLine($"Error: Unknown argument '{args[i]}'.");
+                        Console.WriteLine("Use --help to see available options.");
+                        Environment.Exit(1);
+                    }
                     break;
             }
         }
@@ -1220,8 +1460,8 @@ class Program
                 DataBits = 8,
                 StopBits = StopBits.One,
                 Handshake = Handshake.None,
-                ReadTimeout = 500,
-                WriteTimeout = 500
+                ReadTimeout = DefaultSerialReadTimeout,
+                WriteTimeout = DefaultSerialWriteTimeout
             };
             
             serialPort.Open();
