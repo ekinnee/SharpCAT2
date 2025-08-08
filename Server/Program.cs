@@ -588,6 +588,15 @@ class Program
         await Task.Delay(100, cancellationToken);
     }
     
+    /// <summary>
+    /// Handles communication with a connected TCP client, including command processing and resource cleanup.
+    /// Ensures proper disposal of client resources and handles various network error conditions.
+    /// </summary>
+    /// <param name="clientId">Unique identifier for the client connection</param>
+    /// <param name="tcpClient">TCP client connection to handle</param>
+    /// <param name="networkStream">Network stream for communication</param>
+    /// <param name="cancellationToken">Token for cancellation during shutdown</param>
+    /// <returns>Task representing the async client handling operation</returns>
     private static async Task HandleTcpClientAsync(string clientId, TcpClient tcpClient, NetworkStream networkStream, CancellationToken cancellationToken)
     {
         try
@@ -643,6 +652,12 @@ class Program
         }
     }
     
+    /// <summary>
+    /// Sends a command to the serial port with comprehensive error handling.
+    /// Handles various serial port error conditions including timeouts and I/O errors.
+    /// </summary>
+    /// <param name="command">Command string to send to the serial port</param>
+    /// <returns>Task representing the async send operation</returns>
     private static async Task SendToSerialPortAsync(string command)
     {
         if (_wrappedSerialPort?.IsOpen == true)
@@ -704,21 +719,50 @@ class Program
         }
     }
     
+    /// <summary>
+    /// Sends data to all connected TCP clients with improved thread safety and error handling.
+    /// Takes a snapshot of current clients to avoid concurrent modification issues.
+    /// Automatically removes clients that fail to receive data.
+    /// </summary>
+    /// <param name="data">Data string to send to all connected clients</param>
+    /// <returns>Task representing the async broadcast operation</returns>
     private static async Task SendToTcpClientsAsync(string data)
     {
         var clientsToRemove = new List<string>();
         var dataBytes = Encoding.UTF8.GetBytes(data);
         
-        foreach (var kvp in _tcpClients)
+        // Take a snapshot of current clients to avoid concurrent modification issues
+        var currentClients = _tcpClients.ToArray();
+        
+        foreach (var kvp in currentClients)
         {
             try
             {
-                await kvp.Value.WriteAsync(dataBytes, 0, dataBytes.Length);
-                await kvp.Value.FlushAsync();
+                // Check if client still exists (might have been removed)
+                if (_tcpClients.ContainsKey(kvp.Key))
+                {
+                    await kvp.Value.WriteAsync(dataBytes, 0, dataBytes.Length);
+                    await kvp.Value.FlushAsync();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Stream was disposed, mark for removal
+                clientsToRemove.Add(kvp.Key);
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"Network I/O error sending to TCP client {kvp.Key}: {ex.Message}");
+                clientsToRemove.Add(kvp.Key);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine($"Invalid operation sending to TCP client {kvp.Key}: {ex.Message}");
+                clientsToRemove.Add(kvp.Key);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending to TCP client {kvp.Key}: {ex.Message}");
+                Console.WriteLine($"Unexpected error sending to TCP client {kvp.Key}: {ex.Message}");
                 clientsToRemove.Add(kvp.Key);
             }
         }
@@ -986,6 +1030,13 @@ class Program
     /// </summary>
     /// <param name="args">Command line arguments array</param>
     /// <returns>Parsed command line options</returns>
+    /// <summary>
+    /// Parses command-line arguments with comprehensive validation.
+    /// Validates parameter values, ranges, and provides clear error messages.
+    /// Exits the application with helpful error messages for invalid arguments.
+    /// </summary>
+    /// <param name="args">Command-line arguments array</param>
+    /// <returns>Parsed and validated command-line options</returns>
     private static CommandLineOptions ParseArguments(string[] args)
     {
         var options = new CommandLineOptions();
