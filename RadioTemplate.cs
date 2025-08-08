@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpCAT2.Radio.Models.{ManufacturerName};
+namespace SharpCAT2.Common.Radio.Models.{ManufacturerName};
 
 /// <summary>
 /// {ManufacturerName} {ModelName} radio implementation

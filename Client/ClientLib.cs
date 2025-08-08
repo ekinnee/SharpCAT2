@@ -1,6 +1,6 @@
 ﻿using System.Net.Sockets;
 using System.Text;
-using SharpCAT2.Radio;
+using SharpCAT2.Common.Radio;
 
 namespace SharpCAT2.ClientLib;
 

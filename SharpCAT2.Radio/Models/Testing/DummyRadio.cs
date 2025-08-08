@@ -1,6 +1,6 @@
 using SharpCAT2.Common.Serial;
 
-namespace SharpCAT2.Radio.Models.Testing;
+namespace SharpCAT2.Common.Radio.Models.Testing;
 
 /// <summary>
 /// DummyRadio class for demonstration and testing purposes.

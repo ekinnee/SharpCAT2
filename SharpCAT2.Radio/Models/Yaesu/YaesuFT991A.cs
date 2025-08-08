@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace SharpCAT2.Radio.Models.Yaesu;
+namespace SharpCAT2.Common.Radio.Models.Yaesu;
 
 /// <summary>
 /// Yaesu FT-991A radio implementation

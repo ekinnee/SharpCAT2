@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpCAT2.Radio.Models.FlexRadio;
+namespace SharpCAT2.Common.Radio.Models.FlexRadio;
 
 /// <summary>
 /// FlexRadio FLEX-6400 radio implementation

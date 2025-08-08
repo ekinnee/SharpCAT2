@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpCAT2.Radio.Models.TenTec;
+namespace SharpCAT2.Common.Radio.Models.TenTec;
 
 /// <summary>
 /// Ten-Tec OMNI VII radio implementation

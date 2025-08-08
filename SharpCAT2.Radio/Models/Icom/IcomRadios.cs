@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpCAT2.Radio.Models.Icom;
+namespace SharpCAT2.Common.Radio.Models.Icom;
 
 /// <summary>
 /// Icom IC-7300 radio implementation

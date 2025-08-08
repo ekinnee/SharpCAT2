@@ -2,7 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace SharpCAT2.Radio.Models;
+namespace SharpCAT2.Common.Radio.Models;
 
 /// <summary>
 /// Base implementation of the IRadio interface providing common functionality
