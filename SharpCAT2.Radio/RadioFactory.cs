@@ -1,16 +1,16 @@
 ﻿using System.Reflection;
-using SharpCAT2.Radio.Models;
-using SharpCAT2.Radio.Models.Yaesu;
-using SharpCAT2.Radio.Models.Kenwood;
-using SharpCAT2.Radio.Models.Elecraft;
-using SharpCAT2.Radio.Models.Icom;
-using SharpCAT2.Radio.Models.FlexRadio;
-using SharpCAT2.Radio.Models.Alinco;
-using SharpCAT2.Radio.Models.TenTec;
-using SharpCAT2.Radio.Models.Testing;
+using SharpCAT2.Common.Radio.Models;
+using SharpCAT2.Common.Radio.Models.Yaesu;
+using SharpCAT2.Common.Radio.Models.Kenwood;
+using SharpCAT2.Common.Radio.Models.Elecraft;
+using SharpCAT2.Common.Radio.Models.Icom;
+using SharpCAT2.Common.Radio.Models.FlexRadio;
+using SharpCAT2.Common.Radio.Models.Alinco;
+using SharpCAT2.Common.Radio.Models.TenTec;
+using SharpCAT2.Common.Radio.Models.Testing;
 using SharpCAT2.Common.Serial;
 
-namespace SharpCAT2.Radio;
+namespace SharpCAT2.Common.Radio;
 
 /// <summary>
 /// Factory for creating radio instances based on model name

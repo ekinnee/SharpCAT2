@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace SharpCAT2.Radio.Models.Kenwood;
+namespace SharpCAT2.Common.Radio.Models.Kenwood;
 
 /// <summary>
 /// Kenwood TS-2000 radio implementation

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpCAT2.Radio.Models.Alinco;
+namespace SharpCAT2.Common.Radio.Models.Alinco;
 
 /// <summary>
 /// Alinco DX-SR8T radio implementation

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpCAT2.Radio.Models.Elecraft;
+namespace SharpCAT2.Common.Radio.Models.Elecraft;
 
 /// <summary>
 /// Elecraft K4 radio implementation

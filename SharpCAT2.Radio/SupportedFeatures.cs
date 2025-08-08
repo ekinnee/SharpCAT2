@@ -1,6 +1,6 @@
 using System;
 
-namespace SharpCAT2.Radio;
+namespace SharpCAT2.Common.Radio;
 
 /// <summary>
 /// Enumeration of radio features that can be supported
