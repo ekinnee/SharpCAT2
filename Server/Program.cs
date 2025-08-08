@@ -56,6 +56,25 @@ class Program
 
     #endregion
 
+    #region Constants
+
+    /// <summary>
+    /// Default buffer size for TCP network communication
+    /// </summary>
+    private const int DefaultNetworkBufferSize = 1024;
+
+    /// <summary>
+    /// Default read timeout for serial port operations in milliseconds
+    /// </summary>
+    private const int DefaultSerialReadTimeout = 500;
+
+    /// <summary>
+    /// Default write timeout for serial port operations in milliseconds
+    /// </summary>
+    private const int DefaultSerialWriteTimeout = 500;
+
+    #endregion
+
     /// <summary>
     /// Main entry point for the SharpCAT2 Server application.
     /// Handles command line parsing, serial port setup, radio initialization, 
@@ -194,9 +213,33 @@ class Program
             // Save configuration on normal shutdown
             await SaveConfigurationAsync(options);
         }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"Invalid argument: {ex.Message}");
+            ShowHelp();
+            Environment.Exit(1);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Configuration error: {ex.Message}");
+            Environment.Exit(1);
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"I/O error: {ex.Message}");
+            Environment.Exit(1);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($"Access denied: {ex.Message}");
+            Environment.Exit(1);
+        }
         catch (Exception ex)
         {
-            Console.WriteLine($"Fatal error: {ex.Message}");
+            Console.WriteLine($"Unexpected error: {ex.Message}");
+            Console.WriteLine($"Please report this issue with the following details:");
+            Console.WriteLine($"Exception type: {ex.GetType().Name}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             Environment.Exit(1);
         }
     }
@@ -502,10 +545,20 @@ class Program
                     _tcpClients[clientId] = networkStream;
                     Console.WriteLine($"TCP client connected: {clientId}");
                     
-                    // Handle client communication in background
+                    // Handle client communication in background with proper disposal
                     _ = Task.Run(async () => await HandleTcpClientAsync(clientId, tcpClient, networkStream, cancellationToken));
                 }
                 catch (ObjectDisposedException)
+                {
+                    // TCP listener was stopped
+                    break;
+                }
+                catch (SocketException ex) when (ex.SocketErrorCode == SocketError.OperationAborted)
+                {
+                    // TCP listener was stopped
+                    break;
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("not listening"))
                 {
                     // TCP listener was stopped
                     break;
@@ -523,34 +576,47 @@ class Program
     
     private static async Task HandleTcpClientAsync(string clientId, TcpClient tcpClient, NetworkStream networkStream, CancellationToken cancellationToken)
     {
-        var buffer = new byte[1024];
-        
         try
         {
-            while (!cancellationToken.IsCancellationRequested && tcpClient.Connected)
+            // Ensure proper disposal of client and stream
+            using (tcpClient)
+            using (networkStream)
             {
-                int bytesRead = await networkStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+                var buffer = new byte[DefaultNetworkBufferSize];
                 
-                if (bytesRead > 0)
+                while (!cancellationToken.IsCancellationRequested && tcpClient.Connected)
                 {
-                    string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
-                    Console.WriteLine($"TCP client {clientId} sent: {command}");
+                    int bytesRead = await networkStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
                     
-                    // Handle special radio management commands
-                    if (await HandleRadioManagementCommandAsync(command, networkStream))
+                    if (bytesRead > 0)
                     {
-                        // Command was handled, continue to next iteration
-                        continue;
+                        string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
+                        Console.WriteLine($"TCP client {clientId} sent: {command}");
+                        
+                        // Handle special radio management commands
+                        if (await HandleRadioManagementCommandAsync(command, networkStream))
+                        {
+                            // Command was handled, continue to next iteration
+                            continue;
+                        }
+                        
+                        // Send command to serial port for regular radio/serial commands
+                        await SendToSerialPortAsync(command);
                     }
-                    
-                    // Send command to serial port for regular radio/serial commands
-                    await SendToSerialPortAsync(command);
-                }
-                else
-                {
-                    break; // Client disconnected
+                    else
+                    {
+                        break; // Client disconnected
+                    }
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is expected, don't log as error
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Network I/O error with TCP client {clientId}: {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -559,7 +625,6 @@ class Program
         finally
         {
             _tcpClients.TryRemove(clientId, out _);
-            tcpClient.Close();
             Console.WriteLine($"TCP client disconnected: {clientId}");
         }
     }
@@ -1220,8 +1285,8 @@ class Program
                 DataBits = 8,
                 StopBits = StopBits.One,
                 Handshake = Handshake.None,
-                ReadTimeout = 500,
-                WriteTimeout = 500
+                ReadTimeout = DefaultSerialReadTimeout,
+                WriteTimeout = DefaultSerialWriteTimeout
             };
             
             serialPort.Open();
