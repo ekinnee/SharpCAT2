@@ -152,7 +152,31 @@ public class SharpCAT2Client : IDisposable
     /// <returns>Response with available radio models</returns>
     public async Task<string?> GetAvailableRadiosAsync()
     {
-        return await SendCommandAsync("--list-radios");
+        return await SendCommandAsync("list-radios");
+    }
+
+    /// <summary>
+    /// Sets the active radio on the server
+    /// </summary>
+    /// <param name="radioName">Name of the radio to set (e.g., "Kenwood TS-2000")</param>
+    /// <returns>Response indicating success or failure</returns>
+    public async Task<string?> SetRadioAsync(string radioName)
+    {
+        if (string.IsNullOrWhiteSpace(radioName))
+        {
+            return "ERROR: Radio name cannot be empty";
+        }
+        
+        return await SendCommandAsync($"set-radio {radioName}");
+    }
+
+    /// <summary>
+    /// Gets the current active radio from the server
+    /// </summary>
+    /// <returns>Response with current radio information</returns>
+    public async Task<string?> GetCurrentRadioAsync()
+    {
+        return await SendCommandAsync("get-current-radio");
     }
 
     /// <summary>
