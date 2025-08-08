@@ -12,7 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../SharpCAT2.Radio/SharpCAT2.Radio.csproj" />
     <ProjectReference Include="../SharpCAT2.Common/SharpCAT2.Common.csproj" />
   </ItemGroup>
 
