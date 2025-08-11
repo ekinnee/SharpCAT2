@@ -1,5 +1,6 @@
 using SharpCAT2.Common.Radio;
 using SharpCAT2.Common.Serial;
+using SharpCAT2.Common.Utils;
 using Microsoft.Extensions.Logging;
 using System.Text;
 
@@ -32,43 +33,37 @@ public class RadioService : IRadioService, IDisposable
             if (options.AutoDetectRadio)
             {
                 _logger.LogInformation("Auto-detecting radio...");
-                _connectedRadio = await RadioFactory.AutoDetectRadioAsync(serialPort);
+                var baseRadio = await RadioFactory.AutoDetectRadioAsync(serialPort);
                 
-                if (_connectedRadio == null)
+                if (baseRadio == null)
                 {
                     _logger.LogWarning("No radio detected. Continuing with basic serial communication.");
                     return;
                 }
+                
+                // Wrap with resilient wrapper
+                _connectedRadio = new ResilientRadio(baseRadio, _logger);
+                await _connectedRadio.ConnectAsync(serialPort);
             }
             else if (!string.IsNullOrWhiteSpace(options.RadioModel))
             {
                 _logger.LogInformation("Connecting to radio: {RadioModel}", options.RadioModel);
-                _connectedRadio = RadioFactory.CreateRadio(options.RadioModel);
+                _connectedRadio = RadioFactory.CreateResilientRadio(options.RadioModel, _logger);
                 
                 if (_connectedRadio == null)
                 {
                     _logger.LogWarning("Unknown radio model: {RadioModel}", options.RadioModel);
                     return;
                 }
-            }
-            else
-            {
-                // No radio specified, continue with basic serial communication
-                return;
-            }
-
-            // Connect the radio to the serial port
-            bool connected = await _connectedRadio.ConnectAsync(serialPort);
-            if (!connected)
-            {
-                _logger.LogWarning("Failed to connect to radio. Continuing with basic serial communication.");
-                _connectedRadio.Dispose();
-                _connectedRadio = null;
-            }
-            else
-            {
-                _logger.LogInformation("Successfully connected to radio: {Manufacturer} {ModelName}", 
-                    _connectedRadio.Manufacturer, _connectedRadio.ModelName);
+                
+                // Connect the radio to the serial port
+                bool connected = await _connectedRadio.ConnectAsync(serialPort);
+                if (!connected)
+                {
+                    _logger.LogWarning("Failed to connect to radio. Continuing with basic serial communication.");
+                    _connectedRadio.Dispose();
+                    _connectedRadio = null;
+                }
             }
         }
         catch (Exception ex)
@@ -76,6 +71,13 @@ public class RadioService : IRadioService, IDisposable
             _logger.LogError(ex, "Error initializing radio");
             _connectedRadio?.Dispose();
             _connectedRadio = null;
+        }
+
+        // Set up resilient radio event handlers if available
+        if (_connectedRadio is ResilientRadio resilientRadio)
+        {
+            resilientRadio.ConnectionLost += OnRadioConnectionLost;
+            resilientRadio.ConnectionRestored += OnRadioConnectionRestored;
         }
     }
 
@@ -165,7 +167,7 @@ public class RadioService : IRadioService, IDisposable
         try
         {
             // Check if radio exists
-            var newRadio = RadioFactory.CreateRadio(radioName);
+            var newRadio = RadioFactory.CreateResilientRadio(radioName, _logger);
             if (newRadio == null)
             {
                 _logger.LogWarning("Unknown radio model: {RadioName}", radioName);
@@ -298,5 +300,23 @@ public class RadioService : IRadioService, IDisposable
     {
         _connectedRadio?.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Handles radio connection lost events
+    /// </summary>
+    private void OnRadioConnectionLost(object? sender, RadioConnectionLostEventArgs e)
+    {
+        _logger.LogWarning("Radio connection lost: {Manufacturer} {ModelName} - {Reason}", 
+            e.Manufacturer, e.ModelName, e.Reason);
+    }
+
+    /// <summary>
+    /// Handles radio connection restored events
+    /// </summary>
+    private void OnRadioConnectionRestored(object? sender, RadioConnectionRestoredEventArgs e)
+    {
+        _logger.LogInformation("Radio connection restored: {Manufacturer} {ModelName}", 
+            e.Manufacturer, e.ModelName);
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using SharpCAT2.Server.Services;
 using SharpCAT2.Common.Serial;
 using SharpCAT2.Common.Radio;
+using SharpCAT2.Common.Utils;
 using System.IO.Ports;
 using System.Runtime.InteropServices;
 
@@ -102,8 +103,8 @@ public class ServerApplication
             // Validate or prompt for port name
             string portName = ValidateOrPromptPortName(options.PortName);
             
-            // Open and configure serial port
-            _serialPort = CreateSerialPort(portName, options.BaudRate);
+            // Open and configure serial port with resilient wrapper
+            _serialPort = CreateResilientSerialPort(portName, options.BaudRate);
             
             _logger.LogInformation("Successfully opened serial port: {PortName}", portName);
             _logger.LogInformation("Baud rate: {BaudRate}", options.BaudRate);
@@ -128,10 +129,17 @@ public class ServerApplication
                 Console.WriteLine("Press 'q' to quit, or type messages to send to serial port...");
             }
             
-            // Set up serial port data received handler
+            // Set up serial port event handlers
             if (_serialPort != null)
             {
                 _serialPort.DataReceived += OnSerialDataReceived;
+                
+                // Set up resilient serial port event handlers if available
+                if (_serialPort is ResilientSerialPort resilientPort)
+                {
+                    resilientPort.ConnectionLost += OnSerialConnectionLost;
+                    resilientPort.ConnectionRestored += OnSerialConnectionRestored;
+                }
             }
             
             // Set up graceful shutdown handler
@@ -188,7 +196,7 @@ public class ServerApplication
                     }
 
                     // Fall back to direct serial port communication
-                    await SendToSerialPortAsync(input);
+                    await SendToSerialPortWithRetryAsync(input);
                     Console.WriteLine($"Sent: {input}");
                 }
                 catch (OperationCanceledException)
@@ -198,17 +206,20 @@ public class ServerApplication
                 }
                 catch (InvalidOperationException ex)
                 {
-                    _logger.LogError(ex, "Operation error: {Message}", ex.Message);
+                    _logger.LogWarning(ex, "Operation error (will continue): {Message}", ex.Message);
+                    // Don't break - continue processing other inputs
                 }
                 catch (IOException ex)
                 {
-                    _logger.LogError(ex, "I/O error: {Message}", ex.Message);
-                    break; // Likely a serious issue, exit the loop
+                    _logger.LogWarning(ex, "I/O error (will attempt recovery): {Message}", ex.Message);
+                    // Don't break immediately - the resilient wrapper will handle recovery
+                    await Task.Delay(1000); // Brief pause before continuing
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Unexpected error sending data: {Message}", ex.Message);
-                    break;
+                    _logger.LogError(ex, "Unexpected error (will continue): {Message}", ex.Message);
+                    // Continue rather than breaking to maintain server availability
+                    await Task.Delay(1000); // Brief pause before continuing
                 }
             }
         }
@@ -266,7 +277,7 @@ public class ServerApplication
             }
             
             // Send command to serial port for regular radio/serial commands
-            await SendToSerialPortAsync(e.Data);
+            await SendToSerialPortWithRetryAsync(e.Data);
         }
         catch (Exception ex)
         {
@@ -326,23 +337,77 @@ public class ServerApplication
     #region Helper Methods
 
     /// <summary>
-    /// Sends a command to the serial port with comprehensive error handling
+    /// Sends a command to the serial port with comprehensive error handling and retry logic
     /// </summary>
     /// <param name="command">Command string to send to the serial port</param>
     /// <returns>Task representing the async send operation</returns>
-    private async Task SendToSerialPortAsync(string command)
+    private async Task SendToSerialPortWithRetryAsync(string command)
     {
         if (_serialPort?.IsOpen == true)
         {
             try
             {
-                await Task.Run(() => _serialPort.WriteLine(command));
+                await RetryHelper.ExecuteWithRetryAsync(
+                    async () => await Task.Run(() => _serialPort.WriteLine(command)),
+                    RetryPolicy.Serial,
+                    _logger,
+                    "SerialPort.WriteLine",
+                    ShouldRetrySerialOperation
+                );
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error sending to serial port: {Command}", command);
+                _logger.LogError(ex, "Failed to send command to serial port after retries: {Command}", command);
             }
         }
+        else
+        {
+            _logger.LogWarning("Serial port is not open, cannot send command: {Command}", command);
+        }
+    }
+
+    /// <summary>
+    /// Determines if a serial operation should be retried
+    /// </summary>
+    private bool ShouldRetrySerialOperation(Exception ex)
+    {
+        return ex switch
+        {
+            InvalidOperationException when ex.Message.Contains("port is closed") => true,
+            InvalidOperationException when ex.Message.Contains("port is not open") => true,
+            IOException => true,
+            TimeoutException => true,
+            UnauthorizedAccessException => false, // Don't retry permission errors
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// Handles serial connection lost events
+    /// </summary>
+    private void OnSerialConnectionLost(object? sender, ConnectionLostEventArgs e)
+    {
+        _logger.LogWarning("Serial connection lost: {PortName} - {Reason}", e.PortName, e.Reason);
+        Console.WriteLine($"Warning: Serial connection lost ({e.Reason}). Attempting automatic recovery...");
+    }
+
+    /// <summary>
+    /// Handles serial connection restored events
+    /// </summary>
+    private void OnSerialConnectionRestored(object? sender, ConnectionRestoredEventArgs e)
+    {
+        _logger.LogInformation("Serial connection restored: {PortName}", e.PortName);
+        Console.WriteLine($"Serial connection restored: {e.PortName}");
+    }
+
+    /// <summary>
+    /// Sends a command to the serial port with comprehensive error handling (legacy method - kept for compatibility)
+    /// </summary>
+    /// <param name="command">Command string to send to the serial port</param>
+    /// <returns>Task representing the async send operation</returns>
+    private async Task SendToSerialPortAsync(string command)
+    {
+        await SendToSerialPortWithRetryAsync(command);
     }
 
     /// <summary>
@@ -874,17 +939,18 @@ public class ServerApplication
     }
 
     /// <summary>
-    /// Creates the appropriate serial port implementation based on port name
+    /// Creates the appropriate serial port implementation based on port name with resilient wrapper
     /// </summary>
     /// <param name="portName">Port name to create</param>
     /// <param name="baudRate">Baud rate for communication</param>
-    /// <returns>Configured and opened ISerialPort implementation</returns>
-    private ISerialPort CreateSerialPort(string portName, int baudRate)
+    /// <returns>Configured and opened ISerialPort implementation with resilience features</returns>
+    private ISerialPort CreateResilientSerialPort(string portName, int baudRate)
     {
         try
         {
-            // Use factory to create appropriate implementation
-            var serialPort = SerialPortFactory.CreateSerialPort(portName, baudRate);
+            // Use factory to create resilient implementation
+            var serialPort = SerialPortFactory.CreateSerialPort(portName, baudRate, 
+                useFakeForTesting: false, useResilientWrapper: true, logger: _logger);
             
             // Open the port
             if (!serialPort.IsOpen)
@@ -915,6 +981,17 @@ public class ServerApplication
             throw new InvalidOperationException(
                 $"Failed to open port '{portName}': {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Creates the appropriate serial port implementation based on port name (legacy method)
+    /// </summary>
+    /// <param name="portName">Port name to create</param>
+    /// <param name="baudRate">Baud rate for communication</param>
+    /// <returns>Configured and opened ISerialPort implementation</returns>
+    private ISerialPort CreateSerialPort(string portName, int baudRate)
+    {
+        return CreateResilientSerialPort(portName, baudRate);
     }
 
     private string GetPermissionGuidance()

@@ -1,4 +1,5 @@
 using System.IO.Ports;
+using Microsoft.Extensions.Logging;
 
 namespace SharpCAT2.Common.Serial;
 
@@ -48,13 +49,36 @@ public static class SerialPortFactory
     }
 
     /// <summary>
+    /// Creates a resilient serial port instance with retry logic and automatic recovery
+    /// </summary>
+    /// <param name="portName">The port name (e.g., COM1, /dev/ttyUSB0)</param>
+    /// <param name="baudRate">The baud rate</param>
+    /// <param name="logger">Logger for the resilient wrapper</param>
+    /// <param name="parity">The parity scheme (default: None)</param>
+    /// <param name="dataBits">The number of data bits (default: 8)</param>
+    /// <param name="stopBits">The stop bits (default: One)</param>
+    /// <returns>ISerialPort implementation with resilience features</returns>
+    public static ISerialPort CreateResilientSerialPort(string portName, int baudRate, 
+                                                        ILogger? logger = null,
+                                                        Parity parity = Parity.None, 
+                                                        int dataBits = 8, 
+                                                        StopBits stopBits = StopBits.One)
+    {
+        var innerPort = CreateRealSerialPort(portName, baudRate, parity, dataBits, stopBits);
+        return new ResilientSerialPort(innerPort, logger);
+    }
+
+    /// <summary>
     /// Creates the appropriate serial port implementation based on the port name
     /// </summary>
     /// <param name="portName">Port name to determine implementation type</param>
     /// <param name="baudRate">Baud rate for communication</param>
     /// <param name="useFakeForTesting">Force use of fake implementation for testing</param>
+    /// <param name="useResilientWrapper">Use resilient wrapper for error recovery (default: true)</param>
+    /// <param name="logger">Logger for resilient wrapper</param>
     /// <returns>Appropriate ISerialPort implementation</returns>
-    public static ISerialPort CreateSerialPort(string portName, int baudRate, bool useFakeForTesting = false)
+    public static ISerialPort CreateSerialPort(string portName, int baudRate, bool useFakeForTesting = false, 
+                                              bool useResilientWrapper = true, ILogger? logger = null)
     {
         // Use fake implementation for testing or if explicitly requested
         if (useFakeForTesting || 
@@ -67,7 +91,15 @@ public static class SerialPortFactory
         }
 
         // Create real serial port for actual hardware
-        return CreateRealSerialPort(portName, baudRate);
+        var basePort = CreateRealSerialPort(portName, baudRate);
+        
+        // Wrap with resilient wrapper if requested
+        if (useResilientWrapper)
+        {
+            return new ResilientSerialPort(basePort, logger);
+        }
+        
+        return basePort;
     }
 
     /// <summary>
