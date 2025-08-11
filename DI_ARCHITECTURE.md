@@ -40,7 +40,7 @@ The new architecture enables comprehensive testing:
 
 - **Unit Tests**: All services have isolated unit tests with mocking support
 - **Integration Tests**: End-to-end testing of network security features
-- **Test Coverage**: Expanded from 17 to 44 tests (159% increase)
+- **Test Coverage**: Expanded from 17 to 62 tests (265% increase)
 
 ## Usage
 
