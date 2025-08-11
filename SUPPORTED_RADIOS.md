@@ -4,7 +4,7 @@ SharpCAT2 supports a wide variety of amateur radio transceivers from major manuf
 
 ## Overview
 
-- **Total Models**: 28 radio models across 7 major manufacturers
+- **Total Models**: 29 radio models across 7 major manufacturers
 - **Feature Coverage**: 47 different radio capabilities supported
 - **Architecture**: Extensible plugin-style radio support through inheritance
 - **Compatibility**: Backward compatible with existing implementations

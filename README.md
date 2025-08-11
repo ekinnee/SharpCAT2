@@ -48,6 +48,51 @@ dotnet build --configuration Release
 dotnet run --configuration Release
 ```
 
+## Configuration
+
+SharpCAT2 supports configuration through both command-line arguments and JSON configuration files. Configuration files provide default values that can be overridden by command-line arguments.
+
+### Server Configuration
+
+The server can be configured using a `server_config.json` file in the Server directory:
+
+```json
+{
+  "serialPort": "FAKE",
+  "radio": "SharpCAT2 DummyRadio",
+  "baudRate": 9600,
+  "tcpPort": 8080,
+  "autoDetectRadio": true
+}
+```
+
+**Configuration Options:**
+- `serialPort`: Default serial port name
+- `radio`: Default radio model to use
+- `baudRate`: Default baud rate for serial communication
+- `tcpPort`: Default TCP port for server connections
+- `autoDetectRadio`: Whether to attempt automatic radio detection
+
+### Client Configuration
+
+The client can be configured using a `client_config.json` file in the Client directory:
+
+```json
+{
+  "serverHost": "localhost",
+  "serverPort": 8080
+}
+```
+
+**Configuration Options:**
+- `serverHost`: Default server hostname or IP address
+- `serverPort`: Default server TCP port
+
+**Configuration Priority:**
+1. Command-line arguments (highest priority)
+2. JSON configuration file values
+3. Built-in defaults (lowest priority)
+
 ## Usage
 
 ### Server Application
@@ -94,7 +139,7 @@ dotnet run -- --port COM1 --auto-detect
 
 #### Supported Radio Models
 
-SharpCAT2 now supports **29 radio models** across **8 major manufacturers**:
+SharpCAT2 now supports **29 radio models** across **7 major manufacturers**:
 
 - **Kenwood**: TS-2000, TS-890S, TS-590SG, TH-D74A, TM-D710GA
 - **Elecraft**: K3, K4, KX3, K2, K1  
@@ -487,42 +532,103 @@ system_profiler SPUSBDataType
 ```
 SharpCAT2/
 ├── Server/
-│   ├── Program.cs          # Server application with serial port and TCP functionality
+│   ├── Program.cs          # Main entry point with dependency injection setup
+│   ├── ServerApplication.cs # Core application logic with service coordination
+│   ├── CommandLineOptions.cs # Command-line argument parsing and validation
+│   ├── ServerConfig.cs     # Configuration management with JSON support
+│   ├── Services/           # Service layer implementations
+│   │   ├── IConfigurationService.cs # Configuration service interface
+│   │   ├── ConfigurationService.cs  # Configuration service implementation
+│   │   ├── INetworkService.cs       # Network service interface
+│   │   ├── NetworkService.cs        # TCP server and client management
+│   │   ├── IRadioService.cs         # Radio service interface
+│   │   ├── RadioService.cs          # Radio communication and command handling
+│   │   ├── ISecurityService.cs      # Security service interface
+│   │   └── SecurityService.cs       # IP filtering and rate limiting
+│   ├── server_config.json  # Default server configuration
 │   ├── Server.csproj       # Server project file with dependencies
 │   └── bin/Debug/          # Build output
 ├── Client/
 │   ├── ClientLib.cs        # Client library implementation
 │   ├── Program.cs          # Client console application
+│   ├── ClientConfig.cs     # Client configuration management
+│   ├── client_config.json  # Default client configuration
 │   ├── SharpCAT2.ClientLib.csproj  # Client library project file
 │   ├── Client.csproj       # Client console app project file
 │   └── bin/Debug/          # Build output
-├── SharpCAT2.Radio/        # Radio support library
-│   ├── IRadio.cs           # Radio interface definition with SupportedFeatures
-│   ├── SupportedFeatures.cs # Comprehensive feature enumeration
-│   ├── RadioCommand.cs     # Radio command abstraction
-│   ├── RadioStatus.cs      # Radio status information
-│   ├── RadioFactory.cs     # Dynamic radio creation and discovery
-│   ├── Models/             # Radio model implementations by brand
-│   │   ├── BaseRadio.cs    # Abstract base radio implementation
-│   │   ├── Kenwood/        # Kenwood radio models (TS-2000, TS-890S, etc.)
-│   │   ├── Elecraft/       # Elecraft radio models (K3, K4, KX3, etc.)
-│   │   ├── Yaesu/          # Yaesu radio models (FT-991A, FT-710, etc.)
-│   │   ├── Icom/           # Icom radio models (IC-7300, IC-9700)
-│   │   ├── FlexRadio/      # FlexRadio models (FLEX-6400, 6600, 6700)
-│   │   ├── Alinco/         # Alinco radio models (DX-SR8T, DJ-MD5TGP, etc.)
-│   │   └── TenTec/         # Ten-Tec radio models (OMNI VII, Eagle, etc.)
-│   ├── SharpCAT2.Radio.csproj # Radio library project file
+├── SharpCAT2.Common/       # Shared library with radio models and serial abstraction
+│   ├── Radio/              # Radio support library
+│   │   ├── IRadio.cs       # Radio interface definition with SupportedFeatures
+│   │   ├── SupportedFeatures.cs # Comprehensive feature enumeration
+│   │   ├── RadioCommand.cs # Radio command abstraction
+│   │   ├── RadioStatus.cs  # Radio status information
+│   │   ├── RadioFactory.cs # Dynamic radio creation and discovery
+│   │   └── Models/         # Radio model implementations by brand
+│   │       ├── BaseRadio.cs    # Abstract base radio implementation
+│   │       ├── Kenwood/        # Kenwood radio models (TS-2000, TS-890S, etc.)
+│   │       ├── Elecraft/       # Elecraft radio models (K3, K4, KX3, etc.)
+│   │       ├── Yaesu/          # Yaesu radio models (FT-991A, FT-710, etc.)
+│   │       ├── Icom/           # Icom radio models (IC-7300, IC-9700)
+│   │       ├── FlexRadio/      # FlexRadio models (FLEX-6400, 6600, 6700)
+│   │       ├── Alinco/         # Alinco radio models (DX-SR8T, DJ-MD5TGP, etc.)
+│   │       └── TenTec/         # Ten-Tec radio models (OMNI VII, Eagle, etc.)
+│   ├── Serial/             # Serial port abstraction layer
+│   │   ├── ISerialPort.cs  # Serial port interface abstraction
+│   │   ├── RealSerialPort.cs # Real hardware serial port wrapper
+│   │   ├── FakeSerialPort.cs # Simulated serial port for testing
+│   │   ├── SerialPortFactory.cs # Factory for creating serial port instances
+│   │   └── ResilientSerialPort.cs # Resilient serial port with retry logic
+│   ├── Utils/              # Utility classes
+│   │   ├── ConnectionHealthMonitor.cs # Connection health monitoring
+│   │   └── RetryPolicy.cs  # Retry logic for unreliable operations
+│   └── SharpCAT2.Common.csproj # Common library project file
+├── SharpCAT2.Tests/        # Comprehensive test suite
+│   ├── Services/           # Service layer tests
+│   ├── Serial/             # Serial abstraction tests
+│   ├── Integration/        # Integration tests
+│   ├── Utils/              # Utility tests
+│   └── SharpCAT2.Tests.csproj # Test project file
+├── .vscode/                # Visual Studio Code configuration
+│   ├── tasks.json          # Build and test tasks
+│   ├── launch.json         # Debug configurations
+│   ├── settings.json       # Project settings
+│   └── extensions.json     # Recommended extensions
+├── RadioTemplate.cs        # Template for creating new radio models
+├── test_serial_abstraction.sh # Integration test script
+└── *.md                   # Documentation files
 ```
 
 ### Dependencies
 
 - **System.IO.Ports**: Cross-platform serial port communication
 - **.NET 8.0**: Runtime platform
-- **SharpCAT2.Radio**: Radio control and CAT interface library
+- **SharpCAT2.Common**: Shared library containing radio control and serial abstraction
+- **Microsoft.Extensions.DependencyInjection**: Dependency injection framework
+- **Microsoft.Extensions.Hosting**: Generic Host pattern for service lifecycle management
+- **Microsoft.Extensions.Logging**: Structured logging framework
+
+### Modern Service Architecture
+
+The application uses a service-based architecture with dependency injection:
+
+**Core Services:**
+- **IConfigurationService**: Manages application configuration with async file operations and validation
+- **INetworkService**: Handles TCP server operations, client connections, and network communication
+- **IRadioService**: Manages radio connections, CAT commands, and radio state management
+- **ISecurityService**: Provides network security features including IP filtering and rate limiting
+
+**Architecture Benefits:**
+- **Improved Testability**: All services are easily mockable for unit testing
+- **Better Maintainability**: Clear separation of concerns with well-defined interfaces
+- **Enhanced Security**: Built-in IP filtering, rate limiting, and connection monitoring
+- **Flexible Configuration**: Support for JSON configuration files with command-line overrides
+- **Structured Logging**: Comprehensive logging throughout all service layers
+
+For detailed information about the architecture, see [DI_ARCHITECTURE.md](DI_ARCHITECTURE.md).
 
 ### Radio Architecture
 
-The radio support is implemented through the `SharpCAT2.Radio` namespace which provides:
+The radio support is implemented through the `SharpCAT2.Common.Radio` namespace which provides:
 
 - **IRadio Interface**: Defines the contract for radio communication with SupportedFeatures property
 - **SupportedFeatures Enum**: Comprehensive enumeration of 47 radio capabilities
@@ -573,6 +679,73 @@ dotnet test
 
 # Create release package
 dotnet publish -c Release -o ./publish
+```
+
+### Development Environment
+
+The project includes Visual Studio Code configuration for development:
+
+**Included VS Code Configuration:**
+- `.vscode/tasks.json` - Build and test tasks for individual projects and entire solution
+- `.vscode/launch.json` - Debug configurations for server and client applications
+- `.vscode/settings.json` - Project-specific settings
+- `.vscode/extensions.json` - Recommended extensions for .NET development
+
+**Available VS Code Tasks:**
+- `build` - Build entire solution (default)
+- `build-server` - Build server project only
+- `build-client` - Build client project only  
+- `test` - Run all tests (default)
+- `test-server` - Run server tests only
+- `test-client` - Run client tests only
+
+**Usage in VS Code:**
+1. Open the repository folder in VS Code
+2. Install recommended extensions when prompted
+3. Use `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac) to access tasks:
+   - Type "Tasks: Run Task" to see available build/test tasks
+   - Type "Debug: Start Debugging" to launch debug configurations
+
+### Testing and Validation
+
+The project includes comprehensive testing infrastructure:
+
+**Unit Tests:**
+```bash
+# Run all tests
+dotnet test
+
+# Run tests with verbose output
+dotnet test --verbosity normal
+
+# Run specific test categories
+dotnet test --filter "Category=Unit"
+dotnet test --filter "Category=Integration"
+```
+
+**Integration Testing:**
+The repository includes a test script for validating serial port abstraction:
+
+```bash
+# Run serial abstraction integration tests
+./test_serial_abstraction.sh
+```
+
+This script validates:
+- Radio model enumeration and information
+- DummyRadio with FakeSerialPort functionality
+- CAT command simulation and responses
+- SerialPortFactory functionality
+
+**Manual Testing:**
+```bash
+# Test with simulated radio (no hardware required)
+dotnet run --project Server -- --port FAKE --radio "SharpCAT2 DummyRadio"
+
+# Test radio command responses
+ID;    # Should return: ID999;
+FA;    # Should return: FA00014074000;
+s      # Should show detailed radio status
 ```
 
 ## Contributing
