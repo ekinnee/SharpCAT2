@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Microsoft.Extensions.Logging;
 using SharpCAT2.Common.Radio.Models;
 using SharpCAT2.Common.Radio.Models.Yaesu;
 using SharpCAT2.Common.Radio.Models.Kenwood;
@@ -85,12 +86,39 @@ public static class RadioFactory
     }
 
     /// <summary>
+    /// Creates a resilient radio instance with retry logic and automatic recovery
+    /// </summary>
+    /// <param name="manufacturer">Radio manufacturer</param>
+    /// <param name="model">Radio model</param>
+    /// <param name="logger">Logger for the resilient wrapper</param>
+    /// <returns>Resilient radio instance or null if not found</returns>
+    public static IRadio? CreateResilientRadio(string manufacturer, string model, ILogger? logger = null)
+    {
+        var baseRadio = CreateRadio(manufacturer, model);
+        return baseRadio != null ? new ResilientRadio(baseRadio, logger) : null;
+    }
+
+    /// <summary>
+    /// Creates a resilient radio instance by combined name with retry logic and automatic recovery
+    /// </summary>
+    /// <param name="radioName">Combined radio name</param>
+    /// <param name="logger">Logger for the resilient wrapper</param>
+    /// <returns>Resilient radio instance or null if not found</returns>
+    public static IRadio? CreateResilientRadio(string radioName, ILogger? logger = null)
+    {
+        var baseRadio = CreateRadio(radioName);
+        return baseRadio != null ? new ResilientRadio(baseRadio, logger) : null;
+    }
+
+    /// <summary>
     /// Creates a radio instance by manufacturer and model
     /// </summary>
     /// <param name="manufacturer">Radio manufacturer</param>
     /// <param name="model">Radio model</param>
+    /// <param name="useResilientWrapper">Use resilient wrapper for error recovery (default: false for compatibility)</param>
+    /// <param name="logger">Logger for resilient wrapper</param>
     /// <returns>Radio instance or null if not found</returns>
-    public static IRadio? CreateRadio(string manufacturer, string model)
+    public static IRadio? CreateRadio(string manufacturer, string model, bool useResilientWrapper = false, ILogger? logger = null)
     {
         var key = $"{manufacturer}_{model}".ToUpper();
         
@@ -98,7 +126,12 @@ public static class RadioFactory
         {
             try
             {
-                return (IRadio?)Activator.CreateInstance(radioType);
+                var baseRadio = (IRadio?)Activator.CreateInstance(radioType);
+                if (baseRadio != null && useResilientWrapper)
+                {
+                    return new ResilientRadio(baseRadio, logger);
+                }
+                return baseRadio;
             }
             catch (Exception ex)
             {
@@ -113,8 +146,10 @@ public static class RadioFactory
     /// Creates a radio instance by combined name (e.g., "Kenwood TS-2000")
     /// </summary>
     /// <param name="radioName">Combined radio name</param>
+    /// <param name="useResilientWrapper">Use resilient wrapper for error recovery (default: false for compatibility)</param>
+    /// <param name="logger">Logger for resilient wrapper</param>
     /// <returns>Radio instance or null if not found</returns>
-    public static IRadio? CreateRadio(string radioName)
+    public static IRadio? CreateRadio(string radioName, bool useResilientWrapper = false, ILogger? logger = null)
     {
         if (string.IsNullOrWhiteSpace(radioName))
             return null;
@@ -122,7 +157,7 @@ public static class RadioFactory
         var parts = radioName.Trim().Split(' ', 2);
         if (parts.Length >= 2)
         {
-            return CreateRadio(parts[0], parts[1]);
+            return CreateRadio(parts[0], parts[1], useResilientWrapper, logger);
         }
 
         // Try to find by model name only
@@ -133,6 +168,10 @@ public static class RadioFactory
                 var instance = (IRadio?)Activator.CreateInstance(kvp.Value);
                 if (instance?.ModelName.Equals(radioName, StringComparison.OrdinalIgnoreCase) == true)
                 {
+                    if (useResilientWrapper)
+                    {
+                        return new ResilientRadio(instance, logger);
+                    }
                     return instance;
                 }
                 instance?.Dispose();
