@@ -23,20 +23,7 @@ public class ServerApplication
     private ServerConfig? _config;
     private CancellationTokenSource? _cancellationTokenSource;
 
-    /// <summary>
-    /// Array of supported baud rates for serial communication.
-    /// </summary>
-    private static readonly int[] SupportedBaudRates = { 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 };
 
-    /// <summary>
-    /// Default read timeout for serial port operations in milliseconds
-    /// </summary>
-    private const int DefaultSerialReadTimeout = 500;
-
-    /// <summary>
-    /// Default write timeout for serial port operations in milliseconds
-    /// </summary>
-    private const int DefaultSerialWriteTimeout = 500;
 
     public ServerApplication(
         ILogger<ServerApplication> logger,
@@ -67,11 +54,10 @@ public class ServerApplication
         try
         {
             // Load configuration
-            const string configPath = "server_config.json";
-            _config = await _configurationService.LoadConfigurationAsync(configPath);
+            _config = await _configurationService.LoadConfigurationAsync(Constants.ServerConfigFileName);
             
-            // Parse command line arguments
-            var options = ParseArguments(args);
+            // Parse command line arguments using dedicated parser
+            var options = CommandLineParser.ParseArguments(args);
             
             // Apply configuration to options if not overridden by command line
             _configurationService.ApplyConfigurationToOptions(_config, options);
@@ -100,8 +86,11 @@ public class ServerApplication
                 return;
             }
             
-            // Validate or prompt for port name
-            string portName = ValidateOrPromptPortName(options.PortName);
+            // Validate or prompt for port name using dedicated port selector
+            var loggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole());
+            var portSelectorLogger = loggerFactory.CreateLogger<PortSelector>();
+            var portSelector = new PortSelector(portSelectorLogger);
+            string portName = portSelector.ValidateOrPromptPortName(options.PortName);
             
             // Open and configure serial port with resilient wrapper
             _serialPort = CreateResilientSerialPort(portName, options.BaudRate);
@@ -165,7 +154,12 @@ public class ServerApplication
     }
 
     /// <summary>
-    /// Runs the main application loop for console input and command processing
+    /// Runs the main application loop for console input and command processing.
+    /// This is the heart of the server's interactive mode, handling:
+    /// 1. User input from console
+    /// 2. Radio-specific commands (if radio is connected)
+    /// 3. Direct serial port communication
+    /// 4. Graceful error recovery to maintain server availability
     /// </summary>
     /// <returns>Task representing the async operation</returns>
     private async Task RunMainLoopAsync()
@@ -195,8 +189,8 @@ public class ServerApplication
                         continue;
                     }
 
-                    // Fall back to direct serial port communication
-                    await SendToSerialPortWithRetryAsync(input);
+                    // Fall back to direct serial port communication for non-radio commands
+                    await SendCommandToSerialPortWithRetryAsync(input);
                     Console.WriteLine($"Sent: {input}");
                 }
                 catch (OperationCanceledException)
@@ -245,7 +239,7 @@ public class ServerApplication
             if (_config != null)
             {
                 _configurationService.UpdateConfigurationFromOptions(_config, options);
-                await _configurationService.SaveConfigurationAsync(_config, "server_config.json");
+                await _configurationService.SaveConfigurationAsync(_config, Constants.ServerConfigFileName);
             }
         }
         catch (Exception ex)
@@ -277,7 +271,7 @@ public class ServerApplication
             }
             
             // Send command to serial port for regular radio/serial commands
-            await SendToSerialPortWithRetryAsync(e.Data);
+            await SendCommandToSerialPortWithRetryAsync(e.Data);
         }
         catch (Exception ex)
         {
@@ -337,11 +331,13 @@ public class ServerApplication
     #region Helper Methods
 
     /// <summary>
-    /// Sends a command to the serial port with comprehensive error handling and retry logic
+    /// Sends a command to the serial port with comprehensive error handling and retry logic.
+    /// This method implements retry patterns to handle temporary communication failures
+    /// with radio hardware, which is common in amateur radio environments.
     /// </summary>
     /// <param name="command">Command string to send to the serial port</param>
     /// <returns>Task representing the async send operation</returns>
-    private async Task SendToSerialPortWithRetryAsync(string command)
+    private async Task SendCommandToSerialPortWithRetryAsync(string command)
     {
         if (_serialPort?.IsOpen == true)
         {
@@ -367,18 +363,26 @@ public class ServerApplication
     }
 
     /// <summary>
-    /// Determines if a serial operation should be retried
+    /// Determines if a serial operation should be retried based on the exception type.
+    /// This logic encapsulates knowledge about which radio communication errors
+    /// are transient (network timeouts, temporary disconnections) versus
+    /// permanent (permission issues, hardware failure).
     /// </summary>
+    /// <param name="ex">Exception that occurred during serial operation</param>
+    /// <returns>True if the operation should be retried, false if it's a permanent failure</returns>
     private bool ShouldRetrySerialOperation(Exception ex)
     {
         return ex switch
         {
+            // Transient connection issues - retry these
             InvalidOperationException when ex.Message.Contains("port is closed") => true,
             InvalidOperationException when ex.Message.Contains("port is not open") => true,
-            IOException => true,
-            TimeoutException => true,
-            UnauthorizedAccessException => false, // Don't retry permission errors
-            _ => false
+            IOException => true,  // Often caused by temporary hardware issues
+            TimeoutException => true,  // Radio may be busy, retry
+            
+            // Permanent issues - don't retry these
+            UnauthorizedAccessException => false, // User lacks permissions
+            _ => false  // Unknown errors are assumed permanent for safety
         };
     }
 
@@ -401,13 +405,14 @@ public class ServerApplication
     }
 
     /// <summary>
-    /// Sends a command to the serial port with comprehensive error handling (legacy method - kept for compatibility)
+    /// Legacy method name preserved for compatibility.
+    /// Delegates to the renamed method with improved clarity.
     /// </summary>
     /// <param name="command">Command string to send to the serial port</param>
     /// <returns>Task representing the async send operation</returns>
     private async Task SendToSerialPortAsync(string command)
     {
-        await SendToSerialPortWithRetryAsync(command);
+        await SendCommandToSerialPortWithRetryAsync(command);
     }
 
     /// <summary>
@@ -556,152 +561,7 @@ public class ServerApplication
 
     #region Command Line and Configuration
 
-    /// <summary>
-    /// Parses command line arguments into a structured options object
-    /// </summary>
-    /// <param name="args">Command line arguments array</param>
-    /// <returns>Parsed command line options</returns>
-    private CommandLineOptions ParseArguments(string[] args)
-    {
-        var options = new CommandLineOptions();
-        
-        for (int i = 0; i < args.Length; i++)
-        {
-            switch (args[i].ToLower())
-            {
-                case "-p":
-                case "--port":
-                    if (i + 1 < args.Length)
-                    {
-                        var portName = args[++i];
-                        if (!string.IsNullOrWhiteSpace(portName))
-                        {
-                            options.PortName = portName.Trim();
-                        }
-                        else
-                        {
-                            throw new ArgumentException("Port name cannot be empty.");
-                        }
-                    }
-                    else
-                    {
-                        throw new ArgumentException("Missing port name argument.");
-                    }
-                    break;
-                    
-                case "-b":
-                case "--baud":
-                    if (i + 1 < args.Length)
-                    {
-                        if (int.TryParse(args[++i], out int baud))
-                        {
-                            if (IsValidBaudRate(baud))
-                            {
-                                options.BaudRate = baud;
-                            }
-                            else
-                            {
-                                throw new ArgumentException($"Unsupported baud rate '{baud}'.");
-                            }
-                        }
-                        else
-                        {
-                            throw new ArgumentException($"Invalid baud rate '{args[i]}'. Must be a valid integer.");
-                        }
-                    }
-                    else
-                    {
-                        throw new ArgumentException("Missing baud rate argument.");
-                    }
-                    break;
-                    
-                case "-t":
-                case "--tcp-port":
-                    if (i + 1 < args.Length && int.TryParse(args[++i], out int tcpPort))
-                    {
-                        if (tcpPort > 0 && tcpPort <= 65535)
-                        {
-                            options.TcpPort = tcpPort;
-                        }
-                        else
-                        {
-                            throw new ArgumentException($"TCP port '{tcpPort}' is out of valid range (1-65535).");
-                        }
-                    }
-                    else
-                    {
-                        throw new ArgumentException("Invalid or missing TCP port number.");
-                    }
-                    break;
-                    
-                case "-l":
-                case "--list":
-                    options.ListPorts = true;
-                    break;
-                    
-                case "-h":
-                case "--help":
-                    options.ShowHelp = true;
-                    break;
-                    
-                case "-r":
-                case "--radio":
-                    if (i + 1 < args.Length)
-                    {
-                        var radioModel = args[++i];
-                        if (!string.IsNullOrWhiteSpace(radioModel))
-                        {
-                            options.RadioModel = radioModel.Trim();
-                        }
-                        else
-                        {
-                            throw new ArgumentException("Radio model cannot be empty.");
-                        }
-                    }
-                    else
-                    {
-                        throw new ArgumentException("Missing radio model argument.");
-                    }
-                    break;
-                    
-                case "--auto-detect":
-                    options.AutoDetectRadio = true;
-                    break;
-                    
-                case "--list-radios":
-                    options.ListRadios = true;
-                    break;
-                    
-                case "--radio-info":
-                    if (i + 1 < args.Length)
-                    {
-                        var radioInfo = args[++i];
-                        if (!string.IsNullOrWhiteSpace(radioInfo))
-                        {
-                            options.ShowRadioInfo = radioInfo.Trim();
-                        }
-                        else
-                        {
-                            throw new ArgumentException("Radio info parameter cannot be empty.");
-                        }
-                    }
-                    else
-                    {
-                        throw new ArgumentException("Missing radio info argument.");
-                    }
-                    break;
-                    
-                default:
-                    if (args[i].StartsWith("-"))
-                    {
-                        throw new ArgumentException($"Unknown argument '{args[i]}'.");
-                    }
-                    break;
-            }
-        }
-        
-        return options;
-    }
+
 
     private void ShowHelp()
     {
@@ -819,124 +679,7 @@ public class ServerApplication
         }
     }
 
-    private string ValidateOrPromptPortName(string? portName)
-    {
-        if (!string.IsNullOrEmpty(portName))
-        {
-            if (IsValidPortName(portName))
-            {
-                return portName;
-            }
-            else
-            {
-                Console.WriteLine($"Warning: Port '{portName}' may not exist or be accessible.");
-                Console.WriteLine("Continuing anyway. Use --list to see available ports.");
-                return portName;
-            }
-        }
-        
-        // No port specified, try to help user select one
-        Console.WriteLine("No port specified. Scanning for available ports...");
-        
-        try
-        {
-            string[] ports = SerialPort.GetPortNames();
-            
-            if (ports.Length == 0)
-            {
-                Console.WriteLine("No ports found automatically.");
-                return PromptForPortName();
-            }
-            else if (ports.Length == 1)
-            {
-                Console.WriteLine($"Found one port: {ports[0]}");
-                Console.Write("Use this port? (y/N): ");
-                string? response = Console.ReadLine();
-                
-                if (response?.ToLower() == "y" || response?.ToLower() == "yes")
-                {
-                    return ports[0];
-                }
-                else
-                {
-                    return PromptForPortName();
-                }
-            }
-            else
-            {
-                Console.WriteLine("Multiple ports found:");
-                for (int i = 0; i < ports.Length; i++)
-                {
-                    Console.WriteLine($"{i + 1}. {ports[i]}");
-                }
-                
-                Console.Write($"Select port number (1-{ports.Length}) or enter custom name: ");
-                string? input = Console.ReadLine();
-                
-                if (int.TryParse(input, out int selection) && selection >= 1 && selection <= ports.Length)
-                {
-                    return ports[selection - 1];
-                }
-                else if (!string.IsNullOrEmpty(input))
-                {
-                    return input;
-                }
-                else
-                {
-                    return PromptForPortName();
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error scanning ports");
-            return PromptForPortName();
-        }
-    }
 
-    private string PromptForPortName()
-    {
-        string example = GetPlatformPortExample();
-        
-        while (true)
-        {
-            Console.Write($"Enter serial port name (e.g., {example}): ");
-            string? input = Console.ReadLine();
-            
-            if (!string.IsNullOrEmpty(input))
-            {
-                return input;
-            }
-            
-            Console.WriteLine("Port name cannot be empty. Please try again.");
-        }
-    }
-
-    private string GetPlatformPortExample()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            return "COM1";
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            return "/dev/ttyUSB0";
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            return "/dev/cu.usbserial-1410";
-        else
-            return "COM1";
-    }
-
-    private bool IsValidPortName(string portName)
-    {
-        try
-        {
-            string[] availablePorts = SerialPort.GetPortNames();
-            return availablePorts.Contains(portName, StringComparer.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            // If we can't check, assume it might be valid
-            return true;
-        }
-    }
 
     /// <summary>
     /// Creates the appropriate serial port implementation based on port name with resilient wrapper
@@ -1010,9 +753,14 @@ public class ServerApplication
         }
     }
 
+    /// <summary>
+    /// Validates if the provided baud rate is supported
+    /// </summary>
+    /// <param name="baudRate">Baud rate to validate</param>
+    /// <returns>True if baud rate is supported</returns>
     private bool IsValidBaudRate(int baudRate)
     {
-        return SupportedBaudRates.Contains(baudRate);
+        return Constants.SupportedBaudRates.Contains(baudRate);
     }
 
     #endregion
