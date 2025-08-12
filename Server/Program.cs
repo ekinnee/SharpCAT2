@@ -13,21 +13,7 @@ namespace SharpCAT2.Server;
 /// </summary>
 class Program
 {
-    /// <summary>
-    /// Array of supported baud rates for serial communication.
-    /// These rates are validated to ensure compatibility with common radio interfaces.
-    /// </summary>
-    private static readonly int[] SupportedBaudRates = { 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 };
 
-    /// <summary>
-    /// Default read timeout for serial port operations in milliseconds
-    /// </summary>
-    private const int DefaultSerialReadTimeout = 500;
-
-    /// <summary>
-    /// Default write timeout for serial port operations in milliseconds
-    /// </summary>
-    private const int DefaultSerialWriteTimeout = 500;
 
     /// <summary>
     /// Main entry point for the SharpCAT2 Server application.
@@ -37,8 +23,8 @@ class Program
     /// <returns>Task representing the async operation</returns>
     private static async Task Main(string[] args)
     {
-        Console.WriteLine("SharpCAT2 Server - Cross-Platform Serial Port Communication");
-        Console.WriteLine("============================================================");
+        Console.WriteLine(Constants.ApplicationTitle);
+        Console.WriteLine(Constants.TitleSeparator);
         
         try
         {
@@ -166,21 +152,21 @@ class Program
         
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            Console.WriteLine("  Server --port COM1 --baud 115200");
+            Console.WriteLine($"  Server --port {Constants.WindowsPortExample} --baud 115200");
             Console.WriteLine("  Server -p COM3 --tcp-port 9090");
-            Console.WriteLine("  Server --port COM1 --radio \"Kenwood TS-2000\"");
+            Console.WriteLine($"  Server --port {Constants.WindowsPortExample} --radio \"Kenwood TS-2000\"");
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            Console.WriteLine("  Server --port /dev/ttyUSB0 --baud 115200");
+            Console.WriteLine($"  Server --port {Constants.LinuxPortExample} --baud 115200");
             Console.WriteLine("  Server -p /dev/ttyACM0 --tcp-port 9090");
-            Console.WriteLine("  Server --port /dev/ttyUSB0 --auto-detect");
+            Console.WriteLine($"  Server --port {Constants.LinuxPortExample} --auto-detect");
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            Console.WriteLine("  Server --port /dev/cu.usbserial-1410 --baud 115200");
+            Console.WriteLine($"  Server --port {Constants.MacOSPortExample} --baud 115200");
             Console.WriteLine("  Server -p /dev/cu.usbmodem1411 --tcp-port 9090");
-            Console.WriteLine("  Server --port /dev/cu.usbserial-1410 --radio \"Elecraft K3\"");
+            Console.WriteLine($"  Server --port {Constants.MacOSPortExample} --radio \"Elecraft K3\"");
         }
         
         Console.WriteLine();
@@ -203,7 +189,7 @@ class Program
     /// <returns>True if baud rate is supported</returns>
     public static bool IsValidBaudRate(int baudRate)
     {
-        return SupportedBaudRates.Contains(baudRate);
+        return Constants.SupportedBaudRates.Contains(baudRate);
     }
 
     /// <summary>
@@ -213,7 +199,7 @@ class Program
     /// <returns>True if port is valid</returns>
     public static bool IsValidTcpPort(int port)
     {
-        return port > 0 && port <= 65535;
+        return port >= Constants.MinTcpPort && port <= Constants.MaxTcpPort;
     }
 
     #endregion
