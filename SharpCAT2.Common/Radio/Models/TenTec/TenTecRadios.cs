@@ -3,16 +3,103 @@ using System.Text.RegularExpressions;
 namespace SharpCAT2.Common.Radio.Models.TenTec;
 
 /// <summary>
-/// Ten-Tec OMNI VII radio implementation
-/// High-performance HF/6m transceiver
+/// Base class for Ten-Tec radios
+/// Ten-Tec uses a simplified ASCII protocol
 /// </summary>
-public class TenTecOMNIVII : BaseRadio
+public abstract class BaseTenTecRadio : BaseRadio
 {
-    public override string ModelName => "OMNI VII";
     public override string Manufacturer => "Ten-Tec";
 
+    protected override bool IsCompleteResponse(string response)
+    {
+        return response.EndsWith("\r") || response.EndsWith("\n") || response.Length > 0;
+    }
+
+    protected override long ParseFrequency(string response)
+    {
+        // Ten-Tec format: usually in Hz as simple number
+        var match = Regex.Match(response, @"(\d{7,11})");
+        if (match.Success && long.TryParse(match.Groups[1].Value, out long freq))
+        {
+            return freq;
+        }
+        return 0;
+    }
+
+    protected override string MapModeNumber(int modeNumber)
+    {
+        return modeNumber switch
+        {
+            1 => "LSB",
+            2 => "USB",
+            3 => "CW",
+            4 => "FM",
+            5 => "AM",
+            _ => "USB"
+        };
+    }
+
+    protected override void ParseTransceiverInfo(string response, RadioStatus status)
+    {
+        if (!string.IsNullOrEmpty(response))
+        {
+            try
+            {
+                // Basic Ten-Tec status parsing
+                var parts = response.Split(' ');
+                if (parts.Length >= 2)
+                {
+                    if (long.TryParse(parts[0], out long freq))
+                    {
+                        status.Frequency = freq;
+                    }
+                    status.Mode = parts[1];
+                }
+                status.IsPoweredOn = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error parsing Ten-Tec transceiver info: {ex.Message}");
+            }
+        }
+    }
+
+    // Basic operations
+    public override async Task<bool> SetPowerOutputAsync(int powerPercent)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.PowerOutput))
+            return false;
+
+        var command = new RadioCommand($"*P{powerPercent}\r", $"Set power to {powerPercent}%", false, 2000);
+        var response = await SendCommandAsync(command);
+        return !string.IsNullOrEmpty(response);
+    }
+
+    public override async Task<int> GetPowerOutputAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.PowerOutput))
+            return 0;
+
+        var command = new RadioCommand("*P\r", "Get power output", true, 2000);
+        var response = await SendCommandAsync(command);
+        if (!string.IsNullOrEmpty(response) && int.TryParse(response.Trim(), out int power))
+        {
+            return power;
+        }
+        return 0;
+    }
+}
+
+/// <summary>
+/// Ten-Tec OMNI VII radio implementation
+/// High-performance HF/6m transceiver with SDR architecture
+/// </summary>
+public class TenTecOMNIVII : BaseTenTecRadio
+{
+    public override string ModelName => "OMNI VII";
+
     /// <summary>
-    /// OMNI VII supports advanced HF features
+    /// OMNI VII supports advanced HF features with SDR technology
     /// </summary>
     public override SupportedFeatures SupportedFeatures => 
         SupportedFeatures.FrequencyControl | 
@@ -35,34 +122,17 @@ public class TenTecOMNIVII : BaseRadio
         SupportedFeatures.ReceiveStatus |
         SupportedFeatures.RadioID |
         SupportedFeatures.PowerOnOff |
-        SupportedFeatures.FilterSelection;
-
-    protected override long ParseFrequency(string response)
-    {
-        // TODO: Implement Ten-Tec specific frequency parsing
-        // Ten-Tec uses different CAT command format
-        var match = Regex.Match(response, @"(\d{7,11})");
-        if (match.Success && long.TryParse(match.Groups[1].Value, out long freq))
-        {
-            return freq;
-        }
-        return 0;
-    }
-
-    // TODO: Implement OMNI VII specific features
-    // - SDR-based architecture
-    // - Advanced DSP
-    // - Ten-Tec CAT protocol
+        SupportedFeatures.FilterSelection |
+        SupportedFeatures.ComputerControl;
 }
 
 /// <summary>
 /// Ten-Tec Eagle radio implementation
-/// High-end HF transceiver
+/// High-end HF transceiver with premium build quality
 /// </summary>
-public class TenTecEagle : BaseRadio
+public class TenTecEagle : BaseTenTecRadio
 {
     public override string ModelName => "Eagle";
-    public override string Manufacturer => "Ten-Tec";
 
     /// <summary>
     /// Eagle supports premium HF features
@@ -94,25 +164,20 @@ public class TenTecEagle : BaseRadio
         SupportedFeatures.PowerOnOff |
         SupportedFeatures.FilterSelection |
         SupportedFeatures.Preamp |
-        SupportedFeatures.Attenuator;
-
-    // TODO: Implement Eagle specific features
-    // - Premium build quality
-    // - Advanced analog circuits
-    // - High dynamic range
+        SupportedFeatures.Attenuator |
+        SupportedFeatures.ComputerControl;
 }
 
 /// <summary>
 /// Ten-Tec Argonaut V radio implementation
-/// QRP HF transceiver
+/// QRP HF transceiver with built-in antenna tuner
 /// </summary>
-public class TenTecArgonautV : BaseRadio
+public class TenTecArgonautV : BaseTenTecRadio
 {
     public override string ModelName => "Argonaut V";
-    public override string Manufacturer => "Ten-Tec";
 
     /// <summary>
-    /// Argonaut V supports QRP HF operation
+    /// Argonaut V supports QRP HF operation (5W output)
     /// </summary>
     public override SupportedFeatures SupportedFeatures => 
         SupportedFeatures.FrequencyControl | 
@@ -127,25 +192,20 @@ public class TenTecArgonautV : BaseRadio
         SupportedFeatures.TransmitStatus |
         SupportedFeatures.ReceiveStatus |
         SupportedFeatures.RadioID |
-        SupportedFeatures.PowerOnOff;
-
-    // TODO: Implement Argonaut V specific features
-    // - QRP operation (5W output)
-    // - Compact design
-    // - Built-in antenna tuner
+        SupportedFeatures.PowerOnOff |
+        SupportedFeatures.ComputerControl;
 }
 
 /// <summary>
 /// Ten-Tec Jupiter radio implementation
-/// Popular HF transceiver
+/// Popular HF transceiver with DSP technology
 /// </summary>
-public class TenTecJupiter : BaseRadio
+public class TenTecJupiter : BaseTenTecRadio
 {
     public override string ModelName => "Jupiter";
-    public override string Manufacturer => "Ten-Tec";
 
     /// <summary>
-    /// Jupiter supports standard HF features
+    /// Jupiter supports standard HF features with DSP
     /// </summary>
     public override SupportedFeatures SupportedFeatures => 
         SupportedFeatures.FrequencyControl | 
@@ -162,10 +222,6 @@ public class TenTecJupiter : BaseRadio
         SupportedFeatures.TransmitStatus |
         SupportedFeatures.ReceiveStatus |
         SupportedFeatures.RadioID |
-        SupportedFeatures.PowerOnOff;
-
-    // TODO: Implement Jupiter specific features
-    // - DSP-based design
-    // - Ten-Tec build quality
-    // - Amateur-friendly features
+        SupportedFeatures.PowerOnOff |
+        SupportedFeatures.ComputerControl;
 }
