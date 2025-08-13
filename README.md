@@ -14,7 +14,7 @@ A cross-platform .NET serial port communication server application that provides
 - **Client Console App**: Interactive console application for remote serial communication
 - **Radio Support**: Built-in support for popular amateur radio models with CAT (Computer Aided Transceiver) control
 - **Auto-Detection**: Automatic radio type detection and configuration
-- **Extensible Architecture**: Plugin-style radio model support through the SharpCAT2.Radio namespace
+- **Extensible Architecture**: Plugin-style radio model support through the SharpCAT2.Common.Radio namespace
 - **Graceful Error Handling**: Both server and client handle connection and communication errors without crashing
 
 ## Requirements

@@ -8,9 +8,9 @@ The codebase has been refactored to separate serial port handling into its own m
 
 ## Architecture
 
-### New Module: `SharpCAT2.Radio.Serial`
+### New Module: `SharpCAT2.Common.Serial`
 
-Located in `SharpCAT2.Radio/Serial/`, this module contains:
+Located in `SharpCAT2.Common/Serial/`, this module contains:
 
 #### Core Interface
 - **`ISerialPort`** - Abstraction for serial port communication with methods:

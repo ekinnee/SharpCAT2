@@ -145,6 +145,7 @@ Following the most recent pull request ([#19](https://github.com/ekinnee/SharpCA
 - **Service-Based Architecture**: Extracted 4 focused service classes from monolithic Program class.
 - **Network Security**: Comprehensive security service with IP filtering, rate limiting, and authentication infrastructure.
 - **Configuration Management**: Dedicated service for clean configuration handling with async operations.
+- **Serial Port Abstraction**: Hardware-agnostic serial communication with support for testing and simulation.
 
 ### Previous Work (PR #19)
 - Resource management for network and serial components is now robust.
