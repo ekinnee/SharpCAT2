@@ -5,7 +5,7 @@ SharpCAT2 supports a wide variety of amateur radio transceivers from major manuf
 ## Overview
 
 - **Total Models**: 29 radio models across 7 major manufacturers
-- **Feature Coverage**: 47 different radio capabilities supported
+- **Feature Coverage**: 62 different radio capabilities supported
 - **Architecture**: Extensible plugin-style radio support through inheritance
 - **Compatibility**: Backward compatible with existing implementations
 
@@ -15,7 +15,7 @@ SharpCAT2 supports a wide variety of amateur radio transceivers from major manuf
 
 | Model | Features | Description |
 |-------|----------|-------------|
-| **TS-2000** | 15 | Multi-band HF/VHF/UHF transceiver with satellite capability |
+| **TS-2000** | 26 | Multi-band HF/VHF/UHF transceiver with satellite capability |
 | **TS-890S** | 30 | High-end HF transceiver with advanced DSP |
 | **TS-590SG** | 16 | Popular HF transceiver with excellent performance |
 | **TH-D74A** | 16 | VHF/UHF handheld with APRS and D-STAR |
@@ -27,8 +27,8 @@ SharpCAT2 supports a wide variety of amateur radio transceivers from major manuf
 
 | Model | Features | Description |
 |-------|----------|-------------|
-| **K3** | 20 | High-performance HF transceiver with advanced features |
-| **K4** | 35 | Latest generation transceiver with dual receive |
+| **K3** | 26 | High-performance HF transceiver with advanced features |
+| **K4** | 37 | Latest generation transceiver with dual receive |
 | **KX3** | 18 | Portable QRP transceiver for field operations |
 | **K2** | 13 | Classic kit-built HF transceiver |
 | **K1** | 8 | Ultra-portable QRP CW-only transceiver |
@@ -51,7 +51,7 @@ SharpCAT2 supports a wide variety of amateur radio transceivers from major manuf
 
 | Model | Features | Description |
 |-------|----------|-------------|
-| **IC-7300** | 25 | Direct-sampling SDR HF transceiver with waterfall |
+| **IC-7300** | 27 | Direct-sampling SDR HF transceiver with waterfall |
 | **IC-9700** | 22 | VHF/UHF/SHF SDR transceiver with D-STAR |
 
 **Icom Features**: Direct-sampling SDR technology, real-time waterfall and spectrum scope, CI-V computer control protocol, D-STAR digital mode support.
@@ -61,8 +61,8 @@ SharpCAT2 supports a wide variety of amateur radio transceivers from major manuf
 | Model | Features | Description |
 |-------|----------|-------------|
 | **FLEX-6400** | 34 | Software Defined Radio with advanced features |
-| **FLEX-6600** | 47 | High-end SDR with full feature support |
-| **FLEX-6700** | 47 | Top-tier SDR for contest and DX stations |
+| **FLEX-6600** | 62 | High-end SDR with full feature support |
+| **FLEX-6700** | 62 | Top-tier SDR for contest and DX stations |
 
 **FlexRadio Features**: Software Defined Radio technology, multiple slice receivers, VITA-49 protocol, real-time spectrum and waterfall, remote operation capability.
 
@@ -204,6 +204,8 @@ dotnet run -- --port /dev/ttyUSB0 --auto-detect
 - **Graceful Degradation**: Return sensible defaults for unsupported features  
 - **Protocol Compliance**: Follow manufacturer CAT command specifications
 - **Error Handling**: Provide meaningful error messages and logging
+- **Serial Abstraction**: Use `ISerialPort` interface for hardware-agnostic communication
+- **Testing Support**: Leverage `FakeSerialPort` for development and testing without hardware
 
 ## Contributing
 

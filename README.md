@@ -150,7 +150,7 @@ SharpCAT2 now supports **29 radio models** across **7 major manufacturers**:
 - **Ten-Tec**: OMNI VII, Eagle, Argonaut V, Jupiter
 - **SharpCAT2**: DummyRadio (for testing and development)
 
-Each radio model supports a specific set of features from a comprehensive list of **47 radio capabilities** including:
+Each radio model supports a specific set of features from a comprehensive list of **62 radio capabilities** including:
 - Frequency and mode control
 - VFO operations (dual VFO, swap, split)
 - RIT/XIT incremental tuning
@@ -220,6 +220,11 @@ dotnet run -- --radio "SharpCAT2 DummyRadio" --port /dev/null
 - Noise reduction and IF bandwidth control
 - Antenna selection
 - All operations provide console feedback for educational purposes
+
+**DummyRadio Features (22 supported):**
+- Advanced feature simulation including AGC, attenuator, and preamp controls
+- Supports all basic and most advanced radio operations
+- Educational console output showing what operations are being performed
 
 **DummyRadio is ideal for:**
 - Testing client applications without radio hardware
@@ -559,10 +564,12 @@ SharpCAT2/
 ├── SharpCAT2.Common/       # Shared library with radio models and serial abstraction
 │   ├── Radio/              # Radio support library
 │   │   ├── IRadio.cs       # Radio interface definition with SupportedFeatures
-│   │   ├── SupportedFeatures.cs # Comprehensive feature enumeration
+│   │   ├── SupportedFeatures.cs # Comprehensive enumeration of 62 radio capabilities
 │   │   ├── RadioCommand.cs # Radio command abstraction
 │   │   ├── RadioStatus.cs  # Radio status information
 │   │   ├── RadioFactory.cs # Dynamic radio creation and discovery
+│   │   ├── ResilientRadio.cs # Resilient radio wrapper with retry logic
+│   │   ├── Protocols/      # Protocol implementations (Hamlib, CAT, etc.)
 │   │   └── Models/         # Radio model implementations by brand
 │   │       ├── BaseRadio.cs    # Abstract base radio implementation
 │   │       ├── Kenwood/        # Kenwood radio models (TS-2000, TS-890S, etc.)
@@ -571,7 +578,13 @@ SharpCAT2/
 │   │       ├── Icom/           # Icom radio models (IC-7300, IC-9700)
 │   │       ├── FlexRadio/      # FlexRadio models (FLEX-6400, 6600, 6700)
 │   │       ├── Alinco/         # Alinco radio models (DX-SR8T, DJ-MD5TGP, etc.)
-│   │       └── TenTec/         # Ten-Tec radio models (OMNI VII, Eagle, etc.)
+│   │       ├── TenTec/         # Ten-Tec radio models (OMNI VII, Eagle, etc.)
+│   │       └── SharpCAT2/      # SharpCAT2 specific models (DummyRadio)
+│   ├── Serial/             # Serial port abstraction layer
+│   │   ├── ISerialPort.cs  # Serial port interface abstraction
+│   │   ├── RealSerialPort.cs # Real hardware serial port wrapper
+│   │   ├── FakeSerialPort.cs # Simulated serial port for testing
+│   │   └── SerialPortFactory.cs # Factory for creating serial port instances
 │   ├── Serial/             # Serial port abstraction layer
 │   │   ├── ISerialPort.cs  # Serial port interface abstraction
 │   │   ├── RealSerialPort.cs # Real hardware serial port wrapper
@@ -631,11 +644,12 @@ For detailed information about the architecture, see [DI_ARCHITECTURE.md](DI_ARC
 The radio support is implemented through the `SharpCAT2.Common.Radio` namespace which provides:
 
 - **IRadio Interface**: Defines the contract for radio communication with SupportedFeatures property
-- **SupportedFeatures Enum**: Comprehensive enumeration of 47 radio capabilities
+- **SupportedFeatures Enum**: Comprehensive enumeration of 62 radio capabilities
 - **RadioCommand**: Encapsulates radio commands with parameters and metadata
 - **RadioStatus**: Represents radio state information
 - **RadioFactory**: Dynamic radio discovery and instantiation with auto-detection
 - **BaseRadio**: Abstract base class providing common functionality and default implementations
+- **ResilientRadio**: Wrapper providing retry logic and error recovery for unreliable connections
 - **Brand-Organized Models**: Radio implementations organized by manufacturer folders
 
 **Supported Features Include:**
@@ -650,6 +664,32 @@ The radio support is implemented through the `SharpCAT2.Common.Radio` namespace 
 - Filter selection and bandwidth control
 - Digital mode support (PSK31, RTTY, DMR)
 - SDR features (waterfall, panadapter)
+- Advanced features (AGC, attenuator, preamp)
+- Voice operations and computer control
+
+### Serial Port Abstraction
+
+The project includes a comprehensive serial port abstraction layer in `SharpCAT2.Common.Serial`:
+
+- **ISerialPort Interface**: Abstract interface for serial communication enabling hardware-agnostic radio control
+- **RealSerialPort**: Wrapper around `System.IO.Ports.SerialPort` for actual hardware communication
+- **FakeSerialPort**: Simulated serial port for testing and development without hardware
+- **SerialPortFactory**: Factory pattern for creating appropriate serial port implementations
+
+**Benefits:**
+- **Testability**: Easy testing of radio implementations without hardware
+- **Flexibility**: Support for hardware, simulated, and future serial port types
+- **Maintainability**: Clean separation between radio logic and serial communication
+- **Development**: Use fake ports (FAKE, DUMMY, TEST, SIMULATION) for development
+
+**Usage:**
+```bash
+# Use fake serial port for testing
+dotnet run -- --port FAKE --radio "SharpCAT2 DummyRadio"
+
+# Use real hardware
+dotnet run -- --port COM1 --radio "Kenwood TS-2000"
+```
 
 To add support for a new radio model:
 
