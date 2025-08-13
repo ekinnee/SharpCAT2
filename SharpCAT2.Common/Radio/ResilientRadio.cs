@@ -290,6 +290,77 @@ public class ResilientRadio : IRadio
         return await ExecuteWithRetryAsync(() => _innerRadio.GetPowerAsync(), "GetPower");
     }
 
+    // Additional Hamlib-compatible methods with retry logic
+    public async Task<bool> SetMonitorLevelAsync(int level)
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.SetMonitorLevelAsync(level), $"SetMonitorLevel({level})");
+    }
+
+    public async Task<int> GetMonitorLevelAsync()
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.GetMonitorLevelAsync(), "GetMonitorLevel");
+    }
+
+    public async Task<bool> SetMicGainAsync(int gain)
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.SetMicGainAsync(gain), $"SetMicGain({gain})");
+    }
+
+    public async Task<int> GetMicGainAsync()
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.GetMicGainAsync(), "GetMicGain");
+    }
+
+    public async Task<bool> SetCompLevelAsync(int level)
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.SetCompLevelAsync(level), $"SetCompLevel({level})");
+    }
+
+    public async Task<int> GetCompLevelAsync()
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.GetCompLevelAsync(), "GetCompLevel");
+    }
+
+    public async Task<bool> SetVoxLevelAsync(int level)
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.SetVoxLevelAsync(level), $"SetVoxLevel({level})");
+    }
+
+    public async Task<int> GetVoxLevelAsync()
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.GetVoxLevelAsync(), "GetVoxLevel");
+    }
+
+    public async Task<bool> SetVoxDelayAsync(int delayMs)
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.SetVoxDelayAsync(delayMs), $"SetVoxDelay({delayMs})");
+    }
+
+    public async Task<int> GetVoxDelayAsync()
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.GetVoxDelayAsync(), "GetVoxDelay");
+    }
+
+    public async Task<bool> SetBreakInAsync(bool enabled)
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.SetBreakInAsync(enabled), $"SetBreakIn({enabled})");
+    }
+
+    public async Task<bool> GetBreakInAsync()
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.GetBreakInAsync(), "GetBreakIn");
+    }
+
+    public async Task<bool> SetNotchAsync(int frequency)
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.SetNotchAsync(frequency), $"SetNotch({frequency})");
+    }
+
+    public async Task<int> GetNotchAsync()
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.GetNotchAsync(), "GetNotch");
+    }
+
     #endregion
 
     #region Resilience Methods

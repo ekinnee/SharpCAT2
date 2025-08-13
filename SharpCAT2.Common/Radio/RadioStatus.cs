@@ -41,6 +41,56 @@ public class RadioStatus
     public string CurrentVfo { get; set; } = "A";
 
     /// <summary>
+    /// Gets or sets whether split operation is enabled
+    /// </summary>
+    public bool SplitEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the RIT (Receiver Incremental Tuning) offset in Hz
+    /// </summary>
+    public int RitOffset { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether RIT is enabled
+    /// </summary>
+    public bool RitEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the XIT (Transmitter Incremental Tuning) offset in Hz
+    /// </summary>
+    public int XitOffset { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether XIT is enabled
+    /// </summary>
+    public bool XitEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the power output level as a percentage (0-100)
+    /// </summary>
+    public int PowerOutputPercent { get; set; }
+
+    /// <summary>
+    /// Gets or sets the SWR (Standing Wave Ratio) reading
+    /// </summary>
+    public double SWR { get; set; } = 1.0;
+
+    /// <summary>
+    /// Gets or sets the current memory channel (0 if not in memory mode)
+    /// </summary>
+    public int MemoryChannel { get; set; }
+
+    /// <summary>
+    /// Gets or sets the IF bandwidth in Hz
+    /// </summary>
+    public int IfBandwidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the noise reduction level
+    /// </summary>
+    public int NoiseReductionLevel { get; set; }
+
+    /// <summary>
     /// Gets or sets additional status information
     /// </summary>
     public Dictionary<string, object> AdditionalInfo { get; set; } = new();

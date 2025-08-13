@@ -107,11 +107,29 @@ public enum SupportedFeatures : long
     Waterfall = 1L << 45,
     Panadapter = 1L << 46,
     
+    // Additional Hamlib-compatible features
+    MonitorLevel = 1L << 47,         // Monitor/sidetone level
+    MicGain = 1L << 48,              // Microphone gain
+    CompLevel = 1L << 49,            // Speech compression level
+    VoxLevel = 1L << 50,             // VOX level control
+    VoxDelay = 1L << 51,             // VOX delay control
+    VoxGain = 1L << 52,              // VOX gain control
+    BreakIn = 1L << 53,              // QSK/Break-in control
+    Notch = 1L << 54,                // Notch filter control
+    NoiseFilterBank = 1L << 55,      // Multiple noise filter bank
+    Equalizer = 1L << 56,            // Audio equalizer
+    SpectrumScope = 1L << 57,        // Built-in spectrum scope
+    DualReceive = 1L << 58,          // Dual receive capability
+    CrossBandRepeat = 1L << 59,      // Cross-band repeat
+    EmergencyMode = 1L << 60,        // Emergency/priority channels
+    WeatherAlert = 1L << 61,         // Weather alert monitoring
+    
     // Convenience combinations
     BasicOperation = FrequencyControl | ModeControl | TransmitStatus | ReceiveStatus | RadioID,
     HFOperation = BasicOperation | DualVFO | VFOSwap | SplitOperation | RIT | XIT | SMeter | PowerOutput,
     VHFUHFOperation = BasicOperation | SQLControl | CTCSSTone | RepeaterOffset,
     AdvancedOperation = HFOperation | IFBandwidth | NoiseReduction | AGC | MemoryChannels | CWKeyer,
+    SDROperation = AdvancedOperation | Waterfall | Panadapter | SpectrumScope | DualReceive,
     FullFeatureSet = -1L  // All features
 }
 
