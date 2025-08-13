@@ -4,15 +4,14 @@ namespace SharpCAT2.Common.Radio.Models.FlexRadio;
 
 /// <summary>
 /// FlexRadio FLEX-6400 radio implementation
-/// Reference implementation for FlexRadio brand radios
+/// Software Defined Radio with advanced features
 /// </summary>
-public class FlexRadio6400 : BaseRadio
+public class FlexRadio6400 : BaseFlexRadio
 {
     public override string ModelName => "FLEX-6400";
-    public override string Manufacturer => "FlexRadio";
 
     /// <summary>
-    /// FLEX-6400 supports advanced SDR features
+    /// FLEX-6400 supports advanced SDR features with 2 slices
     /// </summary>
     public override SupportedFeatures SupportedFeatures => 
         SupportedFeatures.FrequencyControl | 
@@ -48,106 +47,117 @@ public class FlexRadio6400 : BaseRadio
         SupportedFeatures.PSK31 |
         SupportedFeatures.RTTY |
         SupportedFeatures.Waterfall |
-        SupportedFeatures.Panadapter;
+        SupportedFeatures.Panadapter |
+        SupportedFeatures.ComputerControl;
 
-    protected override long ParseFrequency(string response)
+    /// <summary>
+    /// FLEX-6400 specific features - 2 slice capability
+    /// </summary>
+    public async Task<bool> SetDualSliceAsync(bool enabled)
     {
-        // FlexRadio uses VITA-49 protocol and CAT commands
-        // TODO: Implement proper FlexRadio protocol parsing
-        var match = Regex.Match(response, @"ZZFA(\d{11})");
-        if (match.Success && long.TryParse(match.Groups[1].Value, out long freq))
+        if (enabled)
         {
-            return freq;
+            // Create a second slice for dual operation
+            return await CreateSliceAsync();
         }
-        return 0;
-    }
-
-    protected override string MapModeNumber(int modeNumber)
-    {
-        // FlexRadio mode mapping
-        return modeNumber switch
+        else
         {
-            0 => "LSB",
-            1 => "USB",
-            2 => "DSB",
-            3 => "CWL",
-            4 => "CWU", 
-            5 => "FM",
-            6 => "AM",
-            7 => "DIGU",
-            8 => "SPEC",
-            9 => "DIGL",
-            10 => "SAM",
-            11 => "DFM",
-            _ => "USB"
-        };
-    }
-
-    protected override void ParseTransceiverInfo(string response, RadioStatus status)
-    {
-        // TODO: Implement FlexRadio specific status parsing
-        // FlexRadio uses both CAT commands and VITA-49 protocol
-        if (!string.IsNullOrEmpty(response))
-        {
-            try
-            {
-                // Placeholder for FlexRadio parsing
-                status.IsPoweredOn = true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error parsing FLEX-6400 transceiver info: {ex.Message}");
-            }
+            // Delete slice 1 (keep slice 0)
+            return await DeleteSliceAsync(1);
         }
     }
 
-    // TODO: Override additional methods for FlexRadio specific features
-    // - Multiple slice control (FlexRadio can have multiple receivers)
-    // - VITA-49 protocol implementation
-    // - Advanced DSP features
-    // - Real-time spectrum and waterfall
+    public async Task<int> GetMaxSlicesAsync()
+    {
+        // FLEX-6400 supports up to 2 slices
+        return 2;
+    }
 }
 
 /// <summary>
 /// FlexRadio FLEX-6600 radio implementation
-/// High-end SDR with advanced features
+/// High-end SDR with advanced features and 4 slices
 /// </summary>
-public class FlexRadio6600 : BaseRadio
+public class FlexRadio6600 : BaseFlexRadio
 {
     public override string ModelName => "FLEX-6600";
-    public override string Manufacturer => "FlexRadio";
 
     /// <summary>
-    /// FLEX-6600 supports full-featured SDR operation
+    /// FLEX-6600 supports full-featured SDR operation with 4 slices
     /// </summary>
     public override SupportedFeatures SupportedFeatures => 
         SupportedFeatures.FullFeatureSet; // All features supported
 
-    // TODO: Implement FLEX-6600 specific features
-    // - Dual SCU (Station Control Unit) support
-    // - Multiple antenna inputs
-    // - Advanced SO2R (Single Operator Two Radio) features
-    // - High-performance ADC/DAC
+    /// <summary>
+    /// FLEX-6600 specific features - 4 slice capability and SO2R
+    /// </summary>
+    public async Task<int> GetMaxSlicesAsync()
+    {
+        // FLEX-6600 supports up to 4 slices
+        return 4;
+    }
+
+    public async Task<bool> SetSO2RModeAsync(bool enabled)
+    {
+        // FLEX-6600 supports Single Operator Two Radio mode
+        var command = new RadioCommand($"ZZSO2R{(enabled ? "1" : "0")};", $"{(enabled ? "Enable" : "Disable")} SO2R mode", false, 2000);
+        var response = await SendCommandAsync(command);
+        return !string.IsNullOrEmpty(response);
+    }
+
+    public async Task<bool> SetStationControlUnitAsync(int scu)
+    {
+        // FLEX-6600 can work with multiple SCUs
+        var command = new RadioCommand($"ZZSCU{scu};", $"Set SCU to {scu}", false, 2000);
+        var response = await SendCommandAsync(command);
+        return !string.IsNullOrEmpty(response);
+    }
 }
 
 /// <summary>
 /// FlexRadio FLEX-6700 radio implementation  
-/// Top-tier SDR transceiver
+/// Top-tier SDR transceiver with 8 slices and contest features
 /// </summary>
-public class FlexRadio6700 : BaseRadio
+public class FlexRadio6700 : BaseFlexRadio
 {
     public override string ModelName => "FLEX-6700";
-    public override string Manufacturer => "FlexRadio";
 
     /// <summary>
-    /// FLEX-6700 supports all advanced SDR features
+    /// FLEX-6700 supports all advanced SDR features with maximum slice count
     /// </summary>
     public override SupportedFeatures SupportedFeatures => 
         SupportedFeatures.FullFeatureSet; // All features supported
 
-    // TODO: Implement FLEX-6700 specific features
-    // - Maximum slice count support
-    // - All antenna inputs
-    // - Full SO2R capabilities
-    // - Contest station features
+    /// <summary>
+    /// FLEX-6700 specific features - 8 slice capability and contest features
+    /// </summary>
+    public async Task<int> GetMaxSlicesAsync()
+    {
+        // FLEX-6700 supports up to 8 slices
+        return 8;
+    }
+
+    public async Task<bool> SetContestModeAsync(bool enabled)
+    {
+        // FLEX-6700 has advanced contest features
+        var command = new RadioCommand($"ZZCONTEST{(enabled ? "1" : "0")};", $"{(enabled ? "Enable" : "Disable")} contest mode", false, 2000);
+        var response = await SendCommandAsync(command);
+        return !string.IsNullOrEmpty(response);
+    }
+
+    public async Task<bool> SetMultiStationAsync(bool enabled)
+    {
+        // FLEX-6700 supports multi-station operation
+        var command = new RadioCommand($"ZZMULTI{(enabled ? "1" : "0")};", $"{(enabled ? "Enable" : "Disable")} multi-station", false, 2000);
+        var response = await SendCommandAsync(command);
+        return !string.IsNullOrEmpty(response);
+    }
+
+    public async Task<bool> SetDiversityAsync(bool enabled)
+    {
+        // FLEX-6700 supports diversity reception
+        var command = new RadioCommand($"ZZDIV{(enabled ? "1" : "0")};", $"{(enabled ? "Enable" : "Disable")} diversity", false, 2000);
+        var response = await SendCommandAsync(command);
+        return !string.IsNullOrEmpty(response);
+    }
 }
