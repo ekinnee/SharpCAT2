@@ -651,6 +651,176 @@ public abstract class BaseRadio : IRadio
         return Task.FromResult(true);
     }
 
+    // Default implementations for additional Hamlib-compatible features
+
+    /// <summary>
+    /// Sets the monitor/sidetone level
+    /// </summary>
+    public virtual Task<bool> SetMonitorLevelAsync(int level)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.MonitorLevel))
+            return Task.FromResult(false);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(false);
+    }
+
+    /// <summary>
+    /// Gets the current monitor/sidetone level
+    /// </summary>
+    public virtual Task<int> GetMonitorLevelAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.MonitorLevel))
+            return Task.FromResult(0);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(0);
+    }
+
+    /// <summary>
+    /// Sets the microphone gain
+    /// </summary>
+    public virtual Task<bool> SetMicGainAsync(int gain)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.MicGain))
+            return Task.FromResult(false);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(false);
+    }
+
+    /// <summary>
+    /// Gets the current microphone gain
+    /// </summary>
+    public virtual Task<int> GetMicGainAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.MicGain))
+            return Task.FromResult(0);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(0);
+    }
+
+    /// <summary>
+    /// Sets the speech compression level
+    /// </summary>
+    public virtual Task<bool> SetCompLevelAsync(int level)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.CompLevel))
+            return Task.FromResult(false);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(false);
+    }
+
+    /// <summary>
+    /// Gets the current speech compression level
+    /// </summary>
+    public virtual Task<int> GetCompLevelAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.CompLevel))
+            return Task.FromResult(0);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(0);
+    }
+
+    /// <summary>
+    /// Sets the VOX level
+    /// </summary>
+    public virtual Task<bool> SetVoxLevelAsync(int level)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.VoxLevel))
+            return Task.FromResult(false);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(false);
+    }
+
+    /// <summary>
+    /// Gets the current VOX level
+    /// </summary>
+    public virtual Task<int> GetVoxLevelAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.VoxLevel))
+            return Task.FromResult(0);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(0);
+    }
+
+    /// <summary>
+    /// Sets the VOX delay
+    /// </summary>
+    public virtual Task<bool> SetVoxDelayAsync(int delayMs)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.VoxDelay))
+            return Task.FromResult(false);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(false);
+    }
+
+    /// <summary>
+    /// Gets the current VOX delay
+    /// </summary>
+    public virtual Task<int> GetVoxDelayAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.VoxDelay))
+            return Task.FromResult(0);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(0);
+    }
+
+    /// <summary>
+    /// Enables or disables QSK/Break-in mode
+    /// </summary>
+    public virtual Task<bool> SetBreakInAsync(bool enabled)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.BreakIn))
+            return Task.FromResult(false);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(false);
+    }
+
+    /// <summary>
+    /// Gets the current break-in mode status
+    /// </summary>
+    public virtual Task<bool> GetBreakInAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.BreakIn))
+            return Task.FromResult(false);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(false);
+    }
+
+    /// <summary>
+    /// Sets the notch filter frequency
+    /// </summary>
+    public virtual Task<bool> SetNotchAsync(int frequency)
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.Notch))
+            return Task.FromResult(false);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(false);
+    }
+
+    /// <summary>
+    /// Gets the current notch filter frequency
+    /// </summary>
+    public virtual Task<int> GetNotchAsync()
+    {
+        if (!SupportedFeatures.HasFeature(SupportedFeatures.Notch))
+            return Task.FromResult(0);
+        
+        // Default implementation - should be overridden
+        return Task.FromResult(0);
+    }
+
     /// <summary>
     /// Disposes the radio instance
     /// </summary>

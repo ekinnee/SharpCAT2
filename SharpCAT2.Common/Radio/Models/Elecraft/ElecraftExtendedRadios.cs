@@ -1,18 +1,15 @@
-using System.Text.RegularExpressions;
-
 namespace SharpCAT2.Common.Radio.Models.Elecraft;
 
 /// <summary>
 /// Elecraft K4 radio implementation
-/// Latest generation high-performance HF transceiver
+/// Latest generation high-performance HF transceiver with dual receive and advanced DSP
 /// </summary>
-public class ElecraftK4 : BaseRadio
+public class ElecraftK4 : BaseElecraftRadio
 {
     public override string ModelName => "K4";
-    public override string Manufacturer => "Elecraft";
 
     /// <summary>
-    /// K4 supports all advanced HF features
+    /// K4 supports the most advanced HF features available
     /// </summary>
     public override SupportedFeatures SupportedFeatures => 
         SupportedFeatures.FrequencyControl | 
@@ -49,26 +46,21 @@ public class ElecraftK4 : BaseRadio
         SupportedFeatures.Attenuator |
         SupportedFeatures.DigitalModes |
         SupportedFeatures.PSK31 |
-        SupportedFeatures.RTTY;
-
-    // TODO: Implement K4 specific features
-    // - Dual receive capability
-    // - Advanced DSP
-    // - Built-in antenna tuner
-    // - High-resolution display
+        SupportedFeatures.RTTY |
+        SupportedFeatures.DualReceive |
+        SupportedFeatures.ComputerControl;
 }
 
 /// <summary>
 /// Elecraft KX3 radio implementation
-/// Portable QRP HF transceiver
+/// Portable QRP HF transceiver perfect for field operations
 /// </summary>
-public class ElecraftKX3 : BaseRadio
+public class ElecraftKX3 : BaseElecraftRadio
 {
     public override string ModelName => "KX3";
-    public override string Manufacturer => "Elecraft";
 
     /// <summary>
-    /// KX3 supports portable operation features
+    /// KX3 supports portable QRP operation features
     /// </summary>
     public override SupportedFeatures SupportedFeatures => 
         SupportedFeatures.FrequencyControl | 
@@ -78,6 +70,7 @@ public class ElecraftKX3 : BaseRadio
         SupportedFeatures.SplitOperation |
         SupportedFeatures.RIT | 
         SupportedFeatures.XIT |
+        SupportedFeatures.IFBandwidth |
         SupportedFeatures.PowerOutput |
         SupportedFeatures.SMeter |
         SupportedFeatures.MemoryChannels |
@@ -88,25 +81,20 @@ public class ElecraftKX3 : BaseRadio
         SupportedFeatures.ReceiveStatus |
         SupportedFeatures.RadioID |
         SupportedFeatures.PowerOnOff |
-        SupportedFeatures.FilterSelection;
-
-    // TODO: Implement KX3 specific features
-    // - QRP operation (low power)
-    // - Battery monitoring
-    // - Portable antenna tuner
+        SupportedFeatures.FilterSelection |
+        SupportedFeatures.ComputerControl;
 }
 
 /// <summary>
 /// Elecraft K2 radio implementation
-/// Classic kit-built HF transceiver
+/// Classic kit-built HF transceiver with proven design
 /// </summary>
-public class ElecraftK2 : BaseRadio
+public class ElecraftK2 : BaseElecraftRadio
 {
     public override string ModelName => "K2";
-    public override string Manufacturer => "Elecraft";
 
     /// <summary>
-    /// K2 supports basic HF operation
+    /// K2 supports fundamental HF operation features
     /// </summary>
     public override SupportedFeatures SupportedFeatures => 
         SupportedFeatures.FrequencyControl | 
@@ -119,39 +107,37 @@ public class ElecraftK2 : BaseRadio
         SupportedFeatures.SMeter |
         SupportedFeatures.MemoryChannels |
         SupportedFeatures.CWKeyer |
+        SupportedFeatures.CWSpeed |
         SupportedFeatures.TransmitStatus |
         SupportedFeatures.ReceiveStatus |
-        SupportedFeatures.RadioID;
-
-    // TODO: Implement K2 specific features
-    // - Basic CAT command set
-    // - Kit-specific configurations
+        SupportedFeatures.RadioID |
+        SupportedFeatures.PowerOnOff |
+        SupportedFeatures.ComputerControl;
 }
 
 /// <summary>
 /// Elecraft K1 radio implementation
-/// Ultra-portable QRP CW transceiver
+/// Ultra-portable QRP CW-only transceiver for lightweight field operations
 /// </summary>
-public class ElecraftK1 : BaseRadio
+public class ElecraftK1 : BaseElecraftRadio
 {
     public override string ModelName => "K1";
-    public override string Manufacturer => "Elecraft";
 
     /// <summary>
-    /// K1 supports minimal CW operation
+    /// K1 supports basic CW operation for portable use
     /// </summary>
     public override SupportedFeatures SupportedFeatures => 
         SupportedFeatures.FrequencyControl | 
         SupportedFeatures.ModeControl |
+        SupportedFeatures.VFOSwap |
+        SupportedFeatures.RIT |
         SupportedFeatures.PowerOutput |
         SupportedFeatures.SMeter |
+        SupportedFeatures.MemoryChannels |
         SupportedFeatures.CWKeyer |
+        SupportedFeatures.CWSpeed |
         SupportedFeatures.TransmitStatus |
         SupportedFeatures.ReceiveStatus |
-        SupportedFeatures.RadioID;
-
-    // TODO: Implement K1 specific features
-    // - CW-only operation
-    // - Ultra-portable design
-    // - Limited CAT command set
+        SupportedFeatures.RadioID |
+        SupportedFeatures.ComputerControl;
 }

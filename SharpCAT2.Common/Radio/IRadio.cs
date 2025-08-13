@@ -248,4 +248,97 @@ public interface IRadio : IDisposable
     /// </summary>
     /// <returns>True if powered on</returns>
     Task<bool> GetPowerAsync();
+
+    // Additional Hamlib-compatible methods
+    
+    /// <summary>
+    /// Sets the monitor/sidetone level
+    /// </summary>
+    /// <param name="level">Monitor level (0-100)</param>
+    /// <returns>True if successful</returns>
+    Task<bool> SetMonitorLevelAsync(int level);
+
+    /// <summary>
+    /// Gets the current monitor/sidetone level
+    /// </summary>
+    /// <returns>Monitor level (0-100)</returns>
+    Task<int> GetMonitorLevelAsync();
+
+    /// <summary>
+    /// Sets the microphone gain
+    /// </summary>
+    /// <param name="gain">Microphone gain (0-100)</param>
+    /// <returns>True if successful</returns>
+    Task<bool> SetMicGainAsync(int gain);
+
+    /// <summary>
+    /// Gets the current microphone gain
+    /// </summary>
+    /// <returns>Microphone gain (0-100)</returns>
+    Task<int> GetMicGainAsync();
+
+    /// <summary>
+    /// Sets the speech compression level
+    /// </summary>
+    /// <param name="level">Compression level (0-100)</param>
+    /// <returns>True if successful</returns>
+    Task<bool> SetCompLevelAsync(int level);
+
+    /// <summary>
+    /// Gets the current speech compression level
+    /// </summary>
+    /// <returns>Compression level (0-100)</returns>
+    Task<int> GetCompLevelAsync();
+
+    /// <summary>
+    /// Sets the VOX level
+    /// </summary>
+    /// <param name="level">VOX level (0-100)</param>
+    /// <returns>True if successful</returns>
+    Task<bool> SetVoxLevelAsync(int level);
+
+    /// <summary>
+    /// Gets the current VOX level
+    /// </summary>
+    /// <returns>VOX level (0-100)</returns>
+    Task<int> GetVoxLevelAsync();
+
+    /// <summary>
+    /// Sets the VOX delay
+    /// </summary>
+    /// <param name="delayMs">VOX delay in milliseconds</param>
+    /// <returns>True if successful</returns>
+    Task<bool> SetVoxDelayAsync(int delayMs);
+
+    /// <summary>
+    /// Gets the current VOX delay
+    /// </summary>
+    /// <returns>VOX delay in milliseconds</returns>
+    Task<int> GetVoxDelayAsync();
+
+    /// <summary>
+    /// Enables or disables QSK/Break-in mode
+    /// </summary>
+    /// <param name="enabled">True to enable break-in</param>
+    /// <returns>True if successful</returns>
+    Task<bool> SetBreakInAsync(bool enabled);
+
+    /// <summary>
+    /// Gets the current break-in mode status
+    /// </summary>
+    /// <returns>True if break-in is enabled</returns>
+    Task<bool> GetBreakInAsync();
+
+    /// <summary>
+    /// Sets the notch filter frequency
+    /// </summary>
+    /// <param name="frequency">Notch frequency in Hz</param>
+    /// <returns>True if successful</returns>
+    Task<bool> SetNotchAsync(int frequency);
+
+    /// <summary>
+    /// Gets the current notch filter frequency
+    /// </summary>
+    /// <returns>Notch frequency in Hz (0 if disabled)</returns>
+    Task<int> GetNotchAsync();
 }
