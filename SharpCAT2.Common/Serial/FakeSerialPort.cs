@@ -8,6 +8,13 @@ namespace SharpCAT2.Common.Serial;
 /// Fake serial port implementation for testing and simulation.
 /// Provides deterministic responses to common radio commands without requiring actual hardware.
 /// This is designed for development, testing, and demonstration purposes.
+/// 
+/// This file has been reordered to follow C# coding standards:
+/// - Fields and constants
+/// - Properties  
+/// - Constructors
+/// - Public methods
+/// - Private methods
 /// </summary>
 public class FakeSerialPort : ISerialPort
 {
@@ -25,23 +32,6 @@ public class FakeSerialPort : ISerialPort
     private bool _powerOn = true;
     private int _ritOffset = 0;
     private int _xitOffset = 0;
-
-    #region Constructors
-
-    /// <summary>
-    /// Initializes a new instance of FakeSerialPort
-    /// </summary>
-    /// <param name="portName">Simulated port name</param>
-    /// <param name="baudRate">Simulated baud rate</param>
-    public FakeSerialPort(string portName = "FAKE", int baudRate = 9600)
-    {
-        PortName = portName;
-        BaudRate = baudRate;
-        ReadTimeout = 500;
-        WriteTimeout = 500;
-    }
-
-    #endregion
 
     #region Properties
 
@@ -83,6 +73,23 @@ public class FakeSerialPort : ISerialPort
     /// Gets or sets the simulated write timeout
     /// </summary>
     public int WriteTimeout { get; set; }
+
+    #endregion
+
+    #region Constructors
+
+    /// <summary>
+    /// Initializes a new instance of FakeSerialPort
+    /// </summary>
+    /// <param name="portName">Simulated port name</param>
+    /// <param name="baudRate">Simulated baud rate</param>
+    public FakeSerialPort(string portName = "FAKE", int baudRate = 9600)
+    {
+        PortName = portName;
+        BaudRate = baudRate;
+        ReadTimeout = 500;
+        WriteTimeout = 500;
+    }
 
     #endregion
 
