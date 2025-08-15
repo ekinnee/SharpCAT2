@@ -3,10 +3,31 @@ using System.Net;
 namespace SharpCAT2.Server.Services;
 
 /// <summary>
-/// Service interface for managing network security features
+/// Service interface for managing network security features.
+/// This interface has been reordered to follow C# coding standards.
 /// </summary>
 public interface ISecurityService
 {
+    /// <summary>
+    /// Gets the list of allowed IP addresses/ranges
+    /// </summary>
+    IReadOnlyList<string> AllowedIpRanges { get; }
+
+    /// <summary>
+    /// Gets the rate limit configuration
+    /// </summary>
+    TimeSpan RateLimitWindow { get; }
+
+    /// <summary>
+    /// Gets the maximum connections per rate limit window
+    /// </summary>
+    int MaxConnectionsPerWindow { get; }
+
+    /// <summary>
+    /// Gets whether authentication is required
+    /// </summary>
+    bool AuthenticationRequired { get; }
+
     /// <summary>
     /// Validates if a client IP address is allowed to connect
     /// </summary>
@@ -34,24 +55,4 @@ public interface ISecurityService
     /// <param name="authData">Authentication data provided by client</param>
     /// <returns>True if authentication is valid</returns>
     bool ValidateAuthentication(EndPoint clientEndPoint, string? authData);
-
-    /// <summary>
-    /// Gets the list of allowed IP addresses/ranges
-    /// </summary>
-    IReadOnlyList<string> AllowedIpRanges { get; }
-
-    /// <summary>
-    /// Gets the rate limit configuration
-    /// </summary>
-    TimeSpan RateLimitWindow { get; }
-
-    /// <summary>
-    /// Gets the maximum connections per rate limit window
-    /// </summary>
-    int MaxConnectionsPerWindow { get; }
-
-    /// <summary>
-    /// Gets whether authentication is required
-    /// </summary>
-    bool AuthenticationRequired { get; }
 }
