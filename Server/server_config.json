@@ -1,7 +1,0 @@
-{
-  "serialPort": "fake",
-  "radio": "DummyRadio",
-  "baudRate": 9600,
-  "tcpPort": 8080,
-  "autoDetectRadio": false
-}

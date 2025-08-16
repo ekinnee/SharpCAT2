@@ -1,0 +1,17 @@
+{
+    "serialPort": "FAKE",
+    "radio": "SharpCAT2 DummyRadio",
+    "baudRate": 9600,
+    "tcpPort": 8080,
+    "autoDetectRadio": true,
+    "logging": {
+        "level": "Information",
+        "file": "server.log"
+    },
+    "security": {
+        "ipWhitelist": [
+            "127.0.0.1"
+        ],
+        "rateLimitPerMinute": 60
+    }
+}
