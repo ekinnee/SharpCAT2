@@ -568,7 +568,7 @@ public class ServerApplication
         Console.WriteLine("Usage: Server [options]");
         Console.WriteLine();
         Console.WriteLine("Options:");
-        Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0)");
+        Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0, fake)");
         Console.WriteLine("  -b, --baud <rate>     Baud rate (default: 9600)");
         Console.WriteLine("                        Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000");
         Console.WriteLine("  -t, --tcp-port <port> TCP server port (default: 8080)");
@@ -578,6 +578,9 @@ public class ServerApplication
         Console.WriteLine("  --list-radios         List available radio models");
         Console.WriteLine("  --radio-info <model>  Show detailed information about a radio model");
         Console.WriteLine("  -h, --help            Show this help message");
+        Console.WriteLine();
+        Console.WriteLine("Special Ports:");
+        Console.WriteLine("  fake                  Simulated serial port for testing and development");
         Console.WriteLine();
         Console.WriteLine("The server provides both console interface and TCP server for remote clients.");
         Console.WriteLine("With radio support, you can send CAT commands and get radio status information.");
@@ -591,10 +594,15 @@ public class ServerApplication
         try
         {
             string[] ports = SerialPort.GetPortNames();
+            int portNumber = 1;
+            
+            // Always show the fake port first as a test/simulation option
+            Console.WriteLine($"{portNumber++}. fake (Simulated/Test Port)");
             
             if (ports.Length == 0)
             {
-                Console.WriteLine("No serial ports found.");
+                Console.WriteLine();
+                Console.WriteLine("No hardware serial ports found.");
                 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
@@ -617,16 +625,21 @@ public class ServerApplication
             {
                 for (int i = 0; i < ports.Length; i++)
                 {
-                    Console.WriteLine($"{i + 1}. {ports[i]}");
+                    Console.WriteLine($"{portNumber++}. {ports[i]}");
                 }
                 
                 Console.WriteLine();
-                Console.WriteLine($"Found {ports.Length} port(s).");
+                Console.WriteLine($"Found {ports.Length} hardware port(s) plus 1 simulated port.");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error listing ports");
+            
+            // Still show fake port even if hardware enumeration fails
+            Console.WriteLine("1. fake (Simulated/Test Port)");
+            Console.WriteLine();
+            Console.WriteLine("Hardware port enumeration failed.");
             
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
@@ -636,6 +649,9 @@ public class ServerApplication
                 Console.WriteLine("Then log out and back in.");
             }
         }
+        
+        Console.WriteLine();
+        Console.WriteLine("Note: Use 'fake' for development and testing without hardware.");
     }
 
     private void ListAvailableRadios()
