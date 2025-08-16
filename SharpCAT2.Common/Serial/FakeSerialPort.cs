@@ -5,9 +5,12 @@ using System.Text;
 namespace SharpCAT2.Common.Serial;
 
 /// <summary>
-/// Fake serial port implementation for testing and simulation.
-/// Provides deterministic responses to common radio commands without requiring actual hardware.
-/// This is designed for development, testing, and demonstration purposes.
+/// Pure fake serial port implementation for testing and simulation.
+/// Provides only serial I/O simulation (open/close/read/write, buffers, connection state)
+/// without any knowledge of protocols, radio commands, or logging.
+/// 
+/// This is designed for protocol-agnostic testing and simulation purposes.
+/// All protocol-specific logic should be implemented at higher layers.
 /// 
 /// This file has been reordered to follow C# coding standards:
 /// - Fields and constants
@@ -20,18 +23,10 @@ public class FakeSerialPort : ISerialPort
 {
     private readonly ConcurrentQueue<string> _inputBuffer = new();
     private readonly StringBuilder _outputBuffer = new();
+    private readonly ConcurrentQueue<string> _injectDataQueue = new();
     private readonly object _lock = new();
     private bool _isOpen = false;
     private bool _disposed = false;
-
-    // Simulated radio state
-    private long _currentFrequency = 14074000; // Default to 20m FT8 frequency
-    private string _currentMode = "USB";
-    private string _currentVfo = "A";
-    private bool _splitEnabled = false;
-    private bool _powerOn = true;
-    private int _ritOffset = 0;
-    private int _xitOffset = 0;
 
     #region Properties
 
@@ -96,7 +91,7 @@ public class FakeSerialPort : ISerialPort
     #region Connection Management
 
     /// <summary>
-    /// "Opens" the fake serial port
+    /// "Opens" the fake serial port for simulation
     /// </summary>
     public void Open()
     {
@@ -104,11 +99,10 @@ public class FakeSerialPort : ISerialPort
             throw new ObjectDisposedException(nameof(FakeSerialPort));
 
         _isOpen = true;
-        Console.WriteLine($"FakeSerialPort: Simulated connection opened on {PortName} at {BaudRate} baud");
     }
 
     /// <summary>
-    /// "Closes" the fake serial port
+    /// "Closes" the fake serial port and clears buffers
     /// </summary>
     public void Close()
     {
@@ -117,8 +111,8 @@ public class FakeSerialPort : ISerialPort
         {
             _outputBuffer.Clear();
             while (_inputBuffer.TryDequeue(out _)) { }
+            while (_injectDataQueue.TryDequeue(out _)) { }
         }
-        Console.WriteLine($"FakeSerialPort: Simulated connection closed on {PortName}");
     }
 
     #endregion
@@ -126,7 +120,8 @@ public class FakeSerialPort : ISerialPort
     #region Data Communication
 
     /// <summary>
-    /// Simulates writing data to the serial port and generates appropriate responses
+    /// Simulates writing data to the serial port.
+    /// Data is queued for processing by higher layers.
     /// </summary>
     /// <param name="data">Data to write</param>
     public void Write(string data)
@@ -134,14 +129,20 @@ public class FakeSerialPort : ISerialPort
         if (!_isOpen)
             throw new InvalidOperationException("Serial port is not open");
 
-        // Simulate processing the command and generating a response
+        // Store the written data in input buffer for higher layers to process
+        lock (_lock)
+        {
+            _inputBuffer.Enqueue(data);
+        }
+
+        // Simulate processing delay and check for injected response data
         _ = Task.Run(async () =>
         {
             // Simulate command processing delay
             await Task.Delay(25);
 
-            var response = ProcessCommand(data);
-            if (!string.IsNullOrEmpty(response))
+            // Check if there's any injected response data
+            if (_injectDataQueue.TryDequeue(out string? response) && !string.IsNullOrEmpty(response))
             {
                 // Add response to output buffer
                 lock (_lock)
@@ -149,8 +150,7 @@ public class FakeSerialPort : ISerialPort
                     _outputBuffer.Append(response);
                 }
 
-                // Trigger data received event - SerialDataReceivedEventArgs doesn't have public constructor
-                // We'll simulate the event by creating a simple implementation
+                // Trigger data received event
                 try
                 {
                     DataReceived?.Invoke(this, null!);
@@ -222,6 +222,7 @@ public class FakeSerialPort : ISerialPort
         lock (_lock)
         {
             while (_inputBuffer.TryDequeue(out _)) { }
+            while (_injectDataQueue.TryDequeue(out _)) { }
         }
     }
 
@@ -238,160 +239,39 @@ public class FakeSerialPort : ISerialPort
 
     #endregion
 
-    #region Command Processing
+    #region Test Data Injection
 
     /// <summary>
-    /// Processes a command and returns the appropriate simulated response
+    /// Injects test data that will be returned as responses to subsequent writes.
+    /// This allows higher layers to control the simulation responses.
     /// </summary>
-    /// <param name="command">Command to process</param>
-    /// <returns>Simulated response</returns>
-    private string ProcessCommand(string command)
+    /// <param name="data">Data to inject as a response</param>
+    public void InjectResponseData(string data)
     {
-        if (string.IsNullOrWhiteSpace(command))
-            return string.Empty;
-
-        var cmd = command.Trim().ToUpper();
-
-        // Process common CAT commands with simulated responses
-        if (cmd == "ID;")
+        if (!string.IsNullOrEmpty(data))
         {
-            return "ID999;"; // Generic ID for FakeSerialPort
+            _injectDataQueue.Enqueue(data);
         }
-        else if (cmd == "FA;")
-        {
-            return $"FA{_currentFrequency:D11};";
-        }
-        else if (cmd.StartsWith("FA") && cmd.EndsWith(";"))
-        {
-            // Set frequency command
-            var freqStr = cmd.Substring(2, cmd.Length - 3);
-            if (long.TryParse(freqStr, out long freq))
-            {
-                _currentFrequency = freq;
-                Console.WriteLine($"FakeSerialPort: Frequency set to {freq:N0} Hz");
-                return cmd; // Echo the command
-            }
-        }
-        else if (cmd == "MD;")
-        {
-            return $"MD{GetModeNumber(_currentMode)};";
-        }
-        else if (cmd.StartsWith("MD") && cmd.EndsWith(";"))
-        {
-            // Set mode command
-            var modeStr = cmd.Substring(2, cmd.Length - 3);
-            if (int.TryParse(modeStr, out int modeNum))
-            {
-                _currentMode = MapModeNumber(modeNum);
-                Console.WriteLine($"FakeSerialPort: Mode set to {_currentMode}");
-                return cmd; // Echo the command
-            }
-        }
-        else if (cmd == "IF;")
-        {
-            // Transceiver information
-            var ritFlag = _ritOffset != 0 ? "1" : "0";
-            var xitFlag = _xitOffset != 0 ? "1" : "0";
-            var splitFlag = _splitEnabled ? "1" : "0";
-            
-            return $"IF{_currentFrequency:D11}     {_ritOffset:+0000;-0000;+0000}{ritFlag}{xitFlag}000{0}{GetModeNumber(_currentMode)}{_currentVfo[0]}{0}{splitFlag}00000;";
-        }
-        else if (cmd == "PS;")
-        {
-            return $"PS{(_powerOn ? "1" : "0")};";
-        }
-        else if (cmd.StartsWith("PS") && cmd.EndsWith(";"))
-        {
-            var powerStr = cmd.Substring(2, cmd.Length - 3);
-            _powerOn = powerStr == "1";
-            Console.WriteLine($"FakeSerialPort: Power {(_powerOn ? "ON" : "OFF")}");
-            return cmd;
-        }
-        else if (cmd.StartsWith("FR") && cmd.EndsWith(";"))
-        {
-            // Set VFO command
-            var vfoStr = cmd.Substring(2, cmd.Length - 3);
-            if (vfoStr == "0")
-            {
-                _currentVfo = "A";
-                Console.WriteLine("FakeSerialPort: VFO set to A");
-            }
-            else if (vfoStr == "1")
-            {
-                _currentVfo = "B";
-                Console.WriteLine("FakeSerialPort: VFO set to B");
-            }
-            return cmd;
-        }
-        else if (cmd == "FR;")
-        {
-            return $"FR{(_currentVfo == "A" ? "0" : "1")};";
-        }
-        else if (cmd.StartsWith("FT") && cmd.EndsWith(";"))
-        {
-            // Split operation
-            var splitStr = cmd.Substring(2, cmd.Length - 3);
-            _splitEnabled = splitStr == "1";
-            Console.WriteLine($"FakeSerialPort: Split {(_splitEnabled ? "enabled" : "disabled")}");
-            return cmd;
-        }
-        else if (cmd == "FT;")
-        {
-            return $"FT{(_splitEnabled ? "1" : "0")};";
-        }
-        else if (cmd.StartsWith("RC;") || cmd.StartsWith("RT;"))
-        {
-            // RIT/XIT clear
-            _ritOffset = 0;
-            _xitOffset = 0;
-            Console.WriteLine("FakeSerialPort: RIT/XIT cleared");
-            return cmd;
-        }
-
-        // Return a generic success response for unrecognized commands
-        return "OK;";
     }
 
     /// <summary>
-    /// Maps mode string to mode number for responses
+    /// Retrieves data that was written to the port (for testing/verification).
     /// </summary>
-    /// <param name="mode">Mode string</param>
-    /// <returns>Mode number</returns>
-    private int GetModeNumber(string mode)
+    /// <returns>The next written command, or null if none available</returns>
+    public string? GetWrittenData()
     {
-        return mode.ToUpper() switch
-        {
-            "LSB" => 1,
-            "USB" => 2,
-            "CW" => 3,
-            "FM" => 4,
-            "AM" => 5,
-            "FSK" => 6,
-            "CW-R" => 7,
-            "FSK-R" => 8,
-            _ => 2 // Default to USB
-        };
+        return _inputBuffer.TryDequeue(out string? data) ? data : null;
     }
 
     /// <summary>
-    /// Maps mode number to mode string
+    /// Clears all written data from the input buffer.
     /// </summary>
-    /// <param name="modeNumber">Mode number</param>
-    /// <returns>Mode string</returns>
-    private string MapModeNumber(int modeNumber)
+    public void ClearWrittenData()
     {
-        return modeNumber switch
+        lock (_lock)
         {
-            1 => "LSB",
-            2 => "USB",
-            3 => "CW",
-            4 => "FM",
-            5 => "AM",
-            6 => "FSK",
-            7 => "CW-R",
-            8 => "FSK-R",
-            _ => "USB"
-        };
+            while (_inputBuffer.TryDequeue(out _)) { }
+        }
     }
 
     #endregion

@@ -21,12 +21,14 @@ Located in `SharpCAT2.Radio/Serial/`, this module contains:
 
 #### Implementations
 - **`RealSerialPort`** - Wrapper around `System.IO.Ports.SerialPort` for actual hardware
-- **`FakeSerialPort`** - Simulated serial port for testing with CAT command responses
+- **`FakeSerialPort`** - Protocol-agnostic simulated serial port for testing (no radio knowledge)
+
+**Important**: `FakeSerialPort` provides only serial I/O simulation and contains no knowledge of radio commands, protocols, or logging. All radio simulation logic is implemented in radio classes like `DummyRadio`.
 
 #### Factory
 - **`SerialPortFactory`** - Creates appropriate implementations:
   - `CreateRealSerialPort()` - For hardware communication
-  - `CreateFakeSerialPort()` - For testing/simulation
+  - `CreateFakeSerialPort()` - For testing/simulation (protocol-agnostic transport)
   - `CreateSerialPort()` - Auto-detects based on port name
 
 ## Key Changes
@@ -37,10 +39,11 @@ Located in `SharpCAT2.Radio/Serial/`, this module contains:
 - `RadioFactory.AutoDetectRadioAsync()` uses `ISerialPort`
 
 ### DummyRadio Refactoring
-- Removed embedded simulation logic from `DummyRadio`
-- Now delegates to `FakeSerialPort` for command simulation
-- Automatically creates `FakeSerialPort` when needed
-- Maintains full feature simulation through serial abstraction
+- **Separated concerns**: Now contains all radio simulation logic and state management
+- **Protocol implementation**: Handles CAT command processing, frequency/mode/VFO control
+- **Transport usage**: Uses FakeSerialPort purely as a communication transport
+- **Comprehensive simulation**: Supports 25+ radio features including RIT/XIT, split operation, power control, S-meter readings, etc.
+- **Clean architecture**: Radio logic is separate from transport logic
 
 ### Server Application Updates
 - Uses `SerialPortFactory.CreateSerialPort()` for port creation
@@ -69,10 +72,14 @@ dotnet run -- --port /dev/ttyUSB0 --auto-detect
 
 ### Programmatic Usage
 ```csharp
-// Create fake port for testing
+// Create fake port for testing (protocol-agnostic transport)
 ISerialPort fakePort = SerialPortFactory.CreateFakeSerialPort();
 IRadio radio = RadioFactory.CreateRadio("SharpCAT2", "DummyRadio");
 await radio.ConnectAsync(fakePort);
+
+// Radio handles all simulation logic, transport provides communication
+var frequency = await radio.GetFrequencyAsync(); // DummyRadio processes this
+await radio.SetFrequencyAsync(14074000); // DummyRadio manages state
 
 // Create real port for hardware
 ISerialPort realPort = SerialPortFactory.CreateRealSerialPort("COM1", 9600);
@@ -83,22 +90,98 @@ await radio.ConnectAsync(realPort);
 ## Benefits
 
 1. **Separation of Concerns**: Serial port logic is isolated from radio control logic
-2. **Testability**: Easy to test radio implementations without hardware
-3. **Maintainability**: Serial port implementations can be modified independently  
-4. **Extensibility**: Easy to add new serial port types (e.g., network, Bluetooth)
-5. **Backward Compatibility**: Existing code works unchanged
+2. **Protocol Agnostic**: FakeSerialPort contains no radio or protocol knowledge
+3. **Testability**: Easy to test radio implementations without hardware and test transport independently
+4. **Maintainability**: Serial port implementations can be modified independently  
+5. **Extensibility**: Easy to add new serial port types (e.g., network, Bluetooth)
+6. **Clean Architecture**: Transport layer separate from protocol/radio simulation layer
+7. **Backward Compatibility**: Existing code works unchanged
+
+## Architecture Guidelines
+
+### FakeSerialPort Design Principles
+- **Protocol Agnostic**: Contains no knowledge of radio commands, CAT protocols, or radio state
+- **Transport Only**: Provides serial I/O simulation (open/close, read/write, buffering)
+- **No Logging**: Contains no Console.WriteLine or logging statements
+- **Test Support**: Provides data injection methods for controlled testing
+- **Clean Interface**: Implements ISerialPort without protocol assumptions
+
+### Radio Simulation Design Principles
+- **Complete Logic**: Radio classes (like DummyRadio) contain all protocol and simulation logic
+- **Transport Usage**: Use serial ports purely for communication transport
+- **State Management**: Maintain radio state (frequency, mode, VFO, etc.) at the radio level
+- **Feature Implementation**: Implement radio features through command processing, not transport simulation
+
+### Usage Examples
+
+#### Testing with FakeSerialPort (Protocol-Agnostic)
+```csharp
+// Create a protocol-agnostic fake port for testing
+var fakePort = new FakeSerialPort("TEST", 9600);
+fakePort.Open();
+
+// Write data (stored for higher layers to process)
+fakePort.Write("SOME_COMMAND");
+
+// Inject response data for controlled testing
+fakePort.InjectResponseData("EXPECTED_RESPONSE");
+
+// Read injected response
+var response = fakePort.ReadExisting(); // Returns "EXPECTED_RESPONSE"
+
+// Verify what was written
+var writtenData = fakePort.GetWrittenData(); // Returns "SOME_COMMAND"
+```
+
+#### Radio Simulation with DummyRadio
+```csharp
+// Create radio with simulation logic
+var radio = new DummyRadio();
+var fakePort = new FakeSerialPort("TEST", 9600);
+
+// Connect radio (radio manages all CAT simulation)
+await radio.ConnectAsync(fakePort);
+
+// Send radio commands (processed by radio, not transport)
+var command = new RadioCommand("FA;", "Get Frequency");
+var response = await radio.SendCommandAsync(command); // Returns "FA00014074000;"
+
+// Use radio features
+await radio.SetFrequencyAsync(7074000);
+var frequency = await radio.GetFrequencyAsync(); // Returns 7074000
+
+// Radio maintains state, not the transport
+var vfo = await radio.GetVfoAsync(); // Returns "A" or "B"
+```
 
 ## Testing
 
-The refactoring includes comprehensive testing:
-- Build verification ensures no regressions
-- Functional testing with DummyRadio and FakeSerialPort
-- CAT command simulation verification
-- Real serial port compatibility testing
+The refactoring includes comprehensive testing to ensure proper separation of concerns:
+
+### Transport Layer Testing
+- **FakeSerialPort Tests**: Verify protocol-agnostic transport functionality
+- **Data Injection**: Test controlled response injection for higher layers
+- **Buffer Management**: Verify input/output buffer handling
+- **No Protocol Knowledge**: Ensure transport contains no radio logic
+
+### Radio Layer Testing  
+- **DummyRadio Tests**: Verify comprehensive radio simulation
+- **CAT Command Processing**: Test frequency, mode, VFO, split operations
+- **State Management**: Verify radio maintains proper internal state
+- **Feature Implementation**: Test 25+ radio features (RIT/XIT, power control, etc.)
+
+### Integration Testing
+- **Combined Testing**: Radio + Transport integration
+- **Real vs Fake**: Same radio code works with both transport types
+- **Command Flow**: End-to-end command processing verification
 
 Run the test script:
 ```bash
 ./test_serial_abstraction.sh
+
+# Or run specific test categories
+dotnet test --filter "FakeSerialPortRefactoredTests"  # Transport tests
+dotnet test --filter "DummyRadioRefactoredTests"      # Radio tests
 ```
 
 ## Migration Guide
