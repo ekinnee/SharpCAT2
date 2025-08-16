@@ -13,6 +13,23 @@ namespace SharpCAT2.Common.Radio.Models.Testing;
 /// The radio uses FakeSerialPort purely as a transport mechanism, implementing all radio
 /// protocol logic at the radio layer for proper separation of concerns.
 /// 
+/// HEALTH CHECK ARCHITECTURE:
+/// - DummyRadio responds to "ID;" commands with "ID020;" (TS-2000 compatible)
+/// - ResilientRadio health checks use the "ID;" command and accept any non-empty response
+/// - Health checks occur every 60 seconds by default when radio is connected
+/// - Failed health checks trigger automatic reconnection attempts
+/// 
+/// SIMULATION DESIGN:
+/// - FakeSerialPort: Protocol-agnostic transport (buffering, events, I/O simulation)
+/// - DummyRadio: Radio protocol logic (CAT commands, state management, responses)
+/// - ResilientRadio: Connection management (health checks, retries, error recovery)
+/// 
+/// TROUBLESHOOTING:
+/// - Enable Debug logging to see health check commands and responses
+/// - Check that DummyRadio is properly connected (IsConnected = true)
+/// - Verify FakeSerialPort is being used as transport (not real serial port)
+/// - Health check failures usually indicate command processing issues, not transport issues
+/// 
 /// Designed for:
 /// - Testing client/server functionality without real hardware
 /// - Demonstrating radio features in development environments
@@ -156,6 +173,7 @@ public class DummyRadio : BaseRadio
     {
         if (!_isConnected || _serialPort == null)
         {
+            // Debug: Connection state check
             return null;
         }
 
@@ -164,8 +182,12 @@ public class DummyRadio : BaseRadio
             // For FakeSerialPort, we handle the simulation at the radio level
             if (_serialPort is FakeSerialPort fakePort)
             {
+                // Debug: Command processing start
                 // Process the command and generate response directly
                 var response = ProcessCommand(command.Command);
+                
+                // Debug: Command processing result - Note: No actual logging to maintain logging-free architecture
+                // The service layer will handle logging based on return values
                 
                 // Simulate command processing delay
                 await Task.Delay(25);

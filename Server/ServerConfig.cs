@@ -117,25 +117,28 @@ public class ServerConfig
     }
 
     /// <summary>
-    /// Applies configuration settings to command line options
+    /// Applies configuration settings to command line options.
+    /// Command line arguments take precedence over configuration settings.
     /// </summary>
     /// <param name="options">Command line options to update</param>
     public void ApplyToCommandLineOptions(CommandLineOptions options)
     {
+        // Apply config values only if not overridden by command line
         if (!string.IsNullOrEmpty(SerialPort) && string.IsNullOrEmpty(options.PortName))
             options.PortName = SerialPort;
         
         if (!string.IsNullOrEmpty(Radio) && string.IsNullOrEmpty(options.RadioModel))
             options.RadioModel = Radio;
         
-        // Only apply config values if they weren't overridden by command line
         if (options.BaudRate == 9600) // Default value check
             options.BaudRate = BaudRate;
         
         if (options.TcpPort == 8080) // Default value check
             options.TcpPort = TcpPort;
         
-        if (!options.AutoDetectRadio)
+        // For auto-detect: only apply config value if command line didn't specify a radio model
+        // This ensures command line radio selection disables auto-detect as intended
+        if (string.IsNullOrEmpty(options.RadioModel) && !options.AutoDetectRadio)
             options.AutoDetectRadio = AutoDetectRadio;
     }
 }

@@ -479,17 +479,37 @@ public class ResilientRadio : IRadio
             {
                 // Perform a simple command to test radio responsiveness
                 var testCommand = new RadioCommand("ID;", "Health check", true, 2000);
+                
+                _logger?.LogDebug("Performing health check on radio {Manufacturer} {ModelName} with command: {Command}", 
+                    Manufacturer, ModelName, testCommand.Command);
+                
                 var response = await _innerRadio.SendCommandAsync(testCommand);
-                return !string.IsNullOrEmpty(response);
+                
+                _logger?.LogDebug("Health check response from radio {Manufacturer} {ModelName}: '{Response}' (Length: {Length})", 
+                    Manufacturer, ModelName, response ?? "null", response?.Length ?? 0);
+                
+                bool isHealthy = !string.IsNullOrEmpty(response);
+                
+                if (!isHealthy)
+                {
+                    _logger?.LogWarning("Health check failed for radio {Manufacturer} {ModelName}: Response was null or empty", 
+                        Manufacturer, ModelName);
+                }
+                
+                return isHealthy;
             });
 
             if (result.IsHealthy)
             {
                 _healthMonitor.RecordSuccess();
+                _logger?.LogDebug("Health check succeeded for radio {Manufacturer} {ModelName}", 
+                    Manufacturer, ModelName);
             }
             else
             {
                 _healthMonitor.RecordFailure();
+                _logger?.LogWarning("Health check failed for radio {Manufacturer} {ModelName}", 
+                    Manufacturer, ModelName);
             }
         }
         catch (Exception ex)

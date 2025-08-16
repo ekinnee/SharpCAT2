@@ -5,8 +5,17 @@ using System.Threading.Tasks;
 namespace SharpCAT2.Tests.Serial;
 
 /// <summary>
-/// Tests to capture current behavior of FakeSerialPort before refactoring.
-/// These tests will be updated after the refactoring to reflect the new protocol-agnostic design.
+/// Tests to document current behavior of FakeSerialPort before refactoring.
+/// 
+/// IMPORTANT: After the protocol-agnostic refactor, these tests have been updated
+/// to reflect the new behavior where FakeSerialPort does NOT process radio commands.
+/// 
+/// The new architecture separates concerns:
+/// - FakeSerialPort: Protocol-agnostic transport (buffering, I/O simulation)
+/// - DummyRadio: Radio protocol logic (CAT commands, responses)
+/// - ResilientRadio: Connection management (health checks, retries)
+/// 
+/// These tests now verify that FakeSerialPort behaves as a pure transport layer.
 /// </summary>
 public class FakeSerialPortCurrentBehaviorTests
 {
@@ -39,115 +48,111 @@ public class FakeSerialPortCurrentBehaviorTests
     }
 
     [Fact]
-    public async Task FakeSerialPort_CurrentCATradeCommands_ShouldReturnExpectedResponses()
+    public async Task FakeSerialPort_ProtocolAgnosticBehavior_ShouldNotProcessCommands()
     {
         // Arrange
         var fakePort = new FakeSerialPort("TEST", 9600);
         fakePort.Open();
 
-        // Test ID command
+        // Act - FakeSerialPort should NOT process CAT commands in the new architecture
         fakePort.Write("ID;");
-        await Task.Delay(50); // Wait for async processing
+        await Task.Delay(50); // Wait for any potential processing
         var response = fakePort.ReadExisting();
-        Assert.Equal("ID999;", response);
-
-        // Test FA (frequency) command
-        fakePort.Write("FA;");
-        await Task.Delay(50);
-        response = fakePort.ReadExisting();
-        Assert.Equal("FA00014074000;", response); // Default frequency
-
-        // Test setting frequency
-        fakePort.Write("FA00007074000;");
-        await Task.Delay(50);
-        response = fakePort.ReadExisting();
-        Assert.Equal("FA00007074000;", response); // Echo command
-
-        // Verify frequency was set
-        fakePort.Write("FA;");
-        await Task.Delay(50);
-        response = fakePort.ReadExisting();
-        Assert.Equal("FA00007074000;", response); // New frequency
+        
+        // Assert - No automatic response should be generated
+        Assert.Equal("", response); // FakeSerialPort is now protocol-agnostic
+        
+        // But the command should be available for higher layers to process
+        var writtenCommand = fakePort.GetWrittenData();
+        Assert.Equal("ID;", writtenCommand);
 
         fakePort.Close();
     }
 
     [Fact]
-    public async Task FakeSerialPort_CurrentModeCommands_ShouldReturnExpectedResponses()
+    public async Task FakeSerialPort_ProtocolAgnostic_ModeCommands()
     {
         // Arrange
         var fakePort = new FakeSerialPort("TEST", 9600);
         fakePort.Open();
 
-        // Test MD (mode) command
+        // Act - FakeSerialPort should be protocol-agnostic
         fakePort.Write("MD;");
         await Task.Delay(50);
         var response = fakePort.ReadExisting();
-        Assert.Equal("MD2;", response); // USB mode
-
-        // Test setting mode to LSB
-        fakePort.Write("MD1;");
-        await Task.Delay(50);
-        response = fakePort.ReadExisting();
-        Assert.Equal("MD1;", response);
-
-        // Verify mode was set
-        fakePort.Write("MD;");
-        await Task.Delay(50);
-        response = fakePort.ReadExisting();
-        Assert.Equal("MD1;", response); // LSB mode
+        
+        // Assert - No automatic response
+        Assert.Equal("", response);
+        
+        // Command should be available for processing by higher layers
+        var writtenCommand = fakePort.GetWrittenData();
+        Assert.Equal("MD;", writtenCommand);
 
         fakePort.Close();
     }
 
     [Fact]
-    public async Task FakeSerialPort_CurrentPowerCommands_ShouldReturnExpectedResponses()
+    public async Task FakeSerialPort_ProtocolAgnostic_PowerCommands()
     {
         // Arrange
         var fakePort = new FakeSerialPort("TEST", 9600);
         fakePort.Open();
 
-        // Test PS (power) command
+        // Act - FakeSerialPort should be protocol-agnostic
         fakePort.Write("PS;");
         await Task.Delay(50);
         var response = fakePort.ReadExisting();
-        Assert.Equal("PS1;", response); // Power on
+        
+        // Assert - No automatic response
+        Assert.Equal("", response);
+        
+        // Command should be available for processing by higher layers
+        var writtenCommand = fakePort.GetWrittenData();
+        Assert.Equal("PS;", writtenCommand);
 
         fakePort.Close();
     }
 
     [Fact]
-    public async Task FakeSerialPort_CurrentIFCommand_ShouldReturnFormattedResponse()
+    public async Task FakeSerialPort_ProtocolAgnostic_IFCommand()
     {
         // Arrange
         var fakePort = new FakeSerialPort("TEST", 9600);
         fakePort.Open();
 
-        // Test IF (transceiver information) command
+        // Act - FakeSerialPort should be protocol-agnostic
         fakePort.Write("IF;");
         await Task.Delay(50);
         var response = fakePort.ReadExisting();
         
-        // Should return formatted IF response with current state
-        Assert.StartsWith("IF", response);
-        Assert.EndsWith(";", response);
-        Assert.Contains("00014074000", response); // Default frequency
+        // Assert - No automatic response
+        Assert.Equal("", response);
+        
+        // Command should be available for processing by higher layers
+        var writtenCommand = fakePort.GetWrittenData();
+        Assert.Equal("IF;", writtenCommand);
 
         fakePort.Close();
     }
 
     [Fact]
-    public async Task FakeSerialPort_UnrecognizedCommands_ShouldReturnOK()
+    public async Task FakeSerialPort_ProtocolAgnostic_UnrecognizedCommands()
     {
         // Arrange
         var fakePort = new FakeSerialPort("TEST", 9600);
         fakePort.Open();
 
-        // Test unrecognized command
+        // Act - FakeSerialPort should be protocol-agnostic
         fakePort.Write("XX;");
         await Task.Delay(50);
         var response = fakePort.ReadExisting();
-        Assert.Equal("OK;", response);
+        
+        // Assert - No automatic response (protocol-agnostic)
+        Assert.Equal("", response);
+        
+        // Command should be available for processing by higher layers
+        var writtenCommand = fakePort.GetWrittenData();
+        Assert.Equal("XX;", writtenCommand);
 
         fakePort.Close();
     }
