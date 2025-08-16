@@ -135,10 +135,12 @@ dotnet run -- --list
 ```
 
 The fake port provides:
-- Full simulation of serial communication 
-- Deterministic responses to common radio commands
+- Pure serial communication simulation without protocol knowledge
+- Protocol-agnostic transport layer for any radio simulation
 - No hardware dependencies for development and testing
 - Compatible with all SharpCAT2 features including radio support
+
+**Architecture**: The `FakeSerialPort` provides only serial I/O simulation (open/close/read/write, buffering, connection state) and contains no knowledge of radio commands or protocols. All radio simulation logic is implemented in radio classes like `DummyRadio`, which use `FakeSerialPort` purely as a transport mechanism. This clean separation allows for proper testing of both transport and protocol layers independently.
 
 ### Client Library and Application
 
@@ -419,6 +421,7 @@ SharpCAT2/
 │   │   ├── RadioFactory.cs # Dynamic radio creation and discovery
 │   │   └── Models/         # Radio model implementations by brand
 │   │       ├── BaseRadio.cs    # Abstract base radio implementation
+│   │       ├── Testing/        # Test radio implementations (DummyRadio)
 │   │       ├── Kenwood/        # Kenwood radio models (TS-2000, TS-890S, etc.)
 │   │       ├── Elecraft/       # Elecraft radio models (K3, K4, KX3, etc.)
 │   │       ├── Yaesu/          # Yaesu radio models (FT-991A, FT-710, etc.)
@@ -429,7 +432,7 @@ SharpCAT2/
 │   ├── Serial/             # Serial port abstraction layer
 │   │   ├── ISerialPort.cs  # Serial port interface abstraction
 │   │   ├── RealSerialPort.cs # Real hardware serial port wrapper
-│   │   ├── FakeSerialPort.cs # Simulated serial port for testing
+│   │   ├── FakeSerialPort.cs # Protocol-agnostic simulated serial port
 │   │   ├── SerialPortFactory.cs # Factory for creating serial port instances
 │   │   └── ResilientSerialPort.cs # Resilient serial port with retry logic
 │   ├── Utils/              # Utility classes
