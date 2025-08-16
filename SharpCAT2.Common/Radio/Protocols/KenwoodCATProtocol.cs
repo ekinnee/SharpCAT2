@@ -258,9 +258,10 @@ public class KenwoodCATProtocol : IRadioProtocol
                     status.SplitEnabled = response[32] == '1';
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error parsing Kenwood transceiver info: {ex.Message}");
+                // Parsing errors result in incomplete status
+                // Service layer can detect issues through missing status fields
             }
         }
     }

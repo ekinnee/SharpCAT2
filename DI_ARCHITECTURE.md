@@ -64,3 +64,64 @@ Rate limiting prevents abuse with configurable thresholds.
 ### Logging
 
 Structured logging is available throughout the application using `Microsoft.Extensions.Logging` with configurable log levels.
+
+#### Logging Architecture
+
+**Server/Service-Level Logging Only**: All logging is handled exclusively at the server and service layer using dependency-injected `ILogger` interfaces. This architecture provides:
+
+- **Centralized Control**: All log messages go through a single, configurable logging system
+- **Platform Independence**: Radio and protocol classes remain platform-agnostic 
+- **Testability**: Services can be tested with mock loggers while radio classes remain focused on functionality
+- **Consistency**: All log messages follow consistent patterns and formatting
+
+**Radio Classes Are Log-Free**: Radio model classes, protocol classes, and radio factories do not contain any logging code. Instead:
+
+- **Error Communication**: Errors are communicated via return values (null/false for failures), exceptions, or incomplete status objects
+- **State Reporting**: Radio state and operation results are reported through method return values and events
+- **Service Layer Responsibility**: The `RadioService` and other service classes detect these conditions and log appropriately
+
+**Example Architecture**:
+```csharp
+// ❌ Wrong - Radio class should not log directly
+public class SomeRadio : BaseRadio 
+{
+    public async Task<bool> ConnectAsync(ISerialPort port)
+    {
+        try { /* connection logic */ }
+        catch (Exception ex) 
+        {
+            Console.WriteLine($"Error: {ex.Message}"); // ❌ Direct logging
+            return false;
+        }
+    }
+}
+
+// ✅ Correct - Radio returns status, service logs
+public class SomeRadio : BaseRadio 
+{
+    public async Task<bool> ConnectAsync(ISerialPort port)
+    {
+        try { /* connection logic */ }
+        catch (Exception) 
+        {
+            return false; // ✅ Error communicated via return value
+        }
+    }
+}
+
+// Service layer handles logging
+public class RadioService : IRadioService 
+{
+    private readonly ILogger<RadioService> _logger;
+    
+    public async Task<bool> ConnectRadioAsync(IRadio radio, ISerialPort port)
+    {
+        var success = await radio.ConnectAsync(port);
+        if (!success)
+        {
+            _logger.LogError("Failed to connect to radio {Model}", radio.ModelName); // ✅ Service logs
+        }
+        return success;
+    }
+}
+```

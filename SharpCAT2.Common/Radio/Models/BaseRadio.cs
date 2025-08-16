@@ -5,7 +5,12 @@ using System.Text.RegularExpressions;
 namespace SharpCAT2.Common.Radio.Models;
 
 /// <summary>
-/// Base implementation of the IRadio interface providing common functionality
+/// Base implementation of the IRadio interface providing common functionality.
+/// 
+/// LOGGING ARCHITECTURE:
+/// Radio classes are designed to be logging-free and platform-agnostic.
+/// All logging is handled at the server/service layer (RadioService, etc.) using dependency-injected ILogger.
+/// Radio classes communicate errors and status through return values, events, or exceptions only.
 /// </summary>
 public abstract class BaseRadio : IRadio
 {
@@ -64,9 +69,10 @@ public abstract class BaseRadio : IRadio
             
             return !string.IsNullOrEmpty(response);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error connecting to radio: {ex.Message}");
+            // Connection errors are communicated via return value
+            // Service layer will log these errors based on the false return
             return false;
         }
     }
@@ -80,9 +86,10 @@ public abstract class BaseRadio : IRadio
         {
             _serialPort?.Close();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error disconnecting from radio: {ex.Message}");
+            // Disconnection errors are handled silently
+            // Radio may already be disconnected or in error state
         }
     }
 
@@ -116,9 +123,10 @@ public abstract class BaseRadio : IRadio
             using var cancellationTokenSource = new CancellationTokenSource(command.TimeoutMs);
             return await ReadResponseAsync(cancellationTokenSource.Token);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error sending command '{command.Command}': {ex.Message}");
+            // Command errors are communicated via null return value
+            // Service layer will log these errors based on the null response
             return null;
         }
     }
@@ -212,9 +220,10 @@ public abstract class BaseRadio : IRadio
                 ParseTransceiverInfo(txResponse, status);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error getting radio status: {ex.Message}");
+            // Status retrieval errors result in default/empty status
+            // Service layer can detect and log issues based on status content
         }
 
         return status;
@@ -238,9 +247,10 @@ public abstract class BaseRadio : IRadio
                 return true;
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error setting frequency: {ex.Message}");
+            // Frequency setting errors are communicated via return value
+            // Service layer will log these errors based on the false return
         }
 
         return false;
@@ -264,9 +274,10 @@ public abstract class BaseRadio : IRadio
                 return true;
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error setting mode: {ex.Message}");
+            // Mode setting errors are communicated via return value
+            // Service layer will log these errors based on the false return
         }
 
         return false;

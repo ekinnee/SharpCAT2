@@ -20,6 +20,11 @@ namespace SharpCAT2.Common.Radio.Models.Testing;
 /// - Does not validate frequency ranges or mode compatibility
 /// - Fixed response timing (no real hardware delays)
 /// - Memory and settings are reset on each restart
+/// 
+/// LOGGING ARCHITECTURE:
+/// Like all radio classes, DummyRadio is designed to be logging-free.
+/// All logging is handled at the server/service layer using dependency-injected ILogger.
+/// This class communicates errors and status through return values and exceptions only.
 /// </summary>
 public class DummyRadio : BaseRadio
 {
@@ -90,7 +95,6 @@ public class DummyRadio : BaseRadio
         // If no port is provided or it's a real port, create a fake port for simulation
         if (port == null || port is RealSerialPort)
         {
-            Console.WriteLine("DummyRadio: Creating FakeSerialPort for simulation");
             _serialPort = SerialPortFactory.CreateFakeSerialPort("DUMMY", 9600);
         }
         else
@@ -105,9 +109,6 @@ public class DummyRadio : BaseRadio
         
         _isConnected = true;
         
-        Console.WriteLine("DummyRadio: Simulated connection established");
-        Console.WriteLine("DummyRadio: This is a testing radio with simulated responses");
-        
         return true;
     }
 
@@ -118,7 +119,6 @@ public class DummyRadio : BaseRadio
     {
         _isConnected = false;
         base.Disconnect();
-        Console.WriteLine("DummyRadio: Simulated disconnection");
     }
 
     #endregion
@@ -145,9 +145,10 @@ public class DummyRadio : BaseRadio
             // This will work with both real and fake serial ports
             return await base.SendCommandAsync(command);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"DummyRadio: Error sending command '{command.Command}': {ex.Message}");
+            // Command errors are communicated via null return value
+            // Service layer will log these errors based on the null response
             return null;
         }
     }
@@ -184,7 +185,6 @@ public class DummyRadio : BaseRadio
         if (!_disposed)
         {
             Disconnect();
-            Console.WriteLine("DummyRadio: Disposed");
             _disposed = true;
         }
         GC.SuppressFinalize(this);

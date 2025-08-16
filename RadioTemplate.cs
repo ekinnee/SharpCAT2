@@ -5,6 +5,12 @@ namespace SharpCAT2.Common.Radio.Models.{ManufacturerName};
 /// <summary>
 /// {ManufacturerName} {ModelName} radio implementation
 /// TODO: Complete this implementation with actual radio-specific features
+/// 
+/// LOGGING ARCHITECTURE:
+/// This class should NOT contain any Console.WriteLine, ILogger, or other logging code.
+/// All logging is handled at the server/service layer using dependency-injected ILogger.
+/// Communicate errors through return values (null/false), exceptions, or incomplete status objects.
+/// The RadioService will detect these conditions and log appropriately.
 /// </summary>
 public class {ClassName} : BaseRadio
 {
@@ -95,9 +101,10 @@ public class {ClassName} : BaseRadio
                 
                 status.IsPoweredOn = true; // Placeholder
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error parsing {ModelName} transceiver info: {ex.Message}");
+                // Parsing errors result in incomplete status
+                // Service layer can detect issues through missing status fields
             }
         }
     }
