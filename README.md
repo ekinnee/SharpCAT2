@@ -22,30 +22,134 @@ A cross-platform .NET serial port communication server application that provides
 - .NET 8.0 or later
 - Appropriate permissions for serial port access (see Platform-Specific Setup below)
 
-## Building and Running
+## Quick Start
 
-### Build the Application
+### Server (Basic Usage)
 
 ```bash
-# Clone the repository
+# Clone and build
 git clone https://github.com/ekinnee/SharpCAT2.git
-cd SharpCAT2/Server
-
-# Build the application
+cd SharpCAT2
 dotnet build
 
-# Run the application
+# Run with default settings (FAKE port for testing)
+cd Server
 dotnet run
+
+# Connect to real hardware
+dotnet run -- --port COM1              # Windows
+dotnet run -- --port /dev/ttyUSB0      # Linux  
+dotnet run -- --port /dev/cu.usbserial-1410  # macOS
+
+# With radio support
+dotnet run -- --port COM1 --radio "Kenwood TS-2000"
+dotnet run -- --port COM1 --auto-detect
 ```
 
-### Build for Release
+### Client (Connect to Server)
 
 ```bash
-# Build optimized release version
-dotnet build --configuration Release
+# In another terminal
+cd Client
+dotnet run
 
-# Run release version
-dotnet run --configuration Release
+# Connect to remote server
+dotnet run -- --host 192.168.1.100 --port 8080
+```
+
+## Building and Running
+
+### Build Entire Solution
+
+```bash
+# Clone repository
+git clone https://github.com/ekinnee/SharpCAT2.git
+cd SharpCAT2
+
+# Build entire solution
+dotnet build SharpCAT2.sln
+
+# Or build individual projects
+cd Server
+dotnet restore
+dotnet build
+
+# Run tests
+dotnet test
+
+# Create release package
+dotnet publish -c Release -o ./publish
+```
+
+## Usage
+
+### Server Application
+
+The server application opens a serial port and provides both console interface and TCP server for remote clients.
+
+#### Command-Line Options
+
+| Option | Short | Description | Example |
+|--------|-------|-------------|---------|
+| `--port` | `-p` | Serial port name | `--port COM1` |
+| `--baud` | `-b` | Baud rate (default: 9600)<br/>Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 | `--baud 115200` |
+| `--tcp-port` | `-t` | TCP server port (default: 8080) | `--tcp-port 9090` |
+| `--radio` | `-r` | Radio model name | `--radio "Kenwood TS-2000"` |
+| `--auto-detect` | | Auto-detect radio type | `--auto-detect` |
+| `--list` | `-l` | List available ports | `--list` |
+| `--list-radios` | | List available radio models | `--list-radios` |
+| `--radio-info` | | Show detailed information about a radio model | `--radio-info "Elecraft K3"` |
+| `--help` | `-h` | Show help message | `--help` |
+
+#### Supported Radio Models
+
+SharpCAT2 supports **29 radio models** across **7 major manufacturers**:
+
+- **Kenwood**: TS-2000, TS-890S, TS-590SG, TH-D74A, TM-D710GA
+- **Elecraft**: K3, K4, KX3, K2, K1  
+- **Yaesu**: FT-991A, FT-710, FT-DX101D, FT-891, FT-65
+- **Icom**: IC-7300, IC-9700
+- **FlexRadio**: FLEX-6400, FLEX-6600, FLEX-6700
+- **Alinco**: DX-SR8T, DJ-MD5TGP, DR-638T, DX-70T
+- **Ten-Tec**: OMNI VII, Eagle, Argonaut V, Jupiter
+- **SharpCAT2**: DummyRadio (for testing and development)
+
+For detailed information about supported features for each radio model, see [SUPPORTED_RADIOS.md](SUPPORTED_RADIOS.md).
+
+### Client Library and Application
+
+The client library (`SharpCAT2.ClientLib`) provides methods for connecting to the SharpCAT2 server over TCP and sending commands to the remote serial port. The client console application provides an interactive interface.
+
+#### Building the Client
+
+```bash
+# Navigate to the Client directory
+cd Client
+
+# Build the client library
+dotnet build SharpCAT2.ClientLib.csproj
+
+# Build the client console application
+dotnet build Client.csproj
+```
+
+#### Running the Client Application
+
+```bash
+# Navigate to the Client directory
+cd Client
+
+# Connect to server on localhost:8080
+dotnet run --project Client.csproj
+
+# Connect to a remote server
+dotnet run --project Client.csproj -- --host 192.168.1.100
+
+# Connect to a custom port
+dotnet run --project Client.csproj -- --host localhost --port 9090
+
+# Show help
+dotnet run --project Client.csproj -- --help
 ```
 
 ## Configuration
@@ -92,280 +196,6 @@ The client can be configured using a `client_config.json` file in the Client dir
 1. Command-line arguments (highest priority)
 2. JSON configuration file values
 3. Built-in defaults (lowest priority)
-
-## Usage
-
-### Server Application
-
-The server application opens a serial port and provides both console interface and TCP server for remote clients.
-
-#### Basic Usage
-
-```bash
-# Show help
-dotnet run -- --help
-
-# List available serial ports
-dotnet run -- --list
-
-# Connect to a specific port with default settings and default TCP port (8080)
-dotnet run -- --port COM1              # Windows
-dotnet run -- --port /dev/ttyUSB0      # Linux
-dotnet run -- --port /dev/cu.usbserial-1410  # macOS
-
-# Connect with custom baud rate and TCP port
-dotnet run -- --port COM1 --baud 115200 --tcp-port 9090
-
-# Connect with radio support
-dotnet run -- --port COM1 --radio "Kenwood TS-2000"
-
-# Auto-detect radio type
-dotnet run -- --port COM1 --auto-detect
-```
-
-#### Command-Line Options
-
-| Option | Short | Description | Example |
-|--------|-------|-------------|---------|
-| `--port` | `-p` | Serial port name | `--port COM1` |
-| `--baud` | `-b` | Baud rate (default: 9600)<br/>Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 | `--baud 115200` |
-| `--tcp-port` | `-t` | TCP server port (default: 8080) | `--tcp-port 9090` |
-| `--radio` | `-r` | Radio model name | `--radio "Kenwood TS-2000"` |
-| `--auto-detect` | | Auto-detect radio type | `--auto-detect` |
-| `--list` | `-l` | List available ports | `--list` |
-| `--list-radios` | | List available radio models | `--list-radios` |
-| `--radio-info` | | Show detailed information about a radio model | `--radio-info "Elecraft K3"` |
-| `--help` | `-h` | Show help message | `--help` |
-
-#### Supported Radio Models
-
-SharpCAT2 now supports **29 radio models** across **7 major manufacturers**:
-
-- **Kenwood**: TS-2000, TS-890S, TS-590SG, TH-D74A, TM-D710GA
-- **Elecraft**: K3, K4, KX3, K2, K1  
-- **Yaesu**: FT-991A, FT-710, FT-DX101D, FT-891, FT-65
-- **Icom**: IC-7300, IC-9700
-- **FlexRadio**: FLEX-6400, FLEX-6600, FLEX-6700
-- **Alinco**: DX-SR8T, DJ-MD5TGP, DR-638T, DX-70T
-- **Ten-Tec**: OMNI VII, Eagle, Argonaut V, Jupiter
-- **SharpCAT2**: DummyRadio (for testing and development)
-
-Each radio model supports a specific set of features from a comprehensive list of **47 radio capabilities** including:
-- Frequency and mode control
-- VFO operations (dual VFO, swap, split)
-- RIT/XIT incremental tuning
-- Power output and metering (S-meter, SWR)
-- Memory channel management
-- CW keyer operation
-- Noise reduction and DSP features
-- Antenna selection
-- Digital mode support
-
-For detailed information about supported features for each radio model, see [SUPPORTED_RADIOS.md](SUPPORTED_RADIOS.md).
-
-To see all available radio models with feature counts:
-```bash
-dotnet run -- --list-radios
-```
-
-To see detailed information about a specific radio:
-```bash
-dotnet run -- --radio-info "Elecraft K3"
-dotnet run -- --radio-info "FlexRadio FLEX-6600"
-```
-
-#### Radio Commands
-
-When a radio is connected, you can use these additional commands in the server console:
-
-- `s` - Show current radio status (frequency, mode, supported features, etc.)
-- `FA;` - Get frequency (VFO A)
-- `FA14074000;` - Set frequency to 14.074 MHz
-- `MD;` - Get operating mode
-- `MD2;` - Set mode to USB
-- `ID;` - Get radio identification
-
-#### DummyRadio for Testing and Development
-
-SharpCAT2 includes a **DummyRadio** implementation designed specifically for testing, development, and demonstration purposes. DummyRadio simulates a full-featured amateur radio without requiring actual hardware.
-
-**Features:**
-- Simulates responses for all radio interface methods
-- Supports 22 advanced features for comprehensive testing
-- Deterministic behavior perfect for automated testing
-- No hardware requirements - works entirely in software
-- Helpful console output showing what operations are being performed
-
-**Usage:**
-```bash
-# List available radios (DummyRadio will be shown)
-dotnet run -- --list-radios
-
-# Get detailed information about DummyRadio
-dotnet run -- --radio-info "SharpCAT2 DummyRadio"
-
-# Connect to DummyRadio for testing (requires any port name for interface compatibility)
-# Note: DummyRadio ignores the actual serial port and simulates all communication
-dotnet run -- --radio "SharpCAT2 DummyRadio" --port /dev/null
-```
-
-**DummyRadio Capabilities:**
-- Frequency control with realistic amateur radio frequencies
-- Mode selection (LSB, USB, CW, FM, AM, FSK, etc.)
-- VFO operations (dual VFO, swap, split operation)
-- RIT/XIT tuning simulation
-- Power output control and meter readings (S-meter, SWR)
-- Memory channel operations (100 channels)
-- CW keyer simulation with message sending
-- Noise reduction and IF bandwidth control
-- Antenna selection
-- All operations provide console feedback for educational purposes
-
-**DummyRadio is ideal for:**
-- Testing client applications without radio hardware
-- Demonstrating SharpCAT2 features in presentations
-- Development environment setup where no radios are available
-- Training new users on amateur radio control concepts
-- Automated testing of radio control software
-
-**Limitations:**
-- Simulated responses only - no actual RF communication
-- Settings reset when the application restarts
-- Fixed response timing (no real hardware delays)
-- Does not validate frequency ranges or band plans
-
-#### Radio Features and Capabilities
-
-Each radio model exposes a `SupportedFeatures` property that indicates which advanced features are available. The server will display this information when showing radio status or using the `--radio-info` command.
-
-**Feature Categories:**
-- **Basic Operation**: Frequency control, mode selection, transmit/receive status
-- **HF Operation**: Dual VFO, split operation, RIT/XIT, S-meter, power control
-- **VHF/UHF Operation**: Squelch control, CTCSS/DCS tones, repeater operation
-- **Advanced Operation**: IF bandwidth, noise reduction, memory channels, CW keyer
-- **SDR Features**: Waterfall display, panadapter, multiple receivers
-
-The system gracefully handles unsupported features by returning appropriate defaults or error messages.
-
-### Client Library and Application
-
-The client library (`SharpCAT2.ClientLib`) provides methods for connecting to the SharpCAT2 server over TCP and sending commands to the remote serial port. The client console application provides an interactive interface.
-
-#### Building the Client
-
-```bash
-# Navigate to the Client directory
-cd Client
-
-# Build the client library
-dotnet build SharpCAT2.ClientLib.csproj
-
-# Build the client console application
-dotnet build Client.csproj
-```
-
-#### Running the Client Application
-
-```bash
-# Navigate to the Client directory
-cd Client
-
-# Connect to server on localhost:8080
-dotnet run --project Client.csproj
-
-# Connect to a remote server
-dotnet run --project Client.csproj -- --host 192.168.1.100
-
-# Connect to a custom port
-dotnet run --project Client.csproj -- --host localhost --port 9090
-
-# Show help
-dotnet run --project Client.csproj -- --help
-```
-
-#### Client Command-Line Options
-
-| Option | Short | Description | Example |
-|--------|-------|-------------|---------|
-| `--host` | `-h` | Server hostname or IP (default: localhost) | `--host 192.168.1.100` |
-| `--port` | `-p` | Server TCP port (default: 8080) | `--port 9090` |
-| `--help` | | Show help message | `--help` |
-
-#### Client Library Usage
-
-```csharp
-using SharpCAT2.ClientLib;
-
-// Create client instance
-using var client = new SharpCAT2Client("localhost", 8080);
-
-// Connect to server
-bool connected = await client.ConnectAsync();
-if (connected)
-{
-    // Send command and get response
-    string? response = await client.SendCommandAsync("AT");
-    if (response != null)
-    {
-        Console.WriteLine($"Response: {response}");
-    }
-}
-```
-
-### Interactive Mode
-
-#### Server Interactive Mode
-
-When no port is specified, the server application will:
-1. Scan for available ports
-2. Display found ports for selection
-3. Allow manual port name entry if needed
-4. Start TCP server and console interface
-
-```bash
-# Interactive mode - will prompt for port selection
-dotnet run
-```
-
-
-#### Client Interactive Mode
-
-The client application provides an interactive command loop:
-- Type commands to send to the remote serial port/radio
-- Type `help` for available client commands
-- Type `status` to check connection status
-- Type `radio-status` or `rs` to get radio status
-- Type `list-radios` or `radios` to see available radio models
-- Type `current-radio` or `get-current-radio` to show current active radio
-- Type `set-radio <name>` to change the active radio (e.g., `set-radio Kenwood TS-2000`)
-- Type `quit` or `exit` to disconnect and exit
-
-#### Client Radio Management Commands
-
-The client now supports full radio management over the TCP connection:
-
-**Radio Information Commands:**
-- `list-radios` - List all available radio models with feature counts
-- `current-radio` - Show current active radio and connection status
-
-**Radio Control Commands:**
-- `set-radio <manufacturer> <model>` - Change the server's active radio
-  - Example: `set-radio Kenwood TS-2000`
-  - Example: `set-radio Elecraft K3`
-  - Example: `set-radio SharpCAT2 DummyRadio`
-
-**Response Format:**
-- Radio list: Structured format with `RADIO_LIST_START` and `RADIO_LIST_END` markers
-- Current radio: `CURRENT_RADIO:<name>|<features>|<status>`
-- Set radio: `SUCCESS:` or `ERROR:` messages with details
-
-#### Client Radio Commands
-
-When connected to a server with radio support, you can send these commands:
-- `FA;` - Get frequency
-- `FA14074000;` - Set frequency to 14.074 MHz
-- `MD;` - Get mode
-- `ID;` - Get radio ID
 
 ## Supported Baud Rates
 
