@@ -188,8 +188,3 @@ public class ClientCommandProcessor
 
     #endregion
 }
-
-/// <summary>
-/// Represents the result of processing a client command
-/// </summary>
-public record CommandProcessingResult(bool WasHandled, bool ShouldExit);
