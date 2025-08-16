@@ -32,9 +32,9 @@ git clone https://github.com/ekinnee/SharpCAT2.git
 cd SharpCAT2
 dotnet build
 
-# Run with default settings (FAKE port for testing)
+# Run with simulated port for testing (no hardware required)
 cd Server
-dotnet run
+dotnet run -- --port fake
 
 # Connect to real hardware
 dotnet run -- --port COM1              # Windows
@@ -43,6 +43,7 @@ dotnet run -- --port /dev/cu.usbserial-1410  # macOS
 
 # With radio support
 dotnet run -- --port COM1 --radio "Kenwood TS-2000"
+dotnet run -- --port fake --radio "SharpCAT2 DummyRadio"  # Simulated radio for testing
 dotnet run -- --port COM1 --auto-detect
 ```
 
@@ -91,12 +92,12 @@ The server application opens a serial port and provides both console interface a
 
 | Option | Short | Description | Example |
 |--------|-------|-------------|---------|
-| `--port` | `-p` | Serial port name | `--port COM1` |
+| `--port` | `-p` | Serial port name (hardware ports or 'fake' for simulation) | `--port COM1` or `--port fake` |
 | `--baud` | `-b` | Baud rate (default: 9600)<br/>Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000 | `--baud 115200` |
 | `--tcp-port` | `-t` | TCP server port (default: 8080) | `--tcp-port 9090` |
 | `--radio` | `-r` | Radio model name | `--radio "Kenwood TS-2000"` |
 | `--auto-detect` | | Auto-detect radio type | `--auto-detect` |
-| `--list` | `-l` | List available ports | `--list` |
+| `--list` | `-l` | List available ports (includes 'fake' for simulation) | `--list` |
 | `--list-radios` | | List available radio models | `--list-radios` |
 | `--radio-info` | | Show detailed information about a radio model | `--radio-info "Elecraft K3"` |
 | `--help` | `-h` | Show help message | `--help` |
@@ -115,6 +116,29 @@ SharpCAT2 supports **29 radio models** across **7 major manufacturers**:
 - **SharpCAT2**: DummyRadio (for testing and development)
 
 For detailed information about supported features for each radio model, see [SUPPORTED_RADIOS.md](SUPPORTED_RADIOS.md).
+
+#### Testing and Development
+
+SharpCAT2 provides a special simulated port for testing and development:
+
+- **fake**: Simulated serial port that works without hardware. Perfect for testing, development, and demonstrations.
+
+```bash
+# Run with simulated port (no hardware required)
+dotnet run -- --port fake
+
+# Test with simulated radio
+dotnet run -- --port fake --radio "SharpCAT2 DummyRadio"
+
+# List all ports (including fake)
+dotnet run -- --list
+```
+
+The fake port provides:
+- Full simulation of serial communication 
+- Deterministic responses to common radio commands
+- No hardware dependencies for development and testing
+- Compatible with all SharpCAT2 features including radio support
 
 ### Client Library and Application
 

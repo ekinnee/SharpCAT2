@@ -1,6 +1,7 @@
 using System.IO.Ports;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using SharpCAT2.Common.Serial;
 
 namespace SharpCAT2.Server;
 
@@ -41,6 +42,11 @@ public class PortSelector
     {
         if (IsValidPortName(portName))
         {
+            // Show positive confirmation for fake ports
+            if (SerialPortFactory.IsFakePortName(portName))
+            {
+                Console.WriteLine($"Using simulated port '{portName}' for testing/development.");
+            }
             return portName;
         }
         
@@ -184,12 +190,18 @@ public class PortSelector
     }
 
     /// <summary>
-    /// Validates if a port name exists in the system
+    /// Validates if a port name exists in the system or is a valid fake port
     /// </summary>
     /// <param name="portName">Port name to check</param>
-    /// <returns>True if port exists, false otherwise</returns>
+    /// <returns>True if port exists or is a valid fake port, false otherwise</returns>
     private bool IsValidPortName(string portName)
     {
+        // Check if it's a fake/simulation port first
+        if (SerialPortFactory.IsFakePortName(portName))
+        {
+            return true;
+        }
+        
         try
         {
             string[] availablePorts = SerialPort.GetPortNames();

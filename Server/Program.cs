@@ -137,7 +137,7 @@ class Program
         Console.WriteLine("Usage: Server [options]");
         Console.WriteLine();
         Console.WriteLine("Options:");
-        Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0)");
+        Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0, fake)");
         Console.WriteLine("  -b, --baud <rate>     Baud rate (default: 9600)");
         Console.WriteLine("                        Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000");
         Console.WriteLine("  -t, --tcp-port <port> TCP server port (default: 8080)");
@@ -170,9 +170,13 @@ class Program
         }
         
         Console.WriteLine();
+        Console.WriteLine("  Server --port fake    # Use simulated port for testing/development");
         Console.WriteLine("  Server --list         # List all available ports");
         Console.WriteLine("  Server --list-radios  # List all available radio models");
         Console.WriteLine("  Server --radio-info \"Elecraft K3\"  # Show detailed radio information");
+        Console.WriteLine();
+        Console.WriteLine("Special Ports:");
+        Console.WriteLine("  fake                  Simulated serial port for testing and development");
         Console.WriteLine();
         Console.WriteLine("The server provides both console interface and TCP server for remote clients.");
         Console.WriteLine("With radio support, you can send CAT commands and get radio status information.");
