@@ -1,6 +1,6 @@
 {
   "serialPort": "fake",
-  "radio": "SharpCAT2 DummyRadio",
+  "radio": "SharpCAT2",
   "baudRate": 9600,
   "tcpPort": 8080,
   "autoDetectRadio": true

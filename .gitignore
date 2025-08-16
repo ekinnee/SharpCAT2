@@ -3,6 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+#Project specific files
+server_config.json
+client_config.json
+
 # User-specific files
 *.rsuser
 *.suo
@@ -416,3 +420,4 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+Server/server_config.json
