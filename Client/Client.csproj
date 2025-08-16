@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Explicitly exclude library files to prevent conflicts -->
     <Compile Remove="ClientLib.cs" />
     <Compile Remove="ClientConfig.cs" />
   </ItemGroup>
