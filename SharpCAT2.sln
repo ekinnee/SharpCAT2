@@ -4,7 +4,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Server\Server.csproj", "{8B3D8F7E-1234-4567-8901-23456789ABCD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.ClientLib", "Client\SharpCAT2.ClientLib.csproj", "{8B3D8F7E-2345-4567-8901-23456789ABCD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.ClientLib", "SharpCAT2.ClientLib\SharpCAT2.ClientLib.csproj", "{8B3D8F7E-2345-4567-8901-23456789ABCD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{8B3D8F7E-3456-4567-8901-23456789ABCD}"
 EndProject
