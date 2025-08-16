@@ -10,11 +10,6 @@
     <ProjectReference Include="../SharpCAT2.Common/SharpCAT2.Common.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Explicitly exclude files that should only be in the Client project -->
-    <Compile Remove="ClientCommandProcessor.cs" />
-    <Compile Remove="ClientConstants.cs" />
-    <Compile Remove="Program.cs" />
-  </ItemGroup>
+
 
 </Project>

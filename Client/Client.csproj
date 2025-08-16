@@ -9,13 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Explicitly exclude library files to prevent conflicts -->
-    <Compile Remove="ClientLib.cs" />
-    <Compile Remove="ClientConfig.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="SharpCAT2.ClientLib.csproj" />
+    <ProjectReference Include="../SharpCAT2.ClientLib/SharpCAT2.ClientLib.csproj" />
     <ProjectReference Include="../SharpCAT2.Common/SharpCAT2.Common.csproj" />
   </ItemGroup>
 
