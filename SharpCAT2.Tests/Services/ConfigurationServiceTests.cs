@@ -57,7 +57,10 @@ public class ConfigurationServiceTests
         Assert.Equal(115200, options.BaudRate);
         Assert.Equal(9090, options.TcpPort);
         Assert.Equal("Kenwood TS-2000", options.RadioModel);
-        Assert.True(options.AutoDetectRadio);
+        
+        // Note: AutoDetectRadio is not set to true when RadioModel is specified
+        // This prevents conflicting radio selection methods
+        Assert.False(options.AutoDetectRadio);
     }
 
     [Fact]
