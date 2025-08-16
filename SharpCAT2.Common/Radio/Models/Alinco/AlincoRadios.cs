@@ -68,9 +68,10 @@ public abstract class BaseAlincoRadio : BaseRadio
                     status.IsPoweredOn = true;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error parsing Alinco transceiver info: {ex.Message}");
+                // Parsing errors result in incomplete status
+                // Service layer can detect issues through missing status fields
             }
         }
     }

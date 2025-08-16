@@ -452,7 +452,17 @@ The application uses a service-based architecture with dependency injection:
 - **Better Maintainability**: Clear separation of concerns with well-defined interfaces
 - **Enhanced Security**: Built-in IP filtering, rate limiting, and connection monitoring
 - **Flexible Configuration**: Support for JSON configuration files with command-line overrides
-- **Structured Logging**: Comprehensive logging throughout all service layers
+- **Structured Logging**: Comprehensive logging throughout all service layers with server-only architecture
+
+**Logging Architecture:**
+All logging is handled exclusively at the server/service layer using dependency-injected `ILogger` interfaces. Radio classes, protocol classes, and factories are designed to be logging-free and platform-agnostic. This architectural decision provides:
+
+- **Centralized Control**: All log messages flow through configurable service-layer loggers
+- **Platform Independence**: Radio implementations remain focused on communication logic
+- **Better Testability**: Radio classes can be tested without logging dependencies
+- **Consistent Messaging**: All errors and status updates follow uniform logging patterns
+
+Radio classes communicate errors and status through return values, exceptions, and status objects, while the service layer interprets these signals and generates appropriate log messages.
 
 For detailed information about the architecture, see [DI_ARCHITECTURE.md](DI_ARCHITECTURE.md).
 

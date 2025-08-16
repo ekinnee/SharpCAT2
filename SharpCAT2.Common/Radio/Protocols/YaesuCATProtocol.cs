@@ -200,9 +200,10 @@ public class YaesuCATProtocol : IRadioProtocol
                 status.IsPoweredOn = true;
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error parsing Yaesu transceiver info: {ex.Message}");
+            // Parsing errors result in incomplete status
+            // Service layer can detect issues through missing status fields
         }
     }
 

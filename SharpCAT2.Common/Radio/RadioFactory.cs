@@ -14,7 +14,12 @@ using SharpCAT2.Common.Serial;
 namespace SharpCAT2.Common.Radio;
 
 /// <summary>
-/// Factory for creating radio instances based on model name
+/// Factory for creating radio instances based on model name.
+/// 
+/// LOGGING ARCHITECTURE:
+/// Radio creation errors are communicated through null return values.
+/// The service layer (RadioService) handles logging of factory failures
+/// using dependency-injected ILogger. This factory is logging-free.
 /// </summary>
 public static class RadioFactory
 {
@@ -133,9 +138,10 @@ public static class RadioFactory
                 }
                 return baseRadio;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error creating radio instance for {manufacturer} {model}: {ex.Message}");
+                // Radio creation errors result in null return
+                // Service layer will handle and log null radio instances
             }
         }
 
@@ -259,9 +265,10 @@ public static class RadioFactory
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error discovering radio types: {ex.Message}");
+            // Discovery errors are handled silently - built-in radios are already registered
+            // Service layer doesn't need to be aware of reflection failures
         }
     }
 

@@ -144,9 +144,10 @@ public class ElecraftCATProtocol : KenwoodCATProtocol
                     // This would depend on specific radio model
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error parsing Elecraft extended transceiver info: {ex.Message}");
+                // Parsing errors result in incomplete status
+                // Service layer can detect issues through missing status fields
             }
         }
     }
