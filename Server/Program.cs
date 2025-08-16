@@ -13,7 +13,31 @@ namespace SharpCAT2.Server;
 /// </summary>
 class Program
 {
+    #region Public Methods
 
+    /// <summary>
+    /// Validates if the provided baud rate is supported
+    /// </summary>
+    /// <param name="baudRate">Baud rate to validate</param>
+    /// <returns>True if baud rate is supported</returns>
+    public static bool IsValidBaudRate(int baudRate)
+    {
+        return Constants.SupportedBaudRates.Contains(baudRate);
+    }
+
+    /// <summary>
+    /// Validates if the provided TCP port is in valid range
+    /// </summary>
+    /// <param name="port">TCP port to validate</param>
+    /// <returns>True if port is valid</returns>
+    public static bool IsValidTcpPort(int port)
+    {
+        return port >= Constants.MinTcpPort && port <= Constants.MaxTcpPort;
+    }
+
+    #endregion
+
+    #region Private Methods
 
     /// <summary>
     /// Main entry point for the SharpCAT2 Server application.
@@ -98,6 +122,8 @@ class Program
                 services.AddSingleton<ServerApplication>();
             });
 
+    #endregion
+
     #region Platform and Configuration
 
     /// <summary>
@@ -180,30 +206,6 @@ class Program
         Console.WriteLine();
         Console.WriteLine("The server provides both console interface and TCP server for remote clients.");
         Console.WriteLine("With radio support, you can send CAT commands and get radio status information.");
-    }
-
-    #endregion
-
-    #region Command Line Validation
-
-    /// <summary>
-    /// Validates if the provided baud rate is supported
-    /// </summary>
-    /// <param name="baudRate">Baud rate to validate</param>
-    /// <returns>True if baud rate is supported</returns>
-    public static bool IsValidBaudRate(int baudRate)
-    {
-        return Constants.SupportedBaudRates.Contains(baudRate);
-    }
-
-    /// <summary>
-    /// Validates if the provided TCP port is in valid range
-    /// </summary>
-    /// <param name="port">TCP port to validate</param>
-    /// <returns>True if port is valid</returns>
-    public static bool IsValidTcpPort(int port)
-    {
-        return port >= Constants.MinTcpPort && port <= Constants.MaxTcpPort;
     }
 
     #endregion
