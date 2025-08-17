@@ -21,6 +21,35 @@ A cross-platform .NET serial port communication server application that provides
 
 - .NET 8.0 or later
 - Appropriate permissions for serial port access (see Platform-Specific Setup below)
+- RJCP.SerialPortStream package (automatically installed with NuGet restore)
+
+## Installation
+
+### Installing RJCP.SerialPortStream
+
+The project now uses RJCP.SerialPortStream as the primary serial port communication library for improved cross-platform compatibility and reliability.
+
+When building from source, the package will be automatically restored via NuGet:
+
+```bash
+# Clone and build
+git clone https://github.com/ekinnee/SharpCAT2.git
+cd SharpCAT2
+dotnet restore  # This will install RJCP.SerialPortStream
+dotnet build
+```
+
+### Manual Package Installation
+
+If needed, you can manually install the package:
+
+```bash
+# For individual projects
+dotnet add package RJCP.SerialPortStream
+
+# Or add to your .csproj file
+<PackageReference Include="RJCP.SerialPortStream" Version="3.0.3" />
+```
 
 ## Quick Start
 
@@ -496,7 +525,8 @@ SharpCAT2/
 
 ### Dependencies
 
-- **System.IO.Ports**: Cross-platform serial port communication
+- **RJCP.SerialPortStream**: Cross-platform serial port communication library (primary)
+- **System.IO.Ports**: Used only for port enumeration (fallback for compatibility)
 - **.NET 8.0**: Runtime platform
 - **Newtonsoft.Json**: JSON configuration file parsing with comment support
 - **SharpCAT2.Common**: Shared library containing radio control and serial abstraction
