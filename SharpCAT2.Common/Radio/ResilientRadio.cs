@@ -361,6 +361,17 @@ public class ResilientRadio : IRadio
         return await ExecuteWithRetryAsync(() => _innerRadio.GetNotchAsync(), "GetNotch");
     }
 
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _healthCheckTimer?.Dispose();
+            _innerRadio?.Dispose();
+            _disposed = true;
+        }
+        GC.SuppressFinalize(this);
+    }
+
     #endregion
 
     #region Resilience Methods
@@ -537,18 +548,6 @@ public class ResilientRadio : IRadio
     }
 
     #endregion
-
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            _healthCheckTimer?.Dispose();
-            _healthMonitor?.Dispose();
-            _innerRadio?.Dispose();
-            _disposed = true;
-        }
-        GC.SuppressFinalize(this);
-    }
 }
 
 /// <summary>

@@ -184,6 +184,19 @@ public class ResilientSerialPort : ISerialPort
         ExecuteWithRetry(() => _innerPort.DiscardOutBuffer(), "DiscardOutBuffer");
     }
 
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _healthMonitor?.Stop();
+            _reconnectionTimer?.Dispose();
+            _healthMonitor?.Dispose();
+            _innerPort?.Dispose();
+            _disposed = true;
+        }
+        GC.SuppressFinalize(this);
+    }
+
     #endregion
 
     #region Resilience Methods
@@ -351,19 +364,6 @@ public class ResilientSerialPort : ISerialPort
     }
 
     #endregion
-
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            _healthMonitor?.Stop();
-            _reconnectionTimer?.Dispose();
-            _healthMonitor?.Dispose();
-            _innerPort?.Dispose();
-            _disposed = true;
-        }
-        GC.SuppressFinalize(this);
-    }
 }
 
 /// <summary>

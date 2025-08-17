@@ -166,42 +166,9 @@ public class KenwoodCATProtocol : IRadioProtocol
         return response.EndsWith(";");
     }
 
-    // Helper methods
-    protected virtual string MapModeNumber(int modeNumber)
-    {
-        return modeNumber switch
-        {
-            1 => "LSB",
-            2 => "USB",
-            3 => "CW",
-            4 => "FM",
-            5 => "AM",
-            6 => "FSK",
-            7 => "CW-R",
-            8 => "FSK-R",
-            9 => "PSK",
-            _ => "USB"
-        };
-    }
-
-    protected virtual int MapModeToNumber(string mode)
-    {
-        return mode.ToUpper() switch
-        {
-            "LSB" => 1,
-            "USB" => 2,
-            "CW" => 3,
-            "FM" => 4,
-            "AM" => 5,
-            "FSK" or "RTTY" => 6,
-            "CW-R" or "CWR" => 7,
-            "FSK-R" or "RTTYR" => 8,
-            "PSK" or "PSK31" => 9,
-            _ => 2 // Default to USB
-        };
-    }
-
-    // Additional parsing for IF command (comprehensive status)
+    /// <summary>
+    /// Additional parsing for IF command (comprehensive status)
+    /// </summary>
     public virtual void ParseTransceiverInfo(string response, RadioStatus status)
     {
         // Kenwood IF response format: IF00014074000     +0000000000030000000;
@@ -265,4 +232,45 @@ public class KenwoodCATProtocol : IRadioProtocol
             }
         }
     }
+
+    #region Protected Methods
+
+    /// <summary>
+    /// Helper methods
+    /// </summary>
+    protected virtual string MapModeNumber(int modeNumber)
+    {
+        return modeNumber switch
+        {
+            1 => "LSB",
+            2 => "USB",
+            3 => "CW",
+            4 => "FM",
+            5 => "AM",
+            6 => "FSK",
+            7 => "CW-R",
+            8 => "FSK-R",
+            9 => "PSK",
+            _ => "USB"
+        };
+    }
+
+    protected virtual int MapModeToNumber(string mode)
+    {
+        return mode.ToUpper() switch
+        {
+            "LSB" => 1,
+            "USB" => 2,
+            "CW" => 3,
+            "FM" => 4,
+            "AM" => 5,
+            "FSK" or "RTTY" => 6,
+            "CW-R" or "CWR" => 7,
+            "FSK-R" or "RTTYR" => 8,
+            "PSK" or "PSK31" => 9,
+            _ => 2 // Default to USB
+        };
+    }
+
+    #endregion
 }

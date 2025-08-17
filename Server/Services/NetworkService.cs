@@ -146,6 +146,15 @@ public class NetworkService : INetworkService, IDisposable
         }
     }
 
+    public void Dispose()
+    {
+        StopAsync().Wait(TimeSpan.FromSeconds(5));
+        _cancellationTokenSource?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    #region Private Methods
+
     private async Task AcceptClientsAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested && _tcpListener != null)
@@ -260,10 +269,5 @@ public class NetworkService : INetworkService, IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        StopAsync().Wait(TimeSpan.FromSeconds(5));
-        _cancellationTokenSource?.Dispose();
-        GC.SuppressFinalize(this);
-    }
+    #endregion
 }

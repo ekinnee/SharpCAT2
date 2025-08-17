@@ -79,7 +79,11 @@ public class RadioCommand
         return $"{Command} ({Description})";
     }
 
-    // Common radio commands
+    #region Nested Types
+
+    /// <summary>
+    /// Common radio commands
+    /// </summary>
     public static class Common
     {
         public static RadioCommand GetFrequency => new("FA;", "Get frequency (VFO A)", true);
@@ -96,4 +100,6 @@ public class RadioCommand
         public static RadioCommand GetAntenna => new("AN;", "Get antenna", true);
         public static RadioCommand SetAntenna(int antenna) => new($"AN{antenna};", $"Set antenna to {antenna}", true);
     }
+
+    #endregion
 }

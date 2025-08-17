@@ -211,7 +211,20 @@ public class FlexRadioProtocol : IRadioProtocol
         }
     }
 
-    // FlexRadio mode mapping
+    /// <summary>
+    /// FlexRadio slice management helpers
+    /// </summary>
+    public virtual RadioCommand SetSliceFrequencyCommand(int sliceId, long frequency) => 
+        new($"ZZFS{sliceId}{frequency:D11};", $"Set slice {sliceId} frequency to {frequency} Hz", false, 2000);
+    
+    public virtual RadioCommand SetSliceModeCommand(int sliceId, string mode) => 
+        new($"ZZMS{sliceId}{MapModeToNumber(mode)};", $"Set slice {sliceId} mode to {mode}", false, 2000);
+
+    #region Protected Methods
+
+    /// <summary>
+    /// FlexRadio mode mapping
+    /// </summary>
     protected virtual int MapModeToNumber(string mode)
     {
         return mode.ToUpper() switch
@@ -252,10 +265,5 @@ public class FlexRadioProtocol : IRadioProtocol
         };
     }
 
-    // FlexRadio slice management helpers
-    public virtual RadioCommand SetSliceFrequencyCommand(int sliceId, long frequency) => 
-        new($"ZZFS{sliceId}{frequency:D11};", $"Set slice {sliceId} frequency to {frequency} Hz", false, 2000);
-    
-    public virtual RadioCommand SetSliceModeCommand(int sliceId, string mode) => 
-        new($"ZZMS{sliceId}{MapModeToNumber(mode)};", $"Set slice {sliceId} mode to {mode}", false, 2000);
+    #endregion
 }

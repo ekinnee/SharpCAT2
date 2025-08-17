@@ -67,10 +67,10 @@ public class FlexRadio6400 : BaseFlexRadio
         }
     }
 
-    public async Task<int> GetMaxSlicesAsync()
+    public Task<int> GetMaxSlicesAsync()
     {
         // FLEX-6400 supports up to 2 slices
-        return 2;
+        return Task.FromResult(2);
     }
 }
 
@@ -91,10 +91,10 @@ public class FlexRadio6600 : BaseFlexRadio
     /// <summary>
     /// FLEX-6600 specific features - 4 slice capability and SO2R
     /// </summary>
-    public async Task<int> GetMaxSlicesAsync()
+    public Task<int> GetMaxSlicesAsync()
     {
         // FLEX-6600 supports up to 4 slices
-        return 4;
+        return Task.FromResult(4);
     }
 
     public async Task<bool> SetSO2RModeAsync(bool enabled)
@@ -131,10 +131,10 @@ public class FlexRadio6700 : BaseFlexRadio
     /// <summary>
     /// FLEX-6700 specific features - 8 slice capability and contest features
     /// </summary>
-    public async Task<int> GetMaxSlicesAsync()
+    public Task<int> GetMaxSlicesAsync()
     {
         // FLEX-6700 supports up to 8 slices
-        return 8;
+        return Task.FromResult(8);
     }
 
     public async Task<bool> SetContestModeAsync(bool enabled)
