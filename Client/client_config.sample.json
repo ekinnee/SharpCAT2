@@ -1,19 +1,13 @@
 {
-    // Client connection settings
-    "serverHost": "127.0.0.1",          // Server address (localhost)
-    "serverPort": 8080,                 // Default SharpCAT2 server port
-    "autoReconnect": true,              // Automatically reconnect on disconnect
-    "reconnectIntervalSeconds": 10,     // Wait time between reconnection attempts
-    "logging": {
-        "level": "Information",         // Log level: Debug, Information, Warning, Error
-        "file": "client.log"            // Log file location
-    },
-    "user": {
-        "username": "your-username-here",
-        "password": "your-password-here"
-    },
-    "features": {
-        "enableExperimentalUi": false,  // Enable experimental features
-        "commandHistoryLimit": 100      // Number of commands to remember
-    }
+    // SharpCAT2 Client Configuration
+    // This file configures the client connection to the SharpCAT2 server
+    
+    /* Server Connection Settings */
+    "serverHost": "127.0.0.1",          // Server hostname or IP address
+                                        // Use "localhost" or "127.0.0.1" for local server
+                                        // Use actual IP address for remote server
+    
+    "serverPort": 8080                  // TCP port number for server connection
+                                        // Default SharpCAT2 server port is 8080
+                                        // Must match the tcpPort setting in server configuration
 }

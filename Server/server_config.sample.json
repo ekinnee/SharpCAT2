@@ -1,22 +1,32 @@
 {
-    // Serial port configuration
-    "serialPort": "FAKE",               // Use "FAKE" for testing without hardware
-    "radio": "SharpCAT2 DummyRadio",    // Radio model name (use with FAKE port)
-    "baudRate": 9600,                   // Serial communication speed
+    // SharpCAT2 Server Configuration
+    // This file configures the server for radio control and client connections
+    
+    /* Serial Port Configuration */
+    "serialPort": "FAKE",               // Serial port name for radio communication
+                                        // Examples: "COM1", "COM3" (Windows)
+                                        //          "/dev/ttyUSB0", "/dev/ttyS0" (Linux)
+                                        //          "/dev/cu.usbserial" (macOS)
+                                        // Use "FAKE" for testing without hardware
+    
+    /* Radio Configuration */
+    "radio": "SharpCAT2 DummyRadio",    // Radio model name for CAT control
+                                        // Examples: "Kenwood TS-2000", "Yaesu FT-991A"
+                                        //          "Icom IC-7300", "SharpCAT2 DummyRadio"
+                                        // Must match supported radio models
+    
+    /* Communication Settings */
+    "baudRate": 9600,                   // Serial communication baud rate
+                                        // Common values: 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200
+                                        // Must match radio's CAT interface speed
+    
     "tcpPort": 8080,                    // TCP server port for client connections
-    "autoDetectRadio": true,            // Attempt automatic radio detection
+                                        // Default: 8080, range: 1024-65535
+                                        // Must match client configuration
     
-    /* Logging configuration */
-    "logging": {
-        "level": "Information",         // Log verbosity level
-        "file": "server.log"            // Log file location
-    },
-    
-    /* Security settings */
-    "security": {
-        "ipWhitelist": [
-            "127.0.0.1"                 // Allowed client IP addresses
-        ],
-        "rateLimitPerMinute": 60        // Maximum requests per minute per client
-    }
+    /* Radio Detection */
+    "autoDetectRadio": true             // Attempt automatic radio model detection
+                                        // true:  Try to identify radio automatically
+                                        // false: Use the specified radio model above
+                                        // Recommended: true for initial setup
 }
