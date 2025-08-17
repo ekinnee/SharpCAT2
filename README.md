@@ -223,6 +223,45 @@ The client can be configured using a `client_config.json` file in the Client dir
 2. JSON configuration file values
 3. Built-in defaults (lowest priority)
 
+### JSON Comment Support
+
+SharpCAT2 configuration files support **JavaScript-style comments** for better documentation and maintainability. You can use both single-line (`//`) and multi-line (`/* */`) comments in your JSON configuration files.
+
+**Example server configuration with comments:**
+```json
+{
+  // Serial port configuration
+  "serialPort": "COM3",              // Windows serial port
+  "radio": "Kenwood TS-2000",        /* Popular radio model */
+  "baudRate": 57600,                 // Higher speed for better performance
+  "tcpPort": 8888,                   /* Custom TCP port */
+  "autoDetectRadio": false           // Manual radio selection
+  
+  /* Additional settings can be added later:
+     - logging configuration
+     - security settings
+     - performance tuning
+  */
+}
+```
+
+**Example client configuration with comments:**
+```json
+{
+  // Client connection settings
+  "serverHost": "192.168.1.100",     // Remote server IP
+  "serverPort": 9090                 /* Custom port number */
+  // "timeout": 30                   // Optional timeout setting
+}
+```
+
+**Comment Guidelines:**
+- Use `//` for single-line comments
+- Use `/* */` for multi-line comments  
+- Comments can appear at the end of lines or on separate lines
+- Comments are ignored during configuration loading
+- Maintain valid JSON structure around comments
+
 ## Supported Baud Rates
 
 The server supports the following standard baud rates for serial communication:
@@ -459,6 +498,7 @@ SharpCAT2/
 
 - **System.IO.Ports**: Cross-platform serial port communication
 - **.NET 8.0**: Runtime platform
+- **Newtonsoft.Json**: JSON configuration file parsing with comment support
 - **SharpCAT2.Common**: Shared library containing radio control and serial abstraction
 - **Microsoft.Extensions.DependencyInjection**: Dependency injection framework
 - **Microsoft.Extensions.Hosting**: Generic Host pattern for service lifecycle management

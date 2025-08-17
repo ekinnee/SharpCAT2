@@ -1,5 +1,4 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace SharpCAT2.ClientLib;
 
@@ -11,13 +10,13 @@ public class ClientConfig
     /// <summary>
     /// Server hostname or IP address
     /// </summary>
-    [JsonPropertyName("serverHost")]
+    [JsonProperty("serverHost")]
     public string ServerHost { get; set; } = "localhost";
 
     /// <summary>
     /// Server TCP port
     /// </summary>
-    [JsonPropertyName("serverPort")]
+    [JsonProperty("serverPort")]
     public int ServerPort { get; set; } = 8080;
 
     /// <summary>
@@ -36,7 +35,13 @@ public class ClientConfig
             }
 
             var jsonContent = await File.ReadAllTextAsync(filePath);
-            var config = JsonSerializer.Deserialize<ClientConfig>(jsonContent);
+            var settings = new JsonSerializerSettings
+            {
+                // Enable comment support by ignoring comments
+                FloatParseHandling = FloatParseHandling.Double,
+                DateParseHandling = DateParseHandling.DateTime
+            };
+            var config = JsonConvert.DeserializeObject<ClientConfig>(jsonContent, settings);
             
             if (config == null)
             {
@@ -63,12 +68,12 @@ public class ClientConfig
     {
         try
         {
-            var options = new JsonSerializerOptions
+            var settings = new JsonSerializerSettings
             {
-                WriteIndented = true
+                Formatting = Formatting.Indented
             };
             
-            var jsonContent = JsonSerializer.Serialize(this, options);
+            var jsonContent = JsonConvert.SerializeObject(this, settings);
             await File.WriteAllTextAsync(filePath, jsonContent);
             
             Console.WriteLine($"Configuration saved to: {filePath}");
