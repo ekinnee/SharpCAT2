@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using System.IO.Ports;
+using RJCP.IO.Ports;
 using System.Text;
 
 namespace SharpCAT2.Common.Serial;
@@ -153,7 +153,7 @@ public class FakeSerialPort : ISerialPort
                 // Trigger data received event
                 try
                 {
-                    DataReceived?.Invoke(this, null!);
+                    DataReceived?.Invoke(this, new SerialDataReceivedEventArgs(SerialData.Chars));
                 }
                 catch
                 {
@@ -281,7 +281,7 @@ public class FakeSerialPort : ISerialPort
     /// <summary>
     /// Event raised when simulated data is received
     /// </summary>
-    public event SerialDataReceivedEventHandler? DataReceived;
+    public event EventHandler<SerialDataReceivedEventArgs>? DataReceived;
 
     #endregion
 

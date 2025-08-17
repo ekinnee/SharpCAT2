@@ -1,4 +1,4 @@
-using System.IO.Ports;
+using RJCP.IO.Ports;
 using Microsoft.Extensions.Logging;
 using SharpCAT2.Common.Utils;
 
@@ -113,7 +113,7 @@ public class ResilientSerialPort : ISerialPort
         set => _innerPort.WriteTimeout = value; 
     }
 
-    public event SerialDataReceivedEventHandler? DataReceived;
+    public event EventHandler<SerialDataReceivedEventArgs>? DataReceived;
 
     public void Open()
     {
@@ -350,7 +350,7 @@ public class ResilientSerialPort : ISerialPort
     /// <summary>
     /// Forwards data received events from the inner port
     /// </summary>
-    private void OnInnerPortDataReceived(object sender, SerialDataReceivedEventArgs e)
+    private void OnInnerPortDataReceived(object? sender, SerialDataReceivedEventArgs e)
     {
         try
         {

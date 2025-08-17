@@ -1,4 +1,4 @@
-using System.IO.Ports;
+using RJCP.IO.Ports;
 using Microsoft.Extensions.Logging;
 
 namespace SharpCAT2.Common.Serial;
@@ -11,11 +11,11 @@ namespace SharpCAT2.Common.Serial;
 public static class SerialPortFactory
 {
     /// <summary>
-    /// Creates a real serial port instance from an existing SerialPort
+    /// Creates a real serial port instance from an existing SerialPortStream
     /// </summary>
-    /// <param name="serialPort">The SerialPort to wrap</param>
+    /// <param name="serialPort">The SerialPortStream to wrap</param>
     /// <returns>ISerialPort implementation wrapping the real port</returns>
-    public static ISerialPort CreateRealSerialPort(SerialPort serialPort)
+    public static ISerialPort CreateRealSerialPort(SerialPortStream serialPort)
     {
         return new RealSerialPort(serialPort);
     }
@@ -127,7 +127,8 @@ public static class SerialPortFactory
     {
         try
         {
-            return SerialPort.GetPortNames();
+            // Use System.IO.Ports for port enumeration as RJCP.SerialPortStream doesn't provide static enumeration
+            return System.IO.Ports.SerialPort.GetPortNames();
         }
         catch
         {

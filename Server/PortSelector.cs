@@ -1,4 +1,4 @@
-using System.IO.Ports;
+using RJCP.IO.Ports;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using SharpCAT2.Common.Serial;
@@ -65,7 +65,8 @@ public class PortSelector
         
         try
         {
-            string[] ports = SerialPort.GetPortNames();
+            // Use System.IO.Ports for port enumeration
+            string[] ports = System.IO.Ports.SerialPort.GetPortNames();
             
             return ports.Length switch
             {
@@ -204,7 +205,8 @@ public class PortSelector
         
         try
         {
-            string[] availablePorts = SerialPort.GetPortNames();
+            // Use System.IO.Ports for port enumeration
+            string[] availablePorts = System.IO.Ports.SerialPort.GetPortNames();
             return availablePorts.Contains(portName, StringComparer.OrdinalIgnoreCase);
         }
         catch

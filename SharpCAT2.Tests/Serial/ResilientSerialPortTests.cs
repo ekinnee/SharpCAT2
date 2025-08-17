@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using SharpCAT2.Common.Serial;
 using SharpCAT2.Common.Utils;
 using Xunit;
-using System.IO.Ports;
+using RJCP.IO.Ports;
 
 namespace SharpCAT2.Tests.Serial;
 

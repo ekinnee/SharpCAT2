@@ -1,10 +1,10 @@
-using System.IO.Ports;
+using RJCP.IO.Ports;
 
 namespace SharpCAT2.Common.Serial;
 
 /// <summary>
 /// Interface for serial port communication abstraction.
-/// Provides a testable abstraction over System.IO.Ports.SerialPort
+/// Provides a testable abstraction over RJCP.SerialPortStream.SerialPortStream
 /// and enables simulation for testing and development.
 /// </summary>
 public interface ISerialPort : IDisposable
@@ -107,7 +107,7 @@ public interface ISerialPort : IDisposable
     /// <summary>
     /// Event raised when data is received on the serial port
     /// </summary>
-    event SerialDataReceivedEventHandler? DataReceived;
+    event EventHandler<SerialDataReceivedEventArgs>? DataReceived;
 
     #endregion
 }

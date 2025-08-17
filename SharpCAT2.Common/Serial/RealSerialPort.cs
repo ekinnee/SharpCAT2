@@ -1,23 +1,23 @@
-using System.IO.Ports;
+using RJCP.IO.Ports;
 
 namespace SharpCAT2.Common.Serial;
 
 /// <summary>
-/// Real serial port implementation that wraps System.IO.Ports.SerialPort.
+/// Real serial port implementation that wraps RJCP.SerialPortStream.SerialPortStream.
 /// Provides actual hardware serial communication capabilities.
 /// </summary>
 public class RealSerialPort : ISerialPort
 {
-    private readonly SerialPort _serialPort;
+    private readonly SerialPortStream _serialPort;
     private bool _disposed = false;
 
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of RealSerialPort with an existing SerialPort
+    /// Initializes a new instance of RealSerialPort with an existing SerialPortStream
     /// </summary>
-    /// <param name="serialPort">The SerialPort to wrap</param>
-    public RealSerialPort(SerialPort serialPort)
+    /// <param name="serialPort">The SerialPortStream to wrap</param>
+    public RealSerialPort(SerialPortStream serialPort)
     {
         _serialPort = serialPort ?? throw new ArgumentNullException(nameof(serialPort));
         
@@ -36,7 +36,7 @@ public class RealSerialPort : ISerialPort
     public RealSerialPort(string portName, int baudRate, Parity parity = Parity.None, 
                          int dataBits = 8, StopBits stopBits = StopBits.One)
     {
-        _serialPort = new SerialPort(portName, baudRate, parity, dataBits, stopBits)
+        _serialPort = new SerialPortStream(portName, baudRate, dataBits, parity, stopBits)
         {
             Handshake = Handshake.None,
             ReadTimeout = 500,
@@ -185,7 +185,7 @@ public class RealSerialPort : ISerialPort
     /// <summary>
     /// Event raised when data is received on the serial port
     /// </summary>
-    public event SerialDataReceivedEventHandler? DataReceived;
+    public event EventHandler<SerialDataReceivedEventArgs>? DataReceived;
 
     #endregion
 

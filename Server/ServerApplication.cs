@@ -3,7 +3,7 @@ using SharpCAT2.Server.Services;
 using SharpCAT2.Common.Serial;
 using SharpCAT2.Common.Radio;
 using SharpCAT2.Common.Utils;
-using System.IO.Ports;
+using RJCP.IO.Ports;
 using System.Runtime.InteropServices;
 
 namespace SharpCAT2.Server;
@@ -304,7 +304,7 @@ public class ServerApplication
     /// </summary>
     /// <param name="sender">Event sender</param>
     /// <param name="e">Event arguments</param>
-    private async void OnSerialDataReceived(object sender, SerialDataReceivedEventArgs e)
+    private async void OnSerialDataReceived(object? sender, SerialDataReceivedEventArgs e)
     {
         try
         {
@@ -593,7 +593,8 @@ public class ServerApplication
         
         try
         {
-            string[] ports = SerialPort.GetPortNames();
+            // Use System.IO.Ports for port enumeration
+            string[] ports = System.IO.Ports.SerialPort.GetPortNames();
             int portNumber = 1;
             
             // Always show the fake port first as a test/simulation option
