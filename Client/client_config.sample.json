@@ -11,9 +11,5 @@
     "user": {
         "username": "your-username-here",
         "password": "your-password-here"
-    },
-    "features": {
-        "enableExperimentalUi": false,  // Enable experimental features
-        "commandHistoryLimit": 100      // Number of commands to remember
     }
 }
