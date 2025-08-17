@@ -21,11 +21,13 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Moq" Version="4.20.69" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SharpCAT2.Common\SharpCAT2.Common.csproj" />
     <ProjectReference Include="..\Server\Server.csproj" />
+    <ProjectReference Include="..\SharpCAT2.ClientLib\SharpCAT2.ClientLib.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,4 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace SharpCAT2.Server;
 
@@ -11,31 +10,31 @@ public class ServerConfig
     /// <summary>
     /// Serial port name (e.g., COM1, /dev/ttyUSB0)
     /// </summary>
-    [JsonPropertyName("serialPort")]
+    [JsonProperty("serialPort")]
     public string? SerialPort { get; set; }
 
     /// <summary>
     /// Radio model name for CAT control
     /// </summary>
-    [JsonPropertyName("radio")]
+    [JsonProperty("radio")]
     public string? Radio { get; set; }
 
     /// <summary>
     /// Baud rate for serial communication
     /// </summary>
-    [JsonPropertyName("baudRate")]
+    [JsonProperty("baudRate")]
     public int BaudRate { get; set; } = 9600;
 
     /// <summary>
     /// TCP port for remote client connections
     /// </summary>
-    [JsonPropertyName("tcpPort")]
+    [JsonProperty("tcpPort")]
     public int TcpPort { get; set; } = 8080;
 
     /// <summary>
     /// Whether to auto-detect the radio type
     /// </summary>
-    [JsonPropertyName("autoDetectRadio")]
+    [JsonProperty("autoDetectRadio")]
     public bool AutoDetectRadio { get; set; } = false;
 
     /// <summary>
@@ -54,7 +53,13 @@ public class ServerConfig
             }
 
             var jsonContent = await File.ReadAllTextAsync(filePath);
-            var config = JsonSerializer.Deserialize<ServerConfig>(jsonContent);
+            var settings = new JsonSerializerSettings
+            {
+                // Enable comment support by ignoring comments  
+                FloatParseHandling = FloatParseHandling.Double,
+                DateParseHandling = DateParseHandling.DateTime
+            };
+            var config = JsonConvert.DeserializeObject<ServerConfig>(jsonContent, settings);
             
             if (config == null)
             {
@@ -81,12 +86,12 @@ public class ServerConfig
     {
         try
         {
-            var options = new JsonSerializerOptions
+            var settings = new JsonSerializerSettings
             {
-                WriteIndented = true
+                Formatting = Formatting.Indented
             };
             
-            var jsonContent = JsonSerializer.Serialize(this, options);
+            var jsonContent = JsonConvert.SerializeObject(this, settings);
             await File.WriteAllTextAsync(filePath, jsonContent);
             
             Console.WriteLine($"Configuration saved to: {filePath}");
