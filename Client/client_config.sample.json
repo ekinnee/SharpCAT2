@@ -1,15 +1,18 @@
 {
-    // Client connection settings
-    "serverHost": "127.0.0.1",          // Server address (localhost)
-    "serverPort": 8080,                 // Default SharpCAT2 server port
-    "autoReconnect": true,              // Automatically reconnect on disconnect
-    "reconnectIntervalSeconds": 10,     // Wait time between reconnection attempts
-    "logging": {
-        "level": "Information",         // Log level: Debug, Information, Warning, Error
-        "file": "client.log"            // Log file location
-    },
-    "user": {
-        "username": "your-username-here",
-        "password": "your-password-here"
-    }
+    // SharpCAT2 Client Configuration
+    // Only the following options are supported by the client application:
+    
+    "serverHost": "localhost",          // Server hostname or IP address (default: localhost)
+    "serverPort": 8080                  // Server TCP port (default: 8080)
+    
+    /* UNSUPPORTED OPTIONS (these will be ignored if present):
+     * - autoReconnect: Not implemented in client
+     * - reconnectIntervalSeconds: Not implemented in client
+     * - logging: Logging configuration not supported in client
+     * - user: Authentication not implemented in client
+     * - security: Security settings not supported in client
+     * 
+     * For server-side configuration with additional options,
+     * see server_config.sample.json in the Server directory.
+     */
 }
