@@ -1,17 +1,22 @@
 {
-    "serialPort": "FAKE",
-    "radio": "SharpCAT2 DummyRadio",
-    "baudRate": 9600,
-    "tcpPort": 8080,
-    "autoDetectRadio": true,
+    // Serial port configuration
+    "serialPort": "FAKE",               // Use "FAKE" for testing without hardware
+    "radio": "SharpCAT2 DummyRadio",    // Radio model name (use with FAKE port)
+    "baudRate": 9600,                   // Serial communication speed
+    "tcpPort": 8080,                    // TCP server port for client connections
+    "autoDetectRadio": true,            // Attempt automatic radio detection
+    
+    /* Logging configuration */
     "logging": {
-        "level": "Information",
-        "file": "server.log"
+        "level": "Information",         // Log verbosity level
+        "file": "server.log"            // Log file location
     },
+    
+    /* Security settings */
     "security": {
         "ipWhitelist": [
-            "127.0.0.1"
+            "127.0.0.1"                 // Allowed client IP addresses
         ],
-        "rateLimitPerMinute": 60
+        "rateLimitPerMinute": 60        // Maximum requests per minute per client
     }
 }
