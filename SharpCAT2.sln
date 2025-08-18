@@ -16,6 +16,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Console", "SharpC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.WebApi", "SharpCAT2.WebApi\SharpCAT2.WebApi.csproj", "{54C21125-3065-436F-9DE6-3FAB7CD239B8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.WebClient", "SharpCAT2.WebClient\SharpCAT2.WebClient.csproj", "{AF14792E-DC9E-45A1-AD34-37135BC9D754}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,5 +52,9 @@ Global
 		{54C21125-3065-436F-9DE6-3FAB7CD239B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{54C21125-3065-436F-9DE6-3FAB7CD239B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{54C21125-3065-436F-9DE6-3FAB7CD239B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF14792E-DC9E-45A1-AD34-37135BC9D754}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF14792E-DC9E-45A1-AD34-37135BC9D754}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF14792E-DC9E-45A1-AD34-37135BC9D754}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF14792E-DC9E-45A1-AD34-37135BC9D754}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

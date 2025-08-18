@@ -1,0 +1,419 @@
+@page "/"
+@using SharpCAT2.WebClient.Services
+@using SharpCAT2.WebClient.Models
+@inject IRadioApiService RadioApiService
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+@rendermode InteractiveServer
+
+<PageTitle>SharpCAT2 Web Client</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-radio"></i>
+                SharpCAT2 Remote Radio Control
+            </h1>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-plug"></i>
+                        Connection
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (isConnected)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            <i class="bi bi-check-circle"></i>
+                            Connected to: @currentRadio
+                        </div>
+                        <button class="btn btn-danger" @onclick="DisconnectAsync" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            <i class="bi bi-power"></i>
+                            Disconnect
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label for="serialPort" class="form-label">Serial Port</label>
+                            <input type="text" class="form-control" id="serialPort" @bind="serialPort" 
+                                   placeholder="e.g., COM3, /dev/ttyUSB0, FAKE" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="radioSelect" class="form-label">Radio Model</label>
+                            <select class="form-select" id="radioSelect" @bind="selectedRadio">
+                                <option value="">Auto-detect</option>
+                                @if (availableRadios != null)
+                                {
+                                    @foreach (var radio in availableRadios)
+                                    {
+                                        <option value="@radio.Name">@radio.Description</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="baudRate" class="form-label">Baud Rate</label>
+                            <select class="form-select" id="baudRate" @bind="baudRate">
+                                <option value="9600">9600</option>
+                                <option value="14400">14400</option>
+                                <option value="19200">19200</option>
+                                <option value="28800">28800</option>
+                                <option value="38400">38400</option>
+                                <option value="57600">57600</option>
+                                <option value="115200">115200</option>
+                            </select>
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(connectionError))
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                @connectionError
+                            </div>
+                        }
+                        
+                        <button class="btn btn-success" @onclick="ConnectAsync" disabled="@(isLoading || string.IsNullOrWhiteSpace(serialPort))">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            <i class="bi bi-power"></i>
+                            Connect
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (radioStatus != null)
+                    {
+                        <div class="mb-2">
+                            <strong>Connection:</strong>
+                            <span class="badge @(radioStatus.Connected ? "bg-success" : "bg-secondary")">
+                                @(radioStatus.Connected ? "Connected" : "Disconnected")
+                            </span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(radioStatus.Radio))
+                        {
+                            <div class="mb-2">
+                                <strong>Radio:</strong> @radioStatus.Radio
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(radioStatus.Status))
+                        {
+                            <div class="mb-2">
+                                <strong>Status:</strong>
+                                <pre class="text-muted small">@radioStatus.Status</pre>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(radioStatus.Message))
+                        {
+                            <div class="text-muted">@radioStatus.Message</div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-muted">Loading status...</div>
+                    }
+                    
+                    <button class="btn btn-outline-primary btn-sm mt-2" @onclick="RefreshStatusAsync" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        }
+                        <i class="bi bi-arrow-clockwise"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-terminal"></i>
+                        Command Interface
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" @bind="command" @onkeypress="OnCommandKeyPress"
+                                   placeholder="Enter radio command (e.g., FA, IF, etc.)" disabled="@(!isConnected || isLoading)" />
+                            <button class="btn btn-primary" @onclick="SendCommandAsync" disabled="@(!isConnected || isLoading || string.IsNullOrWhiteSpace(command))">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                }
+                                <i class="bi bi-send"></i>
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                    
+                    @if (!string.IsNullOrEmpty(commandError))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            @commandError
+                        </div>
+                    }
+                    
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Command History</span>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="ClearHistory">
+                                <i class="bi bi-trash"></i>
+                                Clear
+                            </button>
+                        </div>
+                        <div class="card-body p-2" style="max-height: 300px; overflow-y: auto;">
+                            @if (commandHistory.Any())
+                            {
+                                @foreach (var entry in commandHistory.AsEnumerable().Reverse())
+                                {
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <div class="text-muted small">@entry.Timestamp.ToString("HH:mm:ss")</div>
+                                        <div><strong>Command:</strong> <code>@entry.Command</code></div>
+                                        <div><strong>Response:</strong> <span class="@(entry.Success ? "text-success" : "text-danger")">@entry.Response</span></div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-muted text-center">No commands sent yet</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isConnected = false;
+    private bool isLoading = false;
+    private string serialPort = "FAKE";
+    private string selectedRadio = "";
+    private int baudRate = 9600;
+    private string currentRadio = "";
+    private string connectionError = "";
+    private string command = "";
+    private string commandError = "";
+    
+    private RadioStatusResponse? radioStatus;
+    private List<RadioModel>? availableRadios;
+    private List<CommandHistoryEntry> commandHistory = new();
+    
+    private Timer? statusTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAvailableRadiosAsync();
+        await RefreshStatusAsync();
+        
+        // Set up automatic status refresh every 5 seconds
+        statusTimer = new Timer(async _ => await InvokeAsync(RefreshStatusAsync), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+    }
+
+    private async Task LoadAvailableRadiosAsync()
+    {
+        try
+        {
+            availableRadios = await RadioApiService.GetAvailableRadiosAsync();
+        }
+        catch (Exception ex)
+        {
+            connectionError = $"Failed to load available radios: {ex.Message}";
+        }
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        try
+        {
+            radioStatus = await RadioApiService.GetStatusAsync();
+            if (radioStatus != null)
+            {
+                isConnected = radioStatus.Connected;
+                if (isConnected && !string.IsNullOrEmpty(radioStatus.Radio))
+                {
+                    currentRadio = radioStatus.Radio;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Silently handle status refresh errors to avoid flooding the UI
+            Console.WriteLine($"Status refresh error: {ex.Message}");
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task ConnectAsync()
+    {
+        isLoading = true;
+        connectionError = "";
+        StateHasChanged();
+
+        try
+        {
+            var request = new ConnectRequest
+            {
+                SerialPort = serialPort,
+                Radio = string.IsNullOrEmpty(selectedRadio) ? null : selectedRadio,
+                BaudRate = baudRate
+            };
+
+            var response = await RadioApiService.ConnectAsync(request);
+            if (response?.IsSuccess == true)
+            {
+                await RefreshStatusAsync();
+                connectionError = "";
+            }
+            else
+            {
+                connectionError = response?.Error ?? "Failed to connect to radio";
+            }
+        }
+        catch (Exception ex)
+        {
+            connectionError = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DisconnectAsync()
+    {
+        isLoading = true;
+        connectionError = "";
+        StateHasChanged();
+
+        try
+        {
+            var response = await RadioApiService.DisconnectAsync();
+            if (response?.IsSuccess == true)
+            {
+                await RefreshStatusAsync();
+                connectionError = "";
+            }
+            else
+            {
+                connectionError = response?.Error ?? "Failed to disconnect from radio";
+            }
+        }
+        catch (Exception ex)
+        {
+            connectionError = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SendCommandAsync()
+    {
+        if (string.IsNullOrWhiteSpace(command) || !isConnected)
+            return;
+
+        isLoading = true;
+        commandError = "";
+        var commandToSend = command.Trim();
+        command = "";
+        StateHasChanged();
+
+        try
+        {
+            var response = await RadioApiService.SendCommandAsync(commandToSend);
+            var historyEntry = new CommandHistoryEntry
+            {
+                Command = commandToSend,
+                Timestamp = DateTime.Now,
+                Success = response?.IsSuccess == true,
+                Response = response?.IsSuccess == true ? "Command processed" : (response?.Error ?? "Command failed")
+            };
+            
+            commandHistory.Add(historyEntry);
+            
+            if (response?.IsSuccess != true)
+            {
+                commandError = response?.Error ?? "Failed to send command";
+            }
+        }
+        catch (Exception ex)
+        {
+            commandError = ex.Message;
+            commandHistory.Add(new CommandHistoryEntry
+            {
+                Command = commandToSend,
+                Timestamp = DateTime.Now,
+                Success = false,
+                Response = ex.Message
+            });
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnCommandKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendCommandAsync();
+        }
+    }
+
+    private void ClearHistory()
+    {
+        commandHistory.Clear();
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        statusTimer?.Dispose();
+    }
+
+    private class CommandHistoryEntry
+    {
+        public string Command { get; set; } = "";
+        public DateTime Timestamp { get; set; }
+        public bool Success { get; set; }
+        public string Response { get; set; } = "";
+    }
+}
