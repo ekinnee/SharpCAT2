@@ -1,4 +1,3 @@
-﻿using SharpCAT2.Common.Serial;
 using SharpCAT2.Core.Radio;
 using SharpCAT2.Core.Serial;
 using System.Text;

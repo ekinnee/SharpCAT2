@@ -1,9 +1,12 @@
 using Microsoft.Extensions.Logging;
 using SharpCAT2.Core.Services;
 using SharpCAT2.Core.Configuration;
+using SharpCAT2.Core.Serial;
+using SharpCAT2.Core.Radio;
 using SharpCAT2.Common.Serial;
 using SharpCAT2.Common.Radio;
-using SharpCAT2.Common.Utils;
+using SharpCAT2.Core.Utils;
+using SharpCAT2.Common;
 using System.IO.Ports;
 using System.Runtime.InteropServices;
 

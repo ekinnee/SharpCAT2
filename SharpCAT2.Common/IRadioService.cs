@@ -2,7 +2,7 @@ using SharpCAT2.Core.Radio;
 using SharpCAT2.Core.Serial;
 using SharpCAT2.Core.Configuration;
 
-namespace SharpCAT2.Core.Services;
+namespace SharpCAT2.Common;
 
 /// <summary>
 /// Service interface for managing radio connections and operations

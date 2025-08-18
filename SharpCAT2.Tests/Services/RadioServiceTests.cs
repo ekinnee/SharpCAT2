@@ -3,6 +3,7 @@ using Moq;
 using SharpCAT2.Core.Services;
 using SharpCAT2.Common.Radio;
 using SharpCAT2.Common.Serial;
+using SharpCAT2.Common;
 using Xunit;
 
 namespace SharpCAT2.Tests.Services;

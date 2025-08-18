@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using SharpCAT2.Common.Utils;
+using SharpCAT2.Core.Utils;
 using Xunit;
 
 namespace SharpCAT2.Tests.Utils;

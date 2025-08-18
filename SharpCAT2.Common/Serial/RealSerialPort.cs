@@ -1,5 +1,5 @@
 using System.IO.Ports;
-using CoreISerialPort = SharpCAT2.Core.Serial.ISerialPort;
+using SharpCAT2.Core.Serial;
 
 namespace SharpCAT2.Common.Serial;
 
@@ -7,7 +7,7 @@ namespace SharpCAT2.Common.Serial;
 /// Real serial port implementation that wraps System.IO.Ports.SerialPort.
 /// Provides actual hardware serial communication capabilities.
 /// </summary>
-public class RealSerialPort : ISerialPort, CoreISerialPort
+public class RealSerialPort : ISerialPort
 {
     private readonly SerialPort _serialPort;
     private bool _disposed = false;
@@ -145,6 +145,15 @@ public class RealSerialPort : ISerialPort, CoreISerialPort
     public string ReadExisting()
     {
         return _serialPort.ReadExisting();
+    }
+
+    /// <summary>
+    /// Reads a line from the serial port
+    /// </summary>
+    /// <returns>Line read from port</returns>
+    public string ReadLine()
+    {
+        return _serialPort.ReadLine();
     }
 
     /// <summary>

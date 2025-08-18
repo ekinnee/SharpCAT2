@@ -84,6 +84,15 @@ public interface ISerialPort : IDisposable
     string ReadLine();
 
     /// <summary>
+    /// Reads data from the serial port into a buffer
+    /// </summary>
+    /// <param name="buffer">Buffer to read into</param>
+    /// <param name="offset">Offset in buffer to start writing</param>
+    /// <param name="count">Maximum number of bytes to read</param>
+    /// <returns>Number of bytes actually read</returns>
+    int Read(byte[] buffer, int offset, int count);
+
+    /// <summary>
     /// Discards data from the input buffer
     /// </summary>
     void DiscardInBuffer();

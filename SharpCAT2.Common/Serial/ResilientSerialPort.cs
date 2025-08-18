@@ -170,6 +170,11 @@ public class ResilientSerialPort : ISerialPort
         return ExecuteWithRetry(() => _innerPort.ReadExisting(), "ReadExisting");
     }
 
+    public string ReadLine()
+    {
+        return ExecuteWithRetry(() => _innerPort.ReadLine(), "ReadLine");
+    }
+
     public int Read(byte[] buffer, int offset, int count)
     {
         return ExecuteWithRetry(() => _innerPort.Read(buffer, offset, count), "Read");

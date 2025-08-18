@@ -1,5 +1,6 @@
 using System.IO.Ports;
 using Microsoft.Extensions.Logging;
+using SharpCAT2.Core.Serial;
 
 namespace SharpCAT2.Common.Serial;
 
