@@ -4,9 +4,10 @@ A cross-platform .NET serial port communication server application that provides
 
 ## Features
 
-- **Modular Architecture**: Three distinct applications sharing a common core library
+- **Modular Architecture**: Four distinct applications sharing a common core library
   - **SharpCAT2.Console**: Command-line application for direct radio control
   - **SharpCAT2.WebApi**: HTTP REST API for web-based radio control and integration  
+  - **SharpCAT2.WebClient**: Modern web-based client application with responsive GUI
   - **SharpCAT2.Client**: Remote client for TCP-based communication
 - **Cross-Platform Support**: Works on Windows, Linux, and macOS
 - **Platform-Specific Guidance**: Automatic detection of operating system with appropriate port naming conventions
@@ -15,6 +16,7 @@ A cross-platform .NET serial port communication server application that provides
 - **Command-Line Interface**: Flexible command-line options for automation and scripting
 - **TCP Server**: Remote client access via TCP connections
 - **REST API**: Full HTTP REST API with endpoints for radio status, control, and configuration
+- **Web Client**: Modern Blazor web application for browser-based radio control
 - **Client Library**: .NET library for programmatic access to remote serial ports
 - **Client Console App**: Interactive console application for remote serial communication
 - **Radio Support**: Built-in support for 29+ popular amateur radio models with CAT (Computer Aided Transceiver) control
@@ -61,6 +63,21 @@ dotnet run
 
 # Connect to remote server
 dotnet run -- --host 192.168.1.100 --port 8080
+```
+
+### Web Client (Browser-Based Control)
+
+```bash
+# Start the WebApi first
+cd SharpCAT2.WebApi  
+dotnet run
+
+# In another terminal, start the Web Client
+cd SharpCAT2.WebClient
+dotnet run
+
+# Open browser to https://localhost:5027 (or URL shown in console)
+# Configure WebApi URL in web interface if needed
 ```
 
 ## Building and Running
@@ -696,6 +713,13 @@ s      # Should show detailed radio status
 3. Make your changes
 4. Test on multiple platforms if possible
 5. Submit a pull request
+
+## Documentation
+
+- **[CLIENT_WEBAPP.md](CLIENT_WEBAPP.md)**: Comprehensive guide for the SharpCAT2 Web Client including setup, configuration, usage, and development
+- **[SUPPORTED_RADIOS.md](SUPPORTED_RADIOS.md)**: Complete list of supported radio models and their features
+- **[DI_ARCHITECTURE.md](DI_ARCHITECTURE.md)**: Dependency injection and service architecture documentation
+- **[SERIAL_ABSTRACTION.md](SERIAL_ABSTRACTION.md)**: Serial port abstraction and testing infrastructure
 
 ## License
 
