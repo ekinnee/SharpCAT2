@@ -46,9 +46,29 @@
                     else
                     {
                         <div class="mb-3">
-                            <label for="serialPort" class="form-label">Serial Port</label>
-                            <input type="text" class="form-control" id="serialPort" @bind="serialPort" 
-                                   placeholder="e.g., COM3, /dev/ttyUSB0, FAKE" />
+                            <label for="serialPortSelect" class="form-label">Serial Port</label>
+                            <div class="input-group">
+                                <select class="form-select" id="serialPortSelect" @bind="selectedSerialPort" @bind:after="OnSerialPortSelectionChanged">
+                                    <option value="">-- Select a port --</option>
+                                    @if (availableSerialPorts != null)
+                                    {
+                                        @foreach (var port in availableSerialPorts)
+                                        {
+                                            <option value="@port">@port</option>
+                                        }
+                                    }
+                                    <option value="__custom__">Enter manually...</option>
+                                </select>
+                                @if (showCustomSerialPort)
+                                {
+                                    <input type="text" class="form-control" @bind="customSerialPort" 
+                                           placeholder="e.g., COM3, /dev/ttyUSB0" />
+                                }
+                            </div>
+                            @if (showCustomSerialPort)
+                            {
+                                <div class="form-text">Enter your serial port name manually if it's not listed above.</div>
+                            }
                         </div>
                         <div class="mb-3">
                             <label for="radioSelect" class="form-label">Radio Model</label>
@@ -84,7 +104,7 @@
                             </div>
                         }
                         
-                        <button class="btn btn-success" @onclick="ConnectAsync" disabled="@(isLoading || string.IsNullOrWhiteSpace(serialPort))">
+                        <button class="btn btn-success" @onclick="ConnectAsync" disabled="@(isLoading || string.IsNullOrWhiteSpace(GetEffectiveSerialPort()))">
                             @if (isLoading)
                             {
                                 <span class="spinner-border spinner-border-sm me-2" role="status"></span>
@@ -153,13 +173,49 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">
                         <i class="bi bi-terminal"></i>
                         Command Interface
                     </h5>
+                    <button class="btn btn-outline-info btn-sm" @onclick="ToggleCommandHelp">
+                        <i class="bi bi-question-circle"></i>
+                        Help
+                    </button>
                 </div>
                 <div class="card-body">
+                    @if (showCommandHelp)
+                    {
+                        <div class="alert alert-info" role="alert">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6><i class="bi bi-info-circle"></i> CAT Command Help</h6>
+                                    <p class="mb-2"><strong>CAT (Computer Aided Transceiver) Commands:</strong></p>
+                                    <p class="mb-2">CAT commands are text-based instructions used to control amateur radios. Most commands end with a semicolon (;).</p>
+                                    
+                                    <p class="mb-2"><strong>Common Commands:</strong></p>
+                                    <ul class="mb-2">
+                                        <li><code>FA;</code> - Get/Set VFO A frequency</li>
+                                        <li><code>FB;</code> - Get/Set VFO B frequency</li>
+                                        <li><code>IF;</code> - Get transceiver information</li>
+                                        <li><code>ID;</code> - Get radio ID</li>
+                                        <li><code>AI0;</code> - Turn off auto-information mode</li>
+                                        <li><code>AI1;</code> - Turn on auto-information mode</li>
+                                        <li><code>TX;</code> - Start transmit</li>
+                                        <li><code>RX;</code> - Stop transmit (receive)</li>
+                                    </ul>
+                                    
+                                    <p class="mb-2"><strong>Error Handling:</strong></p>
+                                    <ul class="mb-0">
+                                        <li>If a command is not recognized, the radio may respond with "?" or no response</li>
+                                        <li>Some commands are read-only (queries) while others set values</li>
+                                        <li>Command syntax varies by manufacturer - consult your radio's manual</li>
+                                    </ul>
+                                </div>
+                                <button type="button" class="btn-close ms-2" @onclick="ToggleCommandHelp" aria-label="Close"></button>
+                            </div>
+                        </div>
+                    }
                     <div class="mb-3">
                         <div class="input-group">
                             <input type="text" class="form-control" @bind="command" @onkeypress="OnCommandKeyPress"
@@ -218,16 +274,20 @@
 @code {
     private bool isConnected = false;
     private bool isLoading = false;
-    private string serialPort = "FAKE";
+    private string selectedSerialPort = "FAKE";
+    private string customSerialPort = "";
+    private bool showCustomSerialPort = false;
     private string selectedRadio = "";
     private int baudRate = 9600;
     private string currentRadio = "";
     private string connectionError = "";
     private string command = "";
     private string commandError = "";
+    private bool showCommandHelp = false;
     
     private RadioStatusResponse? radioStatus;
     private List<RadioModel>? availableRadios;
+    private List<string>? availableSerialPorts;
     private List<CommandHistoryEntry> commandHistory = new();
     
     private Timer? statusTimer;
@@ -235,6 +295,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadAvailableRadiosAsync();
+        await LoadAvailableSerialPortsAsync();
         await RefreshStatusAsync();
         
         // Set up automatic status refresh every 5 seconds
@@ -250,6 +311,19 @@
         catch (Exception ex)
         {
             connectionError = $"Failed to load available radios: {ex.Message}";
+        }
+    }
+
+    private async Task LoadAvailableSerialPortsAsync()
+    {
+        try
+        {
+            availableSerialPorts = await RadioApiService.GetAvailableSerialPortsAsync();
+        }
+        catch (Exception ex)
+        {
+            // Don't overwrite existing connection error, just log this one
+            Console.WriteLine($"Failed to load available serial ports: {ex.Message}");
         }
     }
 
@@ -276,6 +350,19 @@
         StateHasChanged();
     }
 
+    private void OnSerialPortSelectionChanged()
+    {
+        showCustomSerialPort = selectedSerialPort == "__custom__";
+        StateHasChanged();
+    }
+
+    private string GetEffectiveSerialPort()
+    {
+        if (showCustomSerialPort)
+            return customSerialPort;
+        return selectedSerialPort;
+    }
+
     private async Task ConnectAsync()
     {
         isLoading = true;
@@ -284,9 +371,10 @@
 
         try
         {
+            var effectiveSerialPort = GetEffectiveSerialPort();
             var request = new ConnectRequest
             {
-                SerialPort = serialPort,
+                SerialPort = effectiveSerialPort,
                 Radio = string.IsNullOrEmpty(selectedRadio) ? null : selectedRadio,
                 BaudRate = baudRate
             };
@@ -401,6 +489,12 @@
     private void ClearHistory()
     {
         commandHistory.Clear();
+        StateHasChanged();
+    }
+
+    private void ToggleCommandHelp()
+    {
+        showCommandHelp = !showCommandHelp;
         StateHasChanged();
     }
 

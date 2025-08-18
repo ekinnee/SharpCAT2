@@ -128,14 +128,36 @@ public class RadioController : ControllerBase
         {
             var radios = RadioFactory.GetAvailableRadios();
             return Ok(radios.Select(r => new { 
-                name = r.Key, 
-                description = r.Value
+                name = r.Value,     // Internal key (e.g., "KENWOOD_TS-2000")
+                description = r.Key // Friendly name (e.g., "Kenwood TS-2000")
             }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting available radios");
             return StatusCode(500, new { error = "Failed to get available radios" });
+        }
+    }
+
+    /// <summary>
+    /// Get list of available serial ports
+    /// </summary>
+    [HttpGet("serial/ports")]
+    public IActionResult GetAvailableSerialPorts()
+    {
+        try
+        {
+            var realPorts = SerialPortFactory.GetAvailablePortNames();
+            var fakePorts = new[] { "FAKE", "DUMMY", "TEST", "SIMULATION" };
+            
+            var allPorts = realPorts.Concat(fakePorts).OrderBy(p => p).ToList();
+            
+            return Ok(allPorts);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available serial ports");
+            return StatusCode(500, new { error = "Failed to get available serial ports" });
         }
     }
 }
