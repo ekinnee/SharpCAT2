@@ -1,4 +1,4 @@
-namespace SharpCAT2.Server;
+namespace SharpCAT2.Core.Configuration;
 
 /// <summary>
 /// Represents command line options for the SharpCAT2 Server application.

@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace SharpCAT2.Server;
+namespace SharpCAT2.Core.Configuration;
 
 /// <summary>
 /// Configuration for the SharpCAT2 Server application

@@ -1,4 +1,6 @@
-namespace SharpCAT2.Server;
+using SharpCAT2.Core.Configuration;
+
+namespace SharpCAT2.Console;
 
 /// <summary>
 /// Centralized constants for the SharpCAT2 Server application.

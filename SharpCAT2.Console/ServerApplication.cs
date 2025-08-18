@@ -1,12 +1,13 @@
 using Microsoft.Extensions.Logging;
-using SharpCAT2.Server.Services;
+using SharpCAT2.Core.Services;
+using SharpCAT2.Core.Configuration;
 using SharpCAT2.Common.Serial;
 using SharpCAT2.Common.Radio;
 using SharpCAT2.Common.Utils;
 using System.IO.Ports;
 using System.Runtime.InteropServices;
 
-namespace SharpCAT2.Server;
+namespace SharpCAT2.Console;
 
 /// <summary>
 /// Main server application logic using dependency injection and services
@@ -111,11 +112,11 @@ public class ServerApplication
             {
                 _logger.LogInformation("Connected to radio: {Manufacturer} {ModelName}", 
                     _radioService.ConnectedRadio!.Manufacturer, _radioService.ConnectedRadio.ModelName);
-                Console.WriteLine("Press 'q' to quit, 's' for radio status, or type radio commands/messages...");
+                global::System.Console.WriteLine("Press 'q' to quit, 's' for radio status, or type radio commands/messages...");
             }
             else
             {
-                Console.WriteLine("Press 'q' to quit, or type messages to send to serial port...");
+                global::System.Console.WriteLine("Press 'q' to quit, or type messages to send to serial port...");
             }
             
             // Set up serial port event handlers
@@ -132,10 +133,10 @@ public class ServerApplication
             }
             
             // Set up graceful shutdown handler
-            Console.CancelKeyPress += async (sender, e) =>
+            global::System.Console.CancelKeyPress += async (sender, e) =>
             {
                 e.Cancel = true;
-                Console.WriteLine("\nShutting down gracefully...");
+                global::System.Console.WriteLine("\nShutting down gracefully...");
                 await ShutdownAsync(options);
                 Environment.Exit(0);
             };
@@ -165,7 +166,7 @@ public class ServerApplication
     private async Task RunMainLoopAsync()
     {
         string? input;
-        while ((input = Console.ReadLine()) != "q")
+        while ((input = global::System.Console.ReadLine()) != "q")
         {
             if (!string.IsNullOrEmpty(input))
             {
@@ -177,7 +178,7 @@ public class ServerApplication
                         var status = await _radioService.GetRadioStatusAsync();
                         if (status != null)
                         {
-                            Console.WriteLine(status);
+                            global::System.Console.WriteLine(status);
                         }
                         continue;
                     }
@@ -191,7 +192,7 @@ public class ServerApplication
 
                     // Fall back to direct serial port communication for non-radio commands
                     await SendCommandToSerialPortWithRetryAsync(input);
-                    Console.WriteLine($"Sent: {input}");
+                    global::System.Console.WriteLine($"Sent: {input}");
                 }
                 catch (OperationCanceledException)
                 {
@@ -313,7 +314,7 @@ public class ServerApplication
                 string data = port.ReadExisting();
                 if (!string.IsNullOrEmpty(data))
                 {
-                    Console.Write($"Received: {data}");
+                    global::System.Console.Write($"Received: {data}");
                     
                     // Send data to all connected TCP clients
                     await _networkService.BroadcastToClientsAsync(data);
@@ -392,7 +393,7 @@ public class ServerApplication
     private void OnSerialConnectionLost(object? sender, ConnectionLostEventArgs e)
     {
         _logger.LogWarning("Serial connection lost: {PortName} - {Reason}", e.PortName, e.Reason);
-        Console.WriteLine($"Warning: Serial connection lost ({e.Reason}). Attempting automatic recovery...");
+        global::System.Console.WriteLine($"Warning: Serial connection lost ({e.Reason}). Attempting automatic recovery...");
     }
 
     /// <summary>
@@ -401,7 +402,7 @@ public class ServerApplication
     private void OnSerialConnectionRestored(object? sender, ConnectionRestoredEventArgs e)
     {
         _logger.LogInformation("Serial connection restored: {PortName}", e.PortName);
-        Console.WriteLine($"Serial connection restored: {e.PortName}");
+        global::System.Console.WriteLine($"Serial connection restored: {e.PortName}");
     }
 
     /// <summary>
@@ -565,31 +566,31 @@ public class ServerApplication
 
     private void ShowHelp()
     {
-        Console.WriteLine("Usage: Server [options]");
-        Console.WriteLine();
-        Console.WriteLine("Options:");
-        Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0, fake)");
-        Console.WriteLine("  -b, --baud <rate>     Baud rate (default: 9600)");
-        Console.WriteLine("                        Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000");
-        Console.WriteLine("  -t, --tcp-port <port> TCP server port (default: 8080)");
-        Console.WriteLine("  -r, --radio <model>   Radio model (e.g., \"Kenwood TS-2000\")");
-        Console.WriteLine("  --auto-detect         Auto-detect radio type");
-        Console.WriteLine("  -l, --list            List available serial ports");
-        Console.WriteLine("  --list-radios         List available radio models");
-        Console.WriteLine("  --radio-info <model>  Show detailed information about a radio model");
-        Console.WriteLine("  -h, --help            Show this help message");
-        Console.WriteLine();
-        Console.WriteLine("Special Ports:");
-        Console.WriteLine("  fake                  Simulated serial port for testing and development");
-        Console.WriteLine();
-        Console.WriteLine("The server provides both console interface and TCP server for remote clients.");
-        Console.WriteLine("With radio support, you can send CAT commands and get radio status information.");
+        global::System.Console.WriteLine("Usage: Server [options]");
+        global::System.Console.WriteLine();
+        global::System.Console.WriteLine("Options:");
+        global::System.Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0, fake)");
+        global::System.Console.WriteLine("  -b, --baud <rate>     Baud rate (default: 9600)");
+        global::System.Console.WriteLine("                        Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000");
+        global::System.Console.WriteLine("  -t, --tcp-port <port> TCP server port (default: 8080)");
+        global::System.Console.WriteLine("  -r, --radio <model>   Radio model (e.g., \"Kenwood TS-2000\")");
+        global::System.Console.WriteLine("  --auto-detect         Auto-detect radio type");
+        global::System.Console.WriteLine("  -l, --list            List available serial ports");
+        global::System.Console.WriteLine("  --list-radios         List available radio models");
+        global::System.Console.WriteLine("  --radio-info <model>  Show detailed information about a radio model");
+        global::System.Console.WriteLine("  -h, --help            Show this help message");
+        global::System.Console.WriteLine();
+        global::System.Console.WriteLine("Special Ports:");
+        global::System.Console.WriteLine("  fake                  Simulated serial port for testing and development");
+        global::System.Console.WriteLine();
+        global::System.Console.WriteLine("The server provides both console interface and TCP server for remote clients.");
+        global::System.Console.WriteLine("With radio support, you can send CAT commands and get radio status information.");
     }
 
     private void ListAvailablePorts()
     {
-        Console.WriteLine("Available Serial Ports:");
-        Console.WriteLine("======================");
+        global::System.Console.WriteLine("Available Serial Ports:");
+        global::System.Console.WriteLine("======================");
         
         try
         {
@@ -597,39 +598,39 @@ public class ServerApplication
             int portNumber = 1;
             
             // Always show the fake port first as a test/simulation option
-            Console.WriteLine($"{portNumber++}. fake (Simulated/Test Port)");
+            global::System.Console.WriteLine($"{portNumber++}. fake (Simulated/Test Port)");
             
             if (ports.Length == 0)
             {
-                Console.WriteLine();
-                Console.WriteLine("No hardware serial ports found.");
+                global::System.Console.WriteLine();
+                global::System.Console.WriteLine("No hardware serial ports found.");
                 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
-                    Console.WriteLine();
-                    Console.WriteLine("Linux troubleshooting:");
-                    Console.WriteLine("- Check if devices are connected: ls /dev/tty*");
-                    Console.WriteLine("- Verify permissions: groups $USER");
-                    Console.WriteLine("- Add user to dialout group: sudo usermod -a -G dialout $USER");
-                    Console.WriteLine("- Log out and back in for group changes to take effect");
+                    global::System.Console.WriteLine();
+                    global::System.Console.WriteLine("Linux troubleshooting:");
+                    global::System.Console.WriteLine("- Check if devices are connected: ls /dev/tty*");
+                    global::System.Console.WriteLine("- Verify permissions: groups $USER");
+                    global::System.Console.WriteLine("- Add user to dialout group: sudo usermod -a -G dialout $USER");
+                    global::System.Console.WriteLine("- Log out and back in for group changes to take effect");
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
-                    Console.WriteLine();
-                    Console.WriteLine("macOS troubleshooting:");
-                    Console.WriteLine("- Check devices manually: ls /dev/cu.*");
-                    Console.WriteLine("- Verify device drivers are installed");
+                    global::System.Console.WriteLine();
+                    global::System.Console.WriteLine("macOS troubleshooting:");
+                    global::System.Console.WriteLine("- Check devices manually: ls /dev/cu.*");
+                    global::System.Console.WriteLine("- Verify device drivers are installed");
                 }
             }
             else
             {
                 for (int i = 0; i < ports.Length; i++)
                 {
-                    Console.WriteLine($"{portNumber++}. {ports[i]}");
+                    global::System.Console.WriteLine($"{portNumber++}. {ports[i]}");
                 }
                 
-                Console.WriteLine();
-                Console.WriteLine($"Found {ports.Length} hardware port(s) plus 1 simulated port.");
+                global::System.Console.WriteLine();
+                global::System.Console.WriteLine($"Found {ports.Length} hardware port(s) plus 1 simulated port.");
             }
         }
         catch (Exception ex)
@@ -637,45 +638,45 @@ public class ServerApplication
             _logger.LogError(ex, "Error listing ports");
             
             // Still show fake port even if hardware enumeration fails
-            Console.WriteLine("1. fake (Simulated/Test Port)");
-            Console.WriteLine();
-            Console.WriteLine("Hardware port enumeration failed.");
+            global::System.Console.WriteLine("1. fake (Simulated/Test Port)");
+            global::System.Console.WriteLine();
+            global::System.Console.WriteLine("Hardware port enumeration failed.");
             
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                Console.WriteLine();
-                Console.WriteLine("This might be a permissions issue. Try:");
-                Console.WriteLine("sudo usermod -a -G dialout $USER");
-                Console.WriteLine("Then log out and back in.");
+                global::System.Console.WriteLine();
+                global::System.Console.WriteLine("This might be a permissions issue. Try:");
+                global::System.Console.WriteLine("sudo usermod -a -G dialout $USER");
+                global::System.Console.WriteLine("Then log out and back in.");
             }
         }
         
-        Console.WriteLine();
-        Console.WriteLine("Note: Use 'fake' for development and testing without hardware.");
+        global::System.Console.WriteLine();
+        global::System.Console.WriteLine("Note: Use 'fake' for development and testing without hardware.");
     }
 
     private void ListAvailableRadios()
     {
-        Console.WriteLine("Available Radio Models:");
-        Console.WriteLine("======================");
+        global::System.Console.WriteLine("Available Radio Models:");
+        global::System.Console.WriteLine("======================");
         
         var radios = _radioService.GetAvailableRadios();
         
         if (radios.Count == 0)
         {
-            Console.WriteLine("No radio models found.");
+            global::System.Console.WriteLine("No radio models found.");
         }
         else
         {
             foreach (var radio in radios.OrderBy(r => r.Key))
             {
-                Console.WriteLine($"  {radio.Key}");
+                global::System.Console.WriteLine($"  {radio.Key}");
             }
             
-            Console.WriteLine();
-            Console.WriteLine($"Found {radios.Count} radio model(s).");
-            Console.WriteLine("Use --radio \"Manufacturer Model\" to specify a radio.");
-            Console.WriteLine("Use --auto-detect to automatically detect the radio type.");
+            global::System.Console.WriteLine();
+            global::System.Console.WriteLine($"Found {radios.Count} radio model(s).");
+            global::System.Console.WriteLine("Use --radio \"Manufacturer Model\" to specify a radio.");
+            global::System.Console.WriteLine("Use --auto-detect to automatically detect the radio type.");
         }
     }
 
@@ -684,13 +685,13 @@ public class ServerApplication
         var info = _radioService.GetRadioInfo(radioName);
         if (info != null)
         {
-            Console.WriteLine(info);
+            global::System.Console.WriteLine(info);
         }
         else
         {
-            Console.WriteLine($"Radio '{radioName}' not found.");
-            Console.WriteLine();
-            Console.WriteLine("Available radios:");
+            global::System.Console.WriteLine($"Radio '{radioName}' not found.");
+            global::System.Console.WriteLine();
+            global::System.Console.WriteLine("Available radios:");
             ListAvailableRadios();
         }
     }

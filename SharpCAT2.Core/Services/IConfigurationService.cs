@@ -1,4 +1,6 @@
-namespace SharpCAT2.Server.Services;
+using SharpCAT2.Core.Configuration;
+
+namespace SharpCAT2.Core.Services;
 
 /// <summary>
 /// Service interface for managing application configuration

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using SharpCAT2.Common.Serial;
 
-namespace SharpCAT2.Server;
+namespace SharpCAT2.Console;
 
 /// <summary>
 /// Handles serial port selection and validation logic.
@@ -45,13 +45,13 @@ public class PortSelector
             // Show positive confirmation for fake ports
             if (SerialPortFactory.IsFakePortName(portName))
             {
-                Console.WriteLine($"Using simulated port '{portName}' for testing/development.");
+                global::System.Console.WriteLine($"Using simulated port '{portName}' for testing/development.");
             }
             return portName;
         }
         
-        Console.WriteLine($"Warning: Port '{portName}' may not exist or be accessible.");
-        Console.WriteLine("Continuing anyway. Use --list to see available ports.");
+        global::System.Console.WriteLine($"Warning: Port '{portName}' may not exist or be accessible.");
+        global::System.Console.WriteLine("Continuing anyway. Use --list to see available ports.");
         return portName;
     }
 
@@ -61,7 +61,7 @@ public class PortSelector
     /// <returns>Selected port name</returns>
     private string PromptForPortSelection()
     {
-        Console.WriteLine("No port specified. Scanning for available ports...");
+        global::System.Console.WriteLine("No port specified. Scanning for available ports...");
         
         try
         {
@@ -87,7 +87,7 @@ public class PortSelector
     /// <returns>Manually entered port name</returns>
     private string HandleNoPortsFound()
     {
-        Console.WriteLine("No ports found automatically.");
+        global::System.Console.WriteLine("No ports found automatically.");
         return PromptForManualPortEntry();
     }
 
@@ -98,9 +98,9 @@ public class PortSelector
     /// <returns>Either the detected port or manually entered port</returns>
     private string HandleSinglePortFound(string portName)
     {
-        Console.WriteLine($"Found one port: {portName}");
-        Console.Write("Use this port? (y/N): ");
-        string? response = Console.ReadLine();
+        global::System.Console.WriteLine($"Found one port: {portName}");
+        global::System.Console.Write("Use this port? (y/N): ");
+        string? response = global::System.Console.ReadLine();
         
         if (IsPositiveResponse(response))
         {
@@ -119,8 +119,8 @@ public class PortSelector
     {
         DisplayPortOptions(ports);
         
-        Console.Write($"Select port number (1-{ports.Length}) or enter custom name: ");
-        string? input = Console.ReadLine();
+        global::System.Console.Write($"Select port number (1-{ports.Length}) or enter custom name: ");
+        string? input = global::System.Console.ReadLine();
         
         // Try to parse as port selection number
         if (int.TryParse(input, out int selection) && IsValidPortSelection(selection, ports.Length))
@@ -144,10 +144,10 @@ public class PortSelector
     /// <param name="ports">Array of available ports</param>
     private static void DisplayPortOptions(string[] ports)
     {
-        Console.WriteLine("Multiple ports found:");
+        global::System.Console.WriteLine("Multiple ports found:");
         for (int i = 0; i < ports.Length; i++)
         {
-            Console.WriteLine($"{i + 1}. {ports[i]}");
+            global::System.Console.WriteLine($"{i + 1}. {ports[i]}");
         }
     }
 
@@ -161,15 +161,15 @@ public class PortSelector
         
         while (true)
         {
-            Console.Write($"Enter serial port name (e.g., {example}): ");
-            string? input = Console.ReadLine();
+            global::System.Console.Write($"Enter serial port name (e.g., {example}): ");
+            string? input = global::System.Console.ReadLine();
             
             if (!string.IsNullOrEmpty(input))
             {
                 return input;
             }
             
-            Console.WriteLine("Port name cannot be empty. Please try again.");
+            global::System.Console.WriteLine("Port name cannot be empty. Please try again.");
         }
     }
 

@@ -1,4 +1,6 @@
-namespace SharpCAT2.Server;
+using SharpCAT2.Core.Configuration;
+
+namespace SharpCAT2.Console;
 
 /// <summary>
 /// Dedicated command line argument parser for the SharpCAT2 Server application.

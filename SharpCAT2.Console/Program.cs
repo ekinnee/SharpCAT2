@@ -1,11 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SharpCAT2.Server.Services;
+using SharpCAT2.Core.Services;
+using SharpCAT2.Core.Configuration;
 using SharpCAT2.Common.Serial;
 using System.Runtime.InteropServices;
 
-namespace SharpCAT2.Server;
+namespace SharpCAT2.Console;
 
 /// <summary>
 /// Main program class for the SharpCAT2 Server application.
@@ -47,8 +48,8 @@ class Program
     /// <returns>Task representing the async operation</returns>
     private static async Task Main(string[] args)
     {
-        Console.WriteLine(Constants.ApplicationTitle);
-        Console.WriteLine(Constants.TitleSeparator);
+        global::System.Console.WriteLine(Constants.ApplicationTitle);
+        global::System.Console.WriteLine(Constants.TitleSeparator);
         
         try
         {
@@ -68,31 +69,31 @@ class Program
         }
         catch (ArgumentException ex)
         {
-            Console.WriteLine($"Invalid argument: {ex.Message}");
+            global::System.Console.WriteLine($"Invalid argument: {ex.Message}");
             ShowHelp();
             Environment.Exit(1);
         }
         catch (InvalidOperationException ex)
         {
-            Console.WriteLine($"Configuration error: {ex.Message}");
+            global::System.Console.WriteLine($"Configuration error: {ex.Message}");
             Environment.Exit(1);
         }
         catch (IOException ex)
         {
-            Console.WriteLine($"I/O error: {ex.Message}");
+            global::System.Console.WriteLine($"I/O error: {ex.Message}");
             Environment.Exit(1);
         }
         catch (UnauthorizedAccessException ex)
         {
-            Console.WriteLine($"Access denied: {ex.Message}");
+            global::System.Console.WriteLine($"Access denied: {ex.Message}");
             Environment.Exit(1);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Unexpected error: {ex.Message}");
-            Console.WriteLine($"Please report this issue with the following details:");
-            Console.WriteLine($"Exception type: {ex.GetType().Name}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            global::System.Console.WriteLine($"Unexpected error: {ex.Message}");
+            global::System.Console.WriteLine($"Please report this issue with the following details:");
+            global::System.Console.WriteLine($"Exception type: {ex.GetType().Name}");
+            global::System.Console.WriteLine($"Stack trace: {ex.StackTrace}");
             Environment.Exit(1);
         }
     }
@@ -153,59 +154,59 @@ class Program
             guidance = "Typical port names: /dev/cu.usbserial-*, /dev/cu.usbmodem*, /dev/cu.Bluetooth-*, etc.";
         }
         
-        Console.WriteLine($"Platform: {platform}");
-        Console.WriteLine($"{guidance}");
-        Console.WriteLine();
+        global::System.Console.WriteLine($"Platform: {platform}");
+        global::System.Console.WriteLine($"{guidance}");
+        global::System.Console.WriteLine();
     }
 
     private static void ShowHelp()
     {
-        Console.WriteLine("Usage: Server [options]");
-        Console.WriteLine();
-        Console.WriteLine("Options:");
-        Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0, fake)");
-        Console.WriteLine("  -b, --baud <rate>     Baud rate (default: 9600)");
-        Console.WriteLine("                        Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000");
-        Console.WriteLine("  -t, --tcp-port <port> TCP server port (default: 8080)");
-        Console.WriteLine("  -r, --radio <model>   Radio model (e.g., \"Kenwood TS-2000\")");
-        Console.WriteLine("  --auto-detect         Auto-detect radio type");
-        Console.WriteLine("  -l, --list            List available serial ports");
-        Console.WriteLine("  --list-radios         List available radio models");
-        Console.WriteLine("  --radio-info <model>  Show detailed information about a radio model");
-        Console.WriteLine("  -h, --help            Show this help message");
-        Console.WriteLine();
-        Console.WriteLine("Examples:");
+        global::System.Console.WriteLine("Usage: Server [options]");
+        global::System.Console.WriteLine();
+        global::System.Console.WriteLine("Options:");
+        global::System.Console.WriteLine("  -p, --port <name>     Serial port name (e.g., COM1, /dev/ttyUSB0, fake)");
+        global::System.Console.WriteLine("  -b, --baud <rate>     Baud rate (default: 9600)");
+        global::System.Console.WriteLine("                        Supported rates: 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000");
+        global::System.Console.WriteLine("  -t, --tcp-port <port> TCP server port (default: 8080)");
+        global::System.Console.WriteLine("  -r, --radio <model>   Radio model (e.g., \"Kenwood TS-2000\")");
+        global::System.Console.WriteLine("  --auto-detect         Auto-detect radio type");
+        global::System.Console.WriteLine("  -l, --list            List available serial ports");
+        global::System.Console.WriteLine("  --list-radios         List available radio models");
+        global::System.Console.WriteLine("  --radio-info <model>  Show detailed information about a radio model");
+        global::System.Console.WriteLine("  -h, --help            Show this help message");
+        global::System.Console.WriteLine();
+        global::System.Console.WriteLine("Examples:");
         
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            Console.WriteLine($"  Server --port {Constants.WindowsPortExample} --baud 115200");
-            Console.WriteLine("  Server -p COM3 --tcp-port 9090");
-            Console.WriteLine($"  Server --port {Constants.WindowsPortExample} --radio \"Kenwood TS-2000\"");
+            global::System.Console.WriteLine($"  Server --port {Constants.WindowsPortExample} --baud 115200");
+            global::System.Console.WriteLine("  Server -p COM3 --tcp-port 9090");
+            global::System.Console.WriteLine($"  Server --port {Constants.WindowsPortExample} --radio \"Kenwood TS-2000\"");
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            Console.WriteLine($"  Server --port {Constants.LinuxPortExample} --baud 115200");
-            Console.WriteLine("  Server -p /dev/ttyACM0 --tcp-port 9090");
-            Console.WriteLine($"  Server --port {Constants.LinuxPortExample} --auto-detect");
+            global::System.Console.WriteLine($"  Server --port {Constants.LinuxPortExample} --baud 115200");
+            global::System.Console.WriteLine("  Server -p /dev/ttyACM0 --tcp-port 9090");
+            global::System.Console.WriteLine($"  Server --port {Constants.LinuxPortExample} --auto-detect");
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            Console.WriteLine($"  Server --port {Constants.MacOSPortExample} --baud 115200");
-            Console.WriteLine("  Server -p /dev/cu.usbmodem1411 --tcp-port 9090");
-            Console.WriteLine($"  Server --port {Constants.MacOSPortExample} --radio \"Elecraft K3\"");
+            global::System.Console.WriteLine($"  Server --port {Constants.MacOSPortExample} --baud 115200");
+            global::System.Console.WriteLine("  Server -p /dev/cu.usbmodem1411 --tcp-port 9090");
+            global::System.Console.WriteLine($"  Server --port {Constants.MacOSPortExample} --radio \"Elecraft K3\"");
         }
         
-        Console.WriteLine();
-        Console.WriteLine("  Server --port fake    # Use simulated port for testing/development");
-        Console.WriteLine("  Server --list         # List all available ports");
-        Console.WriteLine("  Server --list-radios  # List all available radio models");
-        Console.WriteLine("  Server --radio-info \"Elecraft K3\"  # Show detailed radio information");
-        Console.WriteLine();
-        Console.WriteLine("Special Ports:");
-        Console.WriteLine("  fake                  Simulated serial port for testing and development");
-        Console.WriteLine();
-        Console.WriteLine("The server provides both console interface and TCP server for remote clients.");
-        Console.WriteLine("With radio support, you can send CAT commands and get radio status information.");
+        global::System.Console.WriteLine();
+        global::System.Console.WriteLine("  Server --port fake    # Use simulated port for testing/development");
+        global::System.Console.WriteLine("  Server --list         # List all available ports");
+        global::System.Console.WriteLine("  Server --list-radios  # List all available radio models");
+        global::System.Console.WriteLine("  Server --radio-info \"Elecraft K3\"  # Show detailed radio information");
+        global::System.Console.WriteLine();
+        global::System.Console.WriteLine("Special Ports:");
+        global::System.Console.WriteLine("  fake                  Simulated serial port for testing and development");
+        global::System.Console.WriteLine();
+        global::System.Console.WriteLine("The server provides both console interface and TCP server for remote clients.");
+        global::System.Console.WriteLine("With radio support, you can send CAT commands and get radio status information.");
     }
 
     #endregion
