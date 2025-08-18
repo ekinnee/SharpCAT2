@@ -1,5 +1,5 @@
-using SharpCAT2.Common.Radio;
-using SharpCAT2.Common.Serial;
+using SharpCAT2.Core.Radio;
+using SharpCAT2.Core.Serial;
 using SharpCAT2.Core.Configuration;
 
 namespace SharpCAT2.Core.Services;

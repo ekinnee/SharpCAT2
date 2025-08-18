@@ -15,8 +15,4 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="../SharpCAT2.Common/SharpCAT2.Common.csproj" />
-  </ItemGroup>
-
 </Project>

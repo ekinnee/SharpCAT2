@@ -1,6 +1,6 @@
-﻿using SharpCAT2.Common.Serial;
+﻿using SharpCAT2.Core.Serial;
 
-namespace SharpCAT2.Common.Radio;
+namespace SharpCAT2.Core.Radio;
 
 /// <summary>
 /// Interface defining the contract for radio communication

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
-using SharpCAT2.Common.Serial;
 
-namespace SharpCAT2.Common.Utils;
+namespace SharpCAT2.Core.Utils;
 
 /// <summary>
 /// Connection state enumeration
