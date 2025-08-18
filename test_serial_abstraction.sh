@@ -6,7 +6,7 @@
 echo "Testing SharpCAT2 Serial Port Abstraction"
 echo "=========================================="
 
-cd "$(dirname "$0")/Server"
+cd "$(dirname "$0")/src/SharpCAT2.Console"
 
 echo ""
 echo "1. Testing list of available radios..."

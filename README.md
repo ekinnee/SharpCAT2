@@ -448,101 +448,84 @@ system_profiler SPUSBDataType
 
 ```
 SharpCAT2/
-├── SharpCAT2.Core/             # Core business logic library
-│   ├── Configuration/          # Configuration classes (ServerConfig, CommandLineOptions)
-│   ├── Services/               # Service layer implementations
-│   │   ├── IConfigurationService.cs # Configuration service interface
-│   │   ├── ConfigurationService.cs  # Configuration service implementation
-│   │   ├── INetworkService.cs       # Network service interface
-│   │   ├── NetworkService.cs        # TCP server and client management
-│   │   ├── IRadioService.cs         # Radio service interface
-│   │   ├── RadioService.cs          # Radio communication and command handling
-│   │   ├── ISecurityService.cs      # Security service interface
-│   │   └── SecurityService.cs       # IP filtering and rate limiting
-│   └── SharpCAT2.Core.csproj   # Core library project file
-├── SharpCAT2.Console/          # Console application (entry point)
-│   ├── Program.cs              # Main entry point with dependency injection setup
-│   ├── ServerApplication.cs    # Console application logic using Core services
-│   ├── CommandLineParser.cs    # Command-line argument parsing
-│   ├── Constants.cs            # Application constants
-│   ├── PortSelector.cs         # Serial port selection utilities
-│   ├── server_config.sample.json # Default server configuration
-│   ├── SharpCAT2.Console.csproj # Console project file
-│   └── bin/Debug/              # Build output
-├── SharpCAT2.WebApi/           # Web API application
-│   ├── Controllers/            # API controllers
-│   │   └── RadioController.cs  # Radio operations REST API
-│   ├── Program.cs              # Web API startup with Core services DI
-│   ├── SharpCAT2.WebApi.csproj # Web API project file
-│   └── bin/Debug/              # Build output
-├── Client/                     # Client console application
-│   ├── ClientCommandProcessor.cs # Command processing logic
-│   ├── ClientConstants.cs      # Client application constants
-│   ├── Program.cs              # Client console application
-│   ├── client_config.sample.json # Default client configuration
-│   ├── Client.csproj           # Client console app project file
-│   └── bin/Debug/              # Build output
-├── SharpCAT2.ClientLib/        # Client library for remote communication
-│   ├── ClientLib.cs            # Client library implementation
-│   ├── ClientConfig.cs         # Client configuration management
-│   ├── SharpCAT2.ClientLib.csproj # Client library project file
-│   └── bin/Debug/              # Build output
-├── SharpCAT2.Common/           # Shared library with radio models and serial abstraction
-│   ├── Radio/                  # Radio support library
-│   │   ├── IRadio.cs           # Radio interface definition with SupportedFeatures
-│   │   ├── SupportedFeatures.cs # Comprehensive feature enumeration
-│   ├── server_config.json  # Default server configuration
-│   ├── Server.csproj       # Server project file with dependencies
-│   └── bin/Debug/          # Build output
-├── Client/
-│   ├── ClientLib.cs        # Client library implementation
-│   ├── Program.cs          # Client console application
-│   ├── ClientConfig.cs     # Client configuration management
-│   ├── client_config.json  # Default client configuration
-│   ├── SharpCAT2.ClientLib.csproj  # Client library project file
-│   ├── Client.csproj       # Client console app project file
-│   └── bin/Debug/          # Build output
-├── SharpCAT2.Common/       # Shared library with radio models and serial abstraction
-│   ├── Radio/              # Radio support library
-│   │   ├── IRadio.cs       # Radio interface definition with SupportedFeatures
-│   │   ├── SupportedFeatures.cs # Comprehensive feature enumeration
-│   │   ├── RadioCommand.cs # Radio command abstraction
-│   │   ├── RadioStatus.cs  # Radio status information
-│   │   ├── RadioFactory.cs # Dynamic radio creation and discovery
-│   │   └── Models/         # Radio model implementations by brand
-│   │       ├── BaseRadio.cs    # Abstract base radio implementation
-│   │       ├── Testing/        # Test radio implementations (DummyRadio)
-│   │       ├── Kenwood/        # Kenwood radio models (TS-2000, TS-890S, etc.)
-│   │       ├── Elecraft/       # Elecraft radio models (K3, K4, KX3, etc.)
-│   │       ├── Yaesu/          # Yaesu radio models (FT-991A, FT-710, etc.)
-│   │       ├── Icom/           # Icom radio models (IC-7300, IC-9700)
-│   │       ├── FlexRadio/      # FlexRadio models (FLEX-6400, 6600, 6700)
-│   │       ├── Alinco/         # Alinco radio models (DX-SR8T, DJ-MD5TGP, etc.)
-│   │       └── TenTec/         # Ten-Tec radio models (OMNI VII, Eagle, etc.)
-│   ├── Serial/             # Serial port abstraction layer
-│   │   ├── ISerialPort.cs  # Serial port interface abstraction
-│   │   ├── RealSerialPort.cs # Real hardware serial port wrapper
-│   │   ├── FakeSerialPort.cs # Protocol-agnostic simulated serial port
-│   │   ├── SerialPortFactory.cs # Factory for creating serial port instances
-│   │   └── ResilientSerialPort.cs # Resilient serial port with retry logic
-│   ├── Utils/              # Utility classes
-│   │   ├── ConnectionHealthMonitor.cs # Connection health monitoring
-│   │   └── RetryPolicy.cs  # Retry logic for unreliable operations
-│   └── SharpCAT2.Common.csproj # Common library project file
-├── SharpCAT2.Tests/        # Comprehensive test suite
-│   ├── Services/           # Service layer tests
-│   ├── Serial/             # Serial abstraction tests
-│   ├── Integration/        # Integration tests
-│   ├── Utils/              # Utility tests
-│   └── SharpCAT2.Tests.csproj # Test project file
-├── .vscode/                # Visual Studio Code configuration
-│   ├── tasks.json          # Build and test tasks
-│   ├── launch.json         # Debug configurations
-│   ├── settings.json       # Project settings
-│   └── extensions.json     # Recommended extensions
-├── RadioTemplate.cs        # Template for creating new radio models
-├── test_serial_abstraction.sh # Integration test script
-└── *.md                   # Documentation files
+├── src/                          # Source code projects
+│   ├── SharpCAT2.Core/           # Core business logic library
+│   │   ├── Configuration/        # Configuration classes (ServerConfig, CommandLineOptions)
+│   │   ├── Services/             # Service layer implementations
+│   │   │   ├── IConfigurationService.cs # Configuration service interface
+│   │   │   ├── ConfigurationService.cs  # Configuration service implementation
+│   │   │   ├── INetworkService.cs       # Network service interface
+│   │   │   ├── NetworkService.cs        # TCP server and client management
+│   │   │   ├── IRadioService.cs         # Radio service interface
+│   │   │   ├── RadioService.cs          # Radio communication and command handling
+│   │   │   ├── ISecurityService.cs      # Security service interface
+│   │   │   └── SecurityService.cs       # IP filtering and rate limiting
+│   │   └── SharpCAT2.Core.csproj # Core library project file
+│   ├── SharpCAT2.Console/        # Console server application (entry point)
+│   │   ├── Program.cs            # Main entry point with dependency injection setup
+│   │   ├── ServerApplication.cs  # Console application logic using Core services
+│   │   ├── CommandLineParser.cs  # Command-line argument parsing
+│   │   ├── Constants.cs          # Application constants
+│   │   ├── PortSelector.cs       # Serial port selection utilities
+│   │   ├── server_config.sample.json # Default server configuration
+│   │   └── SharpCAT2.Console.csproj # Console project file
+│   ├── SharpCAT2.WebApi/         # Web API application
+│   │   ├── Controllers/          # API controllers
+│   │   │   └── RadioController.cs # Radio operations REST API
+│   │   ├── Program.cs            # Web API startup with Core services DI
+│   │   └── SharpCAT2.WebApi.csproj # Web API project file
+│   ├── SharpCAT2.Client/         # Client console application
+│   │   ├── ClientCommandProcessor.cs # Command processing logic
+│   │   ├── ClientConstants.cs    # Client application constants
+│   │   ├── Program.cs            # Client console application
+│   │   ├── client_config.sample.json # Default client configuration
+│   │   └── SharpCAT2.Client.csproj # Client console app project file
+│   ├── SharpCAT2.ClientLib/      # Client library for remote communication
+│   │   ├── ClientLib.cs          # Client library implementation
+│   │   ├── ClientConfig.cs       # Client configuration management
+│   │   └── SharpCAT2.ClientLib.csproj # Client library project file
+│   ├── SharpCAT2.Common/         # Shared library with radio models and serial abstraction
+│   │   ├── Radio/                # Radio support library
+│   │   │   ├── RadioFactory.cs   # Dynamic radio creation and discovery
+│   │   │   ├── Models/           # Radio model implementations by brand
+│   │   │   │   ├── BaseRadio.cs  # Abstract base radio implementation
+│   │   │   │   ├── Testing/      # Test radio implementations (DummyRadio)
+│   │   │   │   ├── Kenwood/      # Kenwood radio models (TS-2000, TS-890S, etc.)
+│   │   │   │   ├── Elecraft/     # Elecraft radio models (K3, K4, KX3, etc.)
+│   │   │   │   ├── Yaesu/        # Yaesu radio models (FT-991A, FT-710, etc.)
+│   │   │   │   ├── Icom/         # Icom radio models (IC-7300, IC-9700)
+│   │   │   │   ├── FlexRadio/    # FlexRadio models (FLEX-6400, 6600, 6700)
+│   │   │   │   ├── Alinco/       # Alinco radio models (DX-SR8T, DJ-MD5TGP, etc.)
+│   │   │   │   └── TenTec/       # Ten-Tec radio models (OMNI VII, Eagle, etc.)
+│   │   │   └── Protocols/        # Protocol implementations
+│   │   ├── Serial/               # Serial port abstraction layer
+│   │   │   ├── ISerialPort.cs    # Serial port interface abstraction
+│   │   │   ├── RealSerialPort.cs # Real hardware serial port wrapper
+│   │   │   ├── FakeSerialPort.cs # Protocol-agnostic simulated serial port
+│   │   │   ├── SerialPortFactory.cs # Factory for creating serial port instances
+│   │   │   └── ResilientSerialPort.cs # Resilient serial port with retry logic
+│   │   └── SharpCAT2.Common.csproj # Common library project file
+│   └── SharpCAT2.WebClient/      # Blazor Server web client
+│       ├── Components/           # Blazor components
+│       │   ├── Layout/           # Layout components
+│       │   └── Pages/            # Page components
+│       ├── Services/             # Web client services
+│       └── SharpCAT2.WebClient.csproj # Web client project file
+├── tests/                        # Test projects
+│   └── SharpCAT2.Tests/          # Comprehensive test suite
+│       ├── Services/             # Service layer tests
+│       ├── Serial/               # Serial abstraction tests
+│       ├── Integration/          # Integration tests
+│       ├── Utils/                # Utility tests
+│       └── SharpCAT2.Tests.csproj # Test project file
+├── .vscode/                      # Visual Studio Code configuration
+│   ├── tasks.json                # Build and test tasks
+│   ├── launch.json               # Debug configurations
+│   ├── settings.json             # Project settings
+│   └── extensions.json           # Recommended extensions
+├── RadioTemplate.cs              # Template for creating new radio models
+├── test_serial_abstraction.sh    # Integration test script
+└── *.md                         # Documentation files
 ```
 
 ### Dependencies
@@ -628,15 +611,54 @@ cd SharpCAT2
 dotnet build SharpCAT2.sln
 
 # Or build individual projects
-cd SharpCAT2.Console
+cd src/SharpCAT2.Console
 dotnet restore
 dotnet build
 
-# Run tests (if any)
+# Run tests
 dotnet test
 
 # Create release package
 dotnet publish -c Release -o ./publish
+```
+
+### Running the Applications
+
+**Console Server:**
+```bash
+# Run the server with default settings
+cd src/SharpCAT2.Console
+dotnet run
+
+# Run with specific parameters
+dotnet run -- --port FAKE --radio "SharpCAT2 DummyRadio"
+dotnet run -- --help  # Show all options
+```
+
+**Client Application:**
+```bash
+# Run the client
+cd src/SharpCAT2.Client
+dotnet run
+
+# Connect to remote server
+dotnet run -- --host 192.168.1.100 --port 8080
+```
+
+**Web API:**
+```bash
+# Run the Web API
+cd src/SharpCAT2.WebApi
+dotnet run
+# Access at https://localhost:5001/swagger
+```
+
+**Web Client:**
+```bash
+# Run the Blazor web client
+cd src/SharpCAT2.WebClient
+dotnet run
+# Access at https://localhost:5001
 ```
 
 ### Development Environment
