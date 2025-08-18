@@ -62,7 +62,8 @@ The web client communicates with the SharpCAT2.WebApi through the following endp
 - `POST /api/radio/connect` - Connect to a radio
 - `POST /api/radio/disconnect` - Disconnect from radio
 - `POST /api/radio/command` - Send command to radio
-- `GET /api/radio/available` - Get list of available radios
+- `GET /api/radio/available` - Get list of available radios with friendly names
+- `GET /api/radio/serial/ports` - Get list of available serial ports (including fake ports)
 
 ## Configuration
 
@@ -142,21 +143,43 @@ Use `appsettings.Development.json` for development-specific configuration:
 
 ### Connecting to a Radio
 
-1. **Enter Connection Details**:
-   - **Serial Port**: Enter the port name (e.g., `COM3`, `/dev/ttyUSB0`, or `FAKE` for testing)
-   - **Radio Model**: Select a specific model or leave blank for auto-detection
-   - **Baud Rate**: Choose the appropriate baud rate (default: 9600)
+1. **Select Serial Port**:
+   - **Dropdown Selection**: Choose from the list of available serial ports (automatically detected)
+   - **Manual Entry**: Select "Enter manually..." if your port is not listed, then type the port name
+   - **Common Ports**: `COM3` (Windows), `/dev/ttyUSB0` (Linux), or `FAKE` for testing
+   - **Test Ports**: FAKE, DUMMY, SIMULATION, and TEST are available for testing without hardware
 
-2. **Click Connect**: The interface will attempt to connect and show status updates
+2. **Choose Radio Model**:
+   - **Auto-detection**: Leave on "Auto-detect" to let the system identify your radio
+   - **Manual Selection**: Choose your specific radio model from the friendly dropdown (e.g., "Kenwood TS-2000", "Elecraft K3")
+   - **29+ Models Supported**: Covers 7 major manufacturers with descriptive names
 
-3. **Monitor Status**: The status panel shows connection state and radio information
+3. **Set Baud Rate**: Choose the appropriate baud rate (default: 9600)
+
+4. **Click Connect**: The interface will attempt to connect and show status updates
+
+5. **Monitor Status**: The status panel shows connection state and radio information
 
 ### Sending Commands
 
 1. **Ensure Connected**: Radio must be connected before sending commands
-2. **Enter Command**: Type a CAT command in the command input field
-3. **Send Command**: Click "Send" or press Enter
-4. **View Response**: Results appear in the command history panel
+2. **Get Help**: Click the "Help" button in the Command Interface section for:
+   - CAT command basics and syntax
+   - Common command examples with descriptions
+   - Error handling information
+   - Manufacturer-specific notes
+3. **Enter Command**: Type a CAT command in the command input field
+4. **Send Command**: Click "Send" or press Enter
+5. **View Response**: Results appear in the command history panel
+
+### Command Interface Help
+
+The built-in help system provides:
+- **CAT Command Basics**: Explanation of Computer Aided Transceiver commands
+- **Common Commands**: Frequently used commands like FA; (frequency), IF; (status), ID; (identification)
+- **Command Syntax**: Most commands end with semicolon (;) 
+- **Error Handling**: What to expect when commands fail or are not recognized
+- **Manufacturer Notes**: Syntax varies by brand - consult your radio manual
 
 ### Common CAT Commands
 - `FA;` - Get/Set VFO A frequency
@@ -165,6 +188,8 @@ Use `appsettings.Development.json` for development-specific configuration:
 - `ID;` - Get radio ID
 - `AI0;` - Turn off auto-information mode
 - `AI1;` - Turn on auto-information mode
+- `TX;` - Start transmit
+- `RX;` - Stop transmit (receive)
 
 ### Status Monitoring
 - Connection status updates automatically every 5 seconds
