@@ -147,35 +147,17 @@ public class RadioController : ControllerBase
     {
         try
         {
+            var realPorts = SerialPortFactory.GetAvailablePortNames();
             var fakePorts = new[] { "FAKE", "DUMMY", "TEST", "SIMULATION" };
-            var allPorts = new List<string>();
             
-            // Always include fake ports first
-            allPorts.AddRange(fakePorts);
+            var allPorts = realPorts.Concat(fakePorts).OrderBy(p => p).ToList();
             
-            try
-            {
-                // Try to get real ports, but don't fail if hardware detection fails
-                var realPorts = SerialPortFactory.GetAvailablePortNames();
-                allPorts.AddRange(realPorts);
-            }
-            catch (Exception hardwareEx)
-            {
-                // Log hardware detection failure but continue with fake ports
-                _logger.LogWarning(hardwareEx, "Hardware serial port detection failed, continuing with simulation ports only");
-            }
-            
-            // Remove duplicates and sort
-            var uniquePorts = allPorts.Distinct().OrderBy(p => p).ToList();
-            
-            return Ok(uniquePorts);
+            return Ok(allPorts);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting available serial ports");
-            // Even in case of complete failure, return at least the fake ports
-            var fallbackPorts = new[] { "FAKE", "DUMMY", "TEST", "SIMULATION" };
-            return Ok(fallbackPorts);
+            return StatusCode(500, new { error = "Failed to get available serial ports" });
         }
     }
 }
