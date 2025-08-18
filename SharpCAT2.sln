@@ -2,8 +2,6 @@
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Server\Server.csproj", "{8B3D8F7E-1234-4567-8901-23456789ABCD}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.ClientLib", "SharpCAT2.ClientLib\SharpCAT2.ClientLib.csproj", "{8B3D8F7E-2345-4567-8901-23456789ABCD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{8B3D8F7E-3456-4567-8901-23456789ABCD}"
@@ -12,16 +10,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Common", "SharpCA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Tests", "SharpCAT2.Tests\SharpCAT2.Tests.csproj", "{D43E4AA7-5812-43A0-9AA0-D19833340DBA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Core", "SharpCAT2.Core\SharpCAT2.Core.csproj", "{2835D580-8791-4E8F-B4C0-697AE588D498}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Console", "SharpCAT2.Console\SharpCAT2.Console.csproj", "{DE672B6E-A895-4D1B-AC41-B0013E7D6340}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.WebApi", "SharpCAT2.WebApi\SharpCAT2.WebApi.csproj", "{54C21125-3065-436F-9DE6-3FAB7CD239B8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{8B3D8F7E-1234-4567-8901-23456789ABCD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8B3D8F7E-1234-4567-8901-23456789ABCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8B3D8F7E-1234-4567-8901-23456789ABCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8B3D8F7E-1234-4567-8901-23456789ABCD}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8B3D8F7E-2345-4567-8901-23456789ABCD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8B3D8F7E-2345-4567-8901-23456789ABCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B3D8F7E-2345-4567-8901-23456789ABCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -38,5 +38,17 @@ Global
 		{D43E4AA7-5812-43A0-9AA0-D19833340DBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D43E4AA7-5812-43A0-9AA0-D19833340DBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D43E4AA7-5812-43A0-9AA0-D19833340DBA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2835D580-8791-4E8F-B4C0-697AE588D498}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2835D580-8791-4E8F-B4C0-697AE588D498}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2835D580-8791-4E8F-B4C0-697AE588D498}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2835D580-8791-4E8F-B4C0-697AE588D498}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DE672B6E-A895-4D1B-AC41-B0013E7D6340}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE672B6E-A895-4D1B-AC41-B0013E7D6340}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE672B6E-A895-4D1B-AC41-B0013E7D6340}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE672B6E-A895-4D1B-AC41-B0013E7D6340}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54C21125-3065-436F-9DE6-3FAB7CD239B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54C21125-3065-436F-9DE6-3FAB7CD239B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54C21125-3065-436F-9DE6-3FAB7CD239B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54C21125-3065-436F-9DE6-3FAB7CD239B8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Net;
 
-namespace SharpCAT2.Server.Services;
+namespace SharpCAT2.Core.Services;
 
 /// <summary>
 /// Implementation of security service for managing network security features

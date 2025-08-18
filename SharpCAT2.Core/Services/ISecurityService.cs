@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace SharpCAT2.Server.Services;
+namespace SharpCAT2.Core.Services;
 
 /// <summary>
 /// Service interface for managing network security features.

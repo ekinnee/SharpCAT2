@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
+using SharpCAT2.Core.Configuration;
 
-namespace SharpCAT2.Server.Services;
+namespace SharpCAT2.Core.Services;
 
 /// <summary>
 /// Implementation of configuration service for managing application settings

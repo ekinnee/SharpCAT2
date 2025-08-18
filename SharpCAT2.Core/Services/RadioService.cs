@@ -1,10 +1,11 @@
 using SharpCAT2.Common.Radio;
 using SharpCAT2.Common.Serial;
 using SharpCAT2.Common.Utils;
+using SharpCAT2.Core.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text;
 
-namespace SharpCAT2.Server.Services;
+namespace SharpCAT2.Core.Services;
 
 /// <summary>
 /// Implementation of radio service for managing radio connections and operations

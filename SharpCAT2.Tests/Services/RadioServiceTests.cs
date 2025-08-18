@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Moq;
-using SharpCAT2.Server.Services;
+using SharpCAT2.Core.Services;
 using SharpCAT2.Common.Radio;
 using SharpCAT2.Common.Serial;
 using Xunit;

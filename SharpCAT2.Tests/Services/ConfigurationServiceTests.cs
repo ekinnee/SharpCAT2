@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Moq;
-using SharpCAT2.Server.Services;
+using SharpCAT2.Core.Services;
+using SharpCAT2.Core.Configuration;
 using Xunit;
 
 namespace SharpCAT2.Tests.Services;
@@ -38,7 +39,7 @@ public class ConfigurationServiceTests
     public void ApplyConfigurationToOptions_ShouldUpdateOptions()
     {
         // Arrange
-        var config = new SharpCAT2.Server.ServerConfig
+        var config = new ServerConfig
         {
             SerialPort = "COM1",
             BaudRate = 115200,
@@ -47,7 +48,7 @@ public class ConfigurationServiceTests
             AutoDetectRadio = true
         };
 
-        var options = new SharpCAT2.Server.CommandLineOptions();
+        var options = new CommandLineOptions();
 
         // Act
         _configurationService.ApplyConfigurationToOptions(config, options);
@@ -67,8 +68,8 @@ public class ConfigurationServiceTests
     public void UpdateConfigurationFromOptions_ShouldUpdateConfig()
     {
         // Arrange
-        var config = new SharpCAT2.Server.ServerConfig();
-        var options = new SharpCAT2.Server.CommandLineOptions
+        var config = new ServerConfig();
+        var options = new CommandLineOptions
         {
             PortName = "COM2",
             BaudRate = 57600,

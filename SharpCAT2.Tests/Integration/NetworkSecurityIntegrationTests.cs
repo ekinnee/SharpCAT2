@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SharpCAT2.Server.Services;
+using SharpCAT2.Core.Services;
 using System.Net;
 using System.Net.Sockets;
 using Xunit;
