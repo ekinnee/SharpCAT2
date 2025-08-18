@@ -46,29 +46,76 @@
                     else
                     {
                         <div class="mb-3">
-                            <label for="serialPortSelect" class="form-label">Serial Port</label>
-                            <div class="input-group">
-                                <select class="form-select" id="serialPortSelect" @bind="selectedSerialPort" @bind:after="OnSerialPortSelectionChanged">
-                                    <option value="">-- Select a port --</option>
-                                    @if (availableSerialPorts != null)
+                            <label class="form-label">Serial Port</label>
+                            <div class="mb-2">
+                                @if (availableSerialPorts != null && availableSerialPorts.Any())
+                                {
+                                    @foreach (var port in availableSerialPorts)
                                     {
-                                        @foreach (var port in availableSerialPorts)
-                                        {
-                                            <option value="@port">@port</option>
-                                        }
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="serialPort" id="port_@port" 
+                                                   value="@port" @onchange="@(() => OnSerialPortChanged(port))" 
+                                                   checked="@(selectedSerialPort == port)" />
+                                            <label class="form-check-label" for="port_@port">
+                                                @port
+                                            </label>
+                                        </div>
                                     }
-                                    <option value="__custom__">Enter manually...</option>
-                                </select>
+                                }
+                                else
+                                {
+                                    <!-- Fallback if API call failed - show at least fake ports -->
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="serialPort" id="port_FAKE" 
+                                               value="FAKE" @onchange="@(() => OnSerialPortChanged("FAKE"))" 
+                                               checked="@(selectedSerialPort == "FAKE")" />
+                                        <label class="form-check-label" for="port_FAKE">FAKE</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="serialPort" id="port_DUMMY" 
+                                               value="DUMMY" @onchange="@(() => OnSerialPortChanged("DUMMY"))" 
+                                               checked="@(selectedSerialPort == "DUMMY")" />
+                                        <label class="form-check-label" for="port_DUMMY">DUMMY</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="serialPort" id="port_TEST" 
+                                               value="TEST" @onchange="@(() => OnSerialPortChanged("TEST"))" 
+                                               checked="@(selectedSerialPort == "TEST")" />
+                                        <label class="form-check-label" for="port_TEST">TEST</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="serialPort" id="port_SIMULATION" 
+                                               value="SIMULATION" @onchange="@(() => OnSerialPortChanged("SIMULATION"))" 
+                                               checked="@(selectedSerialPort == "SIMULATION")" />
+                                        <label class="form-check-label" for="port_SIMULATION">SIMULATION</label>
+                                    </div>
+                                }
+                                
+                                <!-- Auto-detect option -->
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="serialPort" id="port_auto" 
+                                           value="" @onchange="@(() => OnSerialPortChanged(""))" 
+                                           checked="@(selectedSerialPort == "")" />
+                                    <label class="form-check-label" for="port_auto">Auto Detect</label>
+                                </div>
+                                
+                                <!-- Custom port option -->
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="serialPort" id="port_custom" 
+                                           value="__custom__" @onchange="@(() => OnSerialPortChanged("__custom__"))" 
+                                           checked="@(selectedSerialPort == "__custom__")" />
+                                    <label class="form-check-label" for="port_custom">Enter manually...</label>
+                                </div>
+                                
                                 @if (showCustomSerialPort)
                                 {
-                                    <input type="text" class="form-control" @bind="customSerialPort" 
-                                           placeholder="e.g., COM3, /dev/ttyUSB0" />
+                                    <div class="mt-2">
+                                        <input type="text" class="form-control" @bind="customSerialPort" 
+                                               placeholder="e.g., COM3, /dev/ttyUSB0" />
+                                        <div class="form-text">Enter your serial port name manually if it's not listed above.</div>
+                                    </div>
                                 }
                             </div>
-                            @if (showCustomSerialPort)
-                            {
-                                <div class="form-text">Enter your serial port name manually if it's not listed above.</div>
-                            }
                         </div>
                         <div class="mb-3">
                             <label for="radioSelect" class="form-label">Radio Model</label>
@@ -319,11 +366,19 @@
         try
         {
             availableSerialPorts = await RadioApiService.GetAvailableSerialPortsAsync();
+            
+            // If API call failed or returned null/empty, provide fallback fake ports
+            if (availableSerialPorts == null || !availableSerialPorts.Any())
+            {
+                availableSerialPorts = new List<string> { "FAKE", "DUMMY", "TEST", "SIMULATION" };
+                Console.WriteLine("API call failed or returned empty - using fallback simulation ports");
+            }
         }
         catch (Exception ex)
         {
-            // Don't overwrite existing connection error, just log this one
-            Console.WriteLine($"Failed to load available serial ports: {ex.Message}");
+            // Ensure we always have at least fake ports available
+            availableSerialPorts = new List<string> { "FAKE", "DUMMY", "TEST", "SIMULATION" };
+            Console.WriteLine($"Failed to load available serial ports: {ex.Message} - using fallback simulation ports");
         }
     }
 
@@ -354,6 +409,12 @@
     {
         showCustomSerialPort = selectedSerialPort == "__custom__";
         StateHasChanged();
+    }
+
+    private void OnSerialPortChanged(string portValue)
+    {
+        selectedSerialPort = portValue;
+        OnSerialPortSelectionChanged();
     }
 
     private string GetEffectiveSerialPort()
