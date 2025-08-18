@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/src/SharpCAT2.Console/SharpCAT2.Console.csproj"
+                "${workspaceFolder}/src/SharpCAT2.ServerConsole/SharpCAT2.ServerConsole.csproj"
             ],
             "problemMatcher": "$msCompile",
             "group": {
@@ -21,7 +21,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/src/SharpCAT2.Client/SharpCAT2.Client.csproj"
+                "${workspaceFolder}/src/SharpCAT2.ClientConsole/SharpCAT2.ClientConsole.csproj"
             ],
             "problemMatcher": "$msCompile",
             "group": {

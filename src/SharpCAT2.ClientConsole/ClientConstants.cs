@@ -1,4 +1,4 @@
-namespace SharpCAT2.Client;
+namespace SharpCAT2.ClientConsole;
 
 /// <summary>
 /// Centralized constants for the SharpCAT2 Client application.

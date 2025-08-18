@@ -7,7 +7,7 @@ using SharpCAT2.Common.Serial;
 using SharpCAT2.Common;
 using System.Runtime.InteropServices;
 
-namespace SharpCAT2.Console;
+namespace SharpCAT2.ServerConsole;
 
 /// <summary>
 /// Main program class for the SharpCAT2 Server application.

@@ -7,9 +7,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build-server",
-            "program": "${workspaceFolder}/src/SharpCAT2.Console/bin/Debug/net8.0/SharpCAT2.Console.dll",
+            "program": "${workspaceFolder}/src/SharpCAT2.ServerConsole/bin/Debug/net8.0/SharpCAT2.ServerConsole.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/SharpCAT2.Console",
+            "cwd": "${workspaceFolder}/src/SharpCAT2.ServerConsole",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
@@ -19,9 +19,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build-client",
-            "program": "${workspaceFolder}/src/SharpCAT2.Client/bin/Debug/net8.0/SharpCAT2.Client.dll",
+            "program": "${workspaceFolder}/src/SharpCAT2.ClientConsole/bin/Debug/net8.0/SharpCAT2.ClientConsole.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/SharpCAT2.Client",
+            "cwd": "${workspaceFolder}/src/SharpCAT2.ClientConsole",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
@@ -46,9 +46,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/SharpCAT2.Console/bin/Debug/net8.0/SharpCAT2.Console.dll",
+            "program": "${workspaceFolder}/src/SharpCAT2.ServerConsole/bin/Debug/net8.0/SharpCAT2.ServerConsole.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/SharpCAT2.Console",
+            "cwd": "${workspaceFolder}/src/SharpCAT2.ServerConsole",
             "stopAtEntry": false,
             "console": "internalConsole"
         }

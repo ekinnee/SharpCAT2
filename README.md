@@ -5,10 +5,10 @@ A cross-platform .NET serial port communication server application that provides
 ## Features
 
 - **Modular Architecture**: Four distinct applications sharing a common core library
-  - **SharpCAT2.Console**: Command-line application for direct radio control
+  - **SharpCAT2.ServerConsole**: Command-line application for direct radio control
   - **SharpCAT2.WebApi**: HTTP REST API for web-based radio control and integration  
   - **SharpCAT2.WebClient**: Modern web-based client application with responsive GUI
-  - **SharpCAT2.Client**: Remote client for TCP-based communication
+  - **SharpCAT2.ClientConsole**: Remote client for TCP-based communication
 - **Cross-Platform Support**: Works on Windows, Linux, and macOS
 - **Platform-Specific Guidance**: Automatic detection of operating system with appropriate port naming conventions
 - **Robust Error Handling**: Comprehensive error messages and troubleshooting guidance
@@ -40,7 +40,7 @@ cd SharpCAT2
 dotnet build
 
 # Run with simulated port for testing (no hardware required)
-cd SharpCAT2.Console
+cd SharpCAT2.ServerConsole
 dotnet run -- --port fake
 
 # Connect to real hardware
@@ -93,7 +93,7 @@ cd SharpCAT2
 dotnet build SharpCAT2.sln
 
 # Or build individual projects
-cd SharpCAT2.Console
+cd SharpCAT2.ServerConsole
 dotnet restore
 dotnet build
 
@@ -185,19 +185,19 @@ dotnet build Client.csproj
 
 ```bash
 # Navigate to the Client directory
-cd Client
+cd ClientConsole
 
 # Connect to server on localhost:8080
-dotnet run --project Client.csproj
+dotnet run --project ClientConsole.csproj
 
 # Connect to a remote server
-dotnet run --project Client.csproj -- --host 192.168.1.100
+dotnet run --project ClientConsole.csproj -- --host 192.168.1.100
 
 # Connect to a custom port
-dotnet run --project Client.csproj -- --host localhost --port 9090
+dotnet run --project ClientConsole.csproj -- --host localhost --port 9090
 
 # Show help
-dotnet run --project Client.csproj -- --help
+dotnet run --project ClientConsole.csproj -- --help
 ```
 
 ## Configuration
@@ -611,7 +611,7 @@ cd SharpCAT2
 dotnet build SharpCAT2.sln
 
 # Or build individual projects
-cd src/SharpCAT2.Console
+cd src/SharpCAT2.ServerConsole
 dotnet restore
 dotnet build
 
@@ -627,7 +627,7 @@ dotnet publish -c Release -o ./publish
 **Console Server:**
 ```bash
 # Run the server with default settings
-cd src/SharpCAT2.Console
+cd src/SharpCAT2.ServerConsole
 dotnet run
 
 # Run with specific parameters
@@ -638,7 +638,7 @@ dotnet run -- --help  # Show all options
 **Client Application:**
 ```bash
 # Run the client
-cd src/SharpCAT2.Client
+cd src/SharpCAT2.ClientConsole
 dotnet run
 
 # Connect to remote server
@@ -720,7 +720,7 @@ This script validates:
 **Manual Testing:**
 ```bash
 # Test with simulated radio (no hardware required)
-dotnet run --project SharpCAT2.Console -- --port FAKE --radio "SharpCAT2 DummyRadio"
+dotnet run --project SharpCAT2.ServerConsole -- --port FAKE --radio "SharpCAT2 DummyRadio"
 
 # Test radio command responses
 ID;    # Should return: ID999;

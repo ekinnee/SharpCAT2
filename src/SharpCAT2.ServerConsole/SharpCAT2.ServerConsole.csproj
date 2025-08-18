@@ -5,7 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>SharpCAT2.Console</AssemblyName>
+    <AssemblyName>SharpCAT2.ServerConsole</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

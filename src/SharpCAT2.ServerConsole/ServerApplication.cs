@@ -10,7 +10,7 @@ using SharpCAT2.Common;
 using System.IO.Ports;
 using System.Runtime.InteropServices;
 
-namespace SharpCAT2.Console;
+namespace SharpCAT2.ServerConsole;
 
 /// <summary>
 /// Main server application logic using dependency injection and services
