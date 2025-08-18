@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.IO.Ports;
 using System.Text;
+using SharpCAT2.Core.Serial;
 
 namespace SharpCAT2.Common.Serial;
 
@@ -185,6 +186,38 @@ public class FakeSerialPort : ISerialPort
         {
             var result = _outputBuffer.ToString();
             _outputBuffer.Clear();
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// Reads a line from the simulation buffer
+    /// </summary>
+    /// <returns>Line read from buffer</returns>
+    public string ReadLine()
+    {
+        if (!_isOpen)
+            throw new InvalidOperationException("Serial port is not open");
+
+        lock (_lock)
+        {
+            var result = _outputBuffer.ToString();
+            _outputBuffer.Clear();
+            
+            // Find the first line ending
+            var lines = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length > 0)
+            {
+                // Put back any remaining lines
+                if (lines.Length > 1)
+                {
+                    for (int i = 1; i < lines.Length; i++)
+                    {
+                        _outputBuffer.AppendLine(lines[i]);
+                    }
+                }
+                return lines[0];
+            }
             return result;
         }
     }

@@ -1,3 +1,4 @@
+using SharpCAT2.Core.Radio;
 namespace SharpCAT2.Common.Radio.Models.Kenwood;
 
 /// <summary>

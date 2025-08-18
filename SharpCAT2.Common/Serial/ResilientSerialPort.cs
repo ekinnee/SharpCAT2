@@ -1,6 +1,7 @@
 using System.IO.Ports;
 using Microsoft.Extensions.Logging;
-using SharpCAT2.Common.Utils;
+using SharpCAT2.Core.Utils;
+using SharpCAT2.Core.Serial;
 
 namespace SharpCAT2.Common.Serial;
 
@@ -167,6 +168,11 @@ public class ResilientSerialPort : ISerialPort
     public string ReadExisting()
     {
         return ExecuteWithRetry(() => _innerPort.ReadExisting(), "ReadExisting");
+    }
+
+    public string ReadLine()
+    {
+        return ExecuteWithRetry(() => _innerPort.ReadLine(), "ReadLine");
     }
 
     public int Read(byte[] buffer, int offset, int count)

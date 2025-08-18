@@ -1,4 +1,4 @@
-﻿namespace SharpCAT2.Common.Radio;
+﻿namespace SharpCAT2.Core.Radio;
 
 /// <summary>
 /// Represents a command to be sent to a radio

@@ -1,5 +1,4 @@
 ﻿using SharpCAT2.ClientLib;
-using SharpCAT2.Common.Radio;
 
 namespace SharpCAT2.Client;
 

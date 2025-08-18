@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace SharpCAT2.Common.Utils;
+namespace SharpCAT2.Core.Utils;
 
 /// <summary>
 /// Retry policy configuration for handling transient failures

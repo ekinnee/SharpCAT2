@@ -1,3 +1,4 @@
+using SharpCAT2.Core.Radio;
 using System.Text.RegularExpressions;
 
 namespace SharpCAT2.Common.Radio.Models.TenTec;

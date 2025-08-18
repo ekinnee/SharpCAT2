@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using SharpCAT2.Common.Serial;
-using SharpCAT2.Common.Utils;
+using SharpCAT2.Core.Utils;
+using SharpCAT2.Core.Radio;
+using SharpCAT2.Core.Serial;
 
 namespace SharpCAT2.Common.Radio;
 

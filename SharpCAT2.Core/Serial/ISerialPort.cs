@@ -1,6 +1,6 @@
 using System.IO.Ports;
 
-namespace SharpCAT2.Common.Serial;
+namespace SharpCAT2.Core.Serial;
 
 /// <summary>
 /// Interface for serial port communication abstraction.
@@ -72,10 +72,16 @@ public interface ISerialPort : IDisposable
     void WriteLine(string data);
 
     /// <summary>
-    /// Reads available data from the serial port
+    /// Reads existing data from the serial port
     /// </summary>
-    /// <returns>Data read from the port</returns>
+    /// <returns>Available data as string</returns>
     string ReadExisting();
+
+    /// <summary>
+    /// Reads a line from the serial port
+    /// </summary>
+    /// <returns>Line read from port</returns>
+    string ReadLine();
 
     /// <summary>
     /// Reads data from the serial port into a buffer
@@ -85,10 +91,6 @@ public interface ISerialPort : IDisposable
     /// <param name="count">Maximum number of bytes to read</param>
     /// <returns>Number of bytes actually read</returns>
     int Read(byte[] buffer, int offset, int count);
-
-    #endregion
-
-    #region Buffer Management
 
     /// <summary>
     /// Discards data from the input buffer

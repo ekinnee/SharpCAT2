@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using SharpCAT2.Core.Services;
 using SharpCAT2.Core.Configuration;
 using SharpCAT2.Common.Serial;
+using SharpCAT2.Common;
 using System.Runtime.InteropServices;
 
 namespace SharpCAT2.Console;

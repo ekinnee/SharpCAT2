@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../SharpCAT2.ClientLib/SharpCAT2.ClientLib.csproj" />
-    <ProjectReference Include="../SharpCAT2.Common/SharpCAT2.Common.csproj" />
   </ItemGroup>
 
 </Project>

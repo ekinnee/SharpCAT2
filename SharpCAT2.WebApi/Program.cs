@@ -1,5 +1,6 @@
 using SharpCAT2.Core.Services;
 using SharpCAT2.Core.Configuration;
+using SharpCAT2.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 

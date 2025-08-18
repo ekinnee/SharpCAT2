@@ -3,6 +3,7 @@ using SharpCAT2.Core.Services;
 using SharpCAT2.Core.Configuration;
 using SharpCAT2.Common.Radio;
 using SharpCAT2.Common.Serial;
+using SharpCAT2.Common;
 
 namespace SharpCAT2.WebApi.Controllers;
 

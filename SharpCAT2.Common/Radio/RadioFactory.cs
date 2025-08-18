@@ -10,6 +10,8 @@ using SharpCAT2.Common.Radio.Models.Alinco;
 using SharpCAT2.Common.Radio.Models.TenTec;
 using SharpCAT2.Common.Radio.Models.Testing;
 using SharpCAT2.Common.Serial;
+using SharpCAT2.Core.Radio;
+using SharpCAT2.Core.Serial;
 
 namespace SharpCAT2.Common.Radio;
 

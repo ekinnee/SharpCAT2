@@ -1,4 +1,4 @@
-﻿namespace SharpCAT2.Common.Radio;
+﻿namespace SharpCAT2.Core.Radio;
 
 /// <summary>
 /// Represents the current status of a radio

@@ -1,4 +1,5 @@
 using System.IO.Ports;
+using SharpCAT2.Core.Serial;
 
 namespace SharpCAT2.Common.Serial;
 
@@ -144,6 +145,15 @@ public class RealSerialPort : ISerialPort
     public string ReadExisting()
     {
         return _serialPort.ReadExisting();
+    }
+
+    /// <summary>
+    /// Reads a line from the serial port
+    /// </summary>
+    /// <returns>Line read from port</returns>
+    public string ReadLine()
+    {
+        return _serialPort.ReadLine();
     }
 
     /// <summary>
