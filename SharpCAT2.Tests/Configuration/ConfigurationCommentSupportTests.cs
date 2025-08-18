@@ -1,4 +1,4 @@
-using SharpCAT2.Server;
+using SharpCAT2.Core.Configuration;
 using SharpCAT2.ClientLib;
 using Xunit;
 
