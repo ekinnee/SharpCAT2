@@ -26,9 +26,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SharpCAT2.Common\SharpCAT2.Common.csproj" />
-    <ProjectReference Include="..\SharpCAT2.Core\SharpCAT2.Core.csproj" />
-    <ProjectReference Include="..\SharpCAT2.ClientLib\SharpCAT2.ClientLib.csproj" />
+    <ProjectReference Include="..\..\src\SharpCAT2.Common\SharpCAT2.Common.csproj" />
+    <ProjectReference Include="..\..\src\SharpCAT2.Core\SharpCAT2.Core.csproj" />
+    <ProjectReference Include="..\..\src\SharpCAT2.ClientLib\SharpCAT2.ClientLib.csproj" />
   </ItemGroup>
 
 </Project>
