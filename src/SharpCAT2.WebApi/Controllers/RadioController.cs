@@ -148,7 +148,7 @@ public class RadioController : ControllerBase
         try
         {
             var realPorts = SerialPortFactory.GetAvailablePortNames();
-            var fakePorts = new[] { "FAKE", "DUMMY", "TEST", "SIMULATION" };
+            var fakePorts = new[] { "FAKE" }; // Only FAKE is supported as per requirements
             
             var allPorts = realPorts.Concat(fakePorts).OrderBy(p => p).ToList();
             
@@ -158,6 +158,71 @@ public class RadioController : ControllerBase
         {
             _logger.LogError(ex, "Error getting available serial ports");
             return StatusCode(500, new { error = "Failed to get available serial ports" });
+        }
+    }
+}
+
+/// <summary>
+/// API controller for listing resources
+/// </summary>
+[ApiController]
+[Route("api")]
+public class ResourceController : ControllerBase
+{
+    private readonly ILogger<ResourceController> _logger;
+
+    public ResourceController(ILogger<ResourceController> logger)
+    {
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Get list of available serial ports
+    /// </summary>
+    [HttpGet("serialports")]
+    public IActionResult GetSerialPorts()
+    {
+        try
+        {
+            var realPorts = SerialPortFactory.GetAvailablePortNames();
+            var fakePorts = new[] { "FAKE" }; // Only FAKE is supported as fake port
+            
+            var allPorts = realPorts.Concat(fakePorts).OrderBy(p => p).ToList();
+            
+            return Ok(allPorts);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available serial ports");
+            return StatusCode(500, new { error = "Failed to get available serial ports" });
+        }
+    }
+
+    /// <summary>
+    /// Get list of available radio models
+    /// </summary>
+    [HttpGet("radios")]
+    public IActionResult GetRadios()
+    {
+        try
+        {
+            var radios = RadioFactory.GetAvailableRadios();
+            var radioList = radios.Select(r => 
+            {
+                // Parse the friendly name to extract manufacturer and model
+                var parts = r.Key.Split(' ', 2); // Split on first space
+                return new { 
+                    manufacturer = parts.Length > 0 ? parts[0] : "Unknown",
+                    model = parts.Length > 1 ? parts[1] : r.Key
+                };
+            }).OrderBy(r => r.manufacturer).ThenBy(r => r.model).ToList();
+            
+            return Ok(radioList);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available radios");
+            return StatusCode(500, new { error = "Failed to get available radios" });
         }
     }
 }

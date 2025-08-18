@@ -35,6 +35,7 @@ public class ClientCommandProcessor
             ClientConstants.StatusCommand => HandleStatusCommand(),
             ClientConstants.RadioStatusCommand or ClientConstants.RadioStatusShortCommand => await HandleRadioStatusCommandAsync(),
             ClientConstants.ListRadiosCommand or ClientConstants.RadiosCommand => await HandleListRadiosCommandAsync(),
+            ClientConstants.ListSerialPortsCommand or ClientConstants.SerialPortsCommand => await HandleListSerialPortsCommandAsync(),
             ClientConstants.CurrentRadioCommand or ClientConstants.GetCurrentRadioCommand => await HandleCurrentRadioCommandAsync(),
             _ when normalizedInput.StartsWith(ClientConstants.SetRadioCommand + " ") => await HandleSetRadioCommandAsync(input),
             _ => new CommandProcessingResult(false, false) // Not handled, send to server
@@ -107,6 +108,23 @@ public class ClientCommandProcessor
     }
 
     /// <summary>
+    /// Handles list serial ports command
+    /// </summary>
+    private async Task<CommandProcessingResult> HandleListSerialPortsCommandAsync()
+    {
+        string? serialPortList = await _client.GetAvailableSerialPortsAsync();
+        if (serialPortList != null)
+        {
+            Console.WriteLine(serialPortList);
+        }
+        else
+        {
+            Console.WriteLine("Failed to get serial port list");
+        }
+        return new CommandProcessingResult(true, false);
+    }
+
+    /// <summary>
     /// Handles current radio command
     /// </summary>
     private async Task<CommandProcessingResult> HandleCurrentRadioCommandAsync()
@@ -174,15 +192,17 @@ public class ClientCommandProcessor
     {
         Console.WriteLine();
         Console.WriteLine("Available commands:");
-        Console.WriteLine("  help                    - Show this help message");
-        Console.WriteLine("  status                  - Show connection status");
-        Console.WriteLine("  radio-status, rs        - Get current radio status");
-        Console.WriteLine("  list-radios, radios     - List available radio models");
-        Console.WriteLine("  current-radio           - Show current active radio");
-        Console.WriteLine("  set-radio <name>        - Change active radio (e.g., set-radio Kenwood TS-2000)");
-        Console.WriteLine("  quit, exit              - Disconnect and exit");
+        Console.WriteLine("  help                        - Show this help message");
+        Console.WriteLine("  status                      - Show connection status");
+        Console.WriteLine("  radio-status, rs            - Get current radio status");
+        Console.WriteLine("  list-radios, radios         - List available radio models");
+        Console.WriteLine("  list-serialports, serialports - List available serial ports");
+        Console.WriteLine("  current-radio               - Show current active radio");
+        Console.WriteLine("  set-radio <name>            - Change active radio (e.g., set-radio Kenwood TS-2000)");
+        Console.WriteLine("  quit, exit                  - Disconnect and exit");
         Console.WriteLine();
         Console.WriteLine("All other commands are sent directly to the remote serial port/radio.");
+        Console.WriteLine("Note: Only 'FAKE' is supported as a fake/test serial port.");
         Console.WriteLine();
     }
 

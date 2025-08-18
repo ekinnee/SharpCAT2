@@ -91,6 +91,16 @@ public static class ClientConstants
     public const string RadiosCommand = "radios";
 
     /// <summary>
+    /// Command to list available serial ports
+    /// </summary>
+    public const string ListSerialPortsCommand = "list-serialports";
+
+    /// <summary>
+    /// Alternative command to list serial ports
+    /// </summary>
+    public const string SerialPortsCommand = "serialports";
+
+    /// <summary>
     /// Command to get current radio information
     /// </summary>
     public const string CurrentRadioCommand = "current-radio";
