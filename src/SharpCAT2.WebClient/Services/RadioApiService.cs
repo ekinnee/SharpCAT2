@@ -147,4 +147,27 @@ public class RadioApiService : IRadioApiService
             return null;
         }
     }
+
+    public async Task<List<string>?> GetAvailableSerialPortsAsync()
+    {
+        try
+        {
+            _logger.LogDebug("Getting available serial ports");
+            var response = await _httpClient.GetAsync("api/radio/serial/ports");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<List<string>>(content, _jsonOptions);
+            }
+            
+            _logger.LogWarning("Failed to get available serial ports: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available serial ports");
+            return null;
+        }
+    }
 }

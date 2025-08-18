@@ -33,4 +33,9 @@ public interface IRadioApiService
     /// Get list of available radio models
     /// </summary>
     Task<List<RadioModel>?> GetAvailableRadiosAsync();
+
+    /// <summary>
+    /// Get list of available serial ports
+    /// </summary>
+    Task<List<string>?> GetAvailableSerialPortsAsync();
 }
