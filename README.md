@@ -4,15 +4,20 @@ A cross-platform .NET serial port communication server application that provides
 
 ## Features
 
+- **Modular Architecture**: Three distinct applications sharing a common core library
+  - **SharpCAT2.Console**: Command-line application for direct radio control
+  - **SharpCAT2.WebApi**: HTTP REST API for web-based radio control and integration  
+  - **SharpCAT2.Client**: Remote client for TCP-based communication
 - **Cross-Platform Support**: Works on Windows, Linux, and macOS
 - **Platform-Specific Guidance**: Automatic detection of operating system with appropriate port naming conventions
 - **Robust Error Handling**: Comprehensive error messages and troubleshooting guidance
 - **Interactive Port Selection**: Smart port discovery and selection
 - **Command-Line Interface**: Flexible command-line options for automation and scripting
 - **TCP Server**: Remote client access via TCP connections
+- **REST API**: Full HTTP REST API with endpoints for radio status, control, and configuration
 - **Client Library**: .NET library for programmatic access to remote serial ports
 - **Client Console App**: Interactive console application for remote serial communication
-- **Radio Support**: Built-in support for popular amateur radio models with CAT (Computer Aided Transceiver) control
+- **Radio Support**: Built-in support for 29+ popular amateur radio models with CAT (Computer Aided Transceiver) control
 - **Auto-Detection**: Automatic radio type detection and configuration
 - **Extensible Architecture**: Plugin-style radio model support through the SharpCAT2.Radio namespace
 - **Graceful Error Handling**: Both server and client handle connection and communication errors without crashing
@@ -33,7 +38,7 @@ cd SharpCAT2
 dotnet build
 
 # Run with simulated port for testing (no hardware required)
-cd Server
+cd SharpCAT2.Console
 dotnet run -- --port fake
 
 # Connect to real hardware
@@ -71,7 +76,7 @@ cd SharpCAT2
 dotnet build SharpCAT2.sln
 
 # Or build individual projects
-cd Server
+cd SharpCAT2.Console
 dotnet restore
 dotnet build
 
@@ -426,12 +431,9 @@ system_profiler SPUSBDataType
 
 ```
 SharpCAT2/
-├── Server/
-│   ├── Program.cs          # Main entry point with dependency injection setup
-│   ├── ServerApplication.cs # Core application logic with service coordination
-│   ├── CommandLineOptions.cs # Command-line argument parsing and validation
-│   ├── ServerConfig.cs     # Configuration management with JSON support
-│   ├── Services/           # Service layer implementations
+├── SharpCAT2.Core/             # Core business logic library
+│   ├── Configuration/          # Configuration classes (ServerConfig, CommandLineOptions)
+│   ├── Services/               # Service layer implementations
 │   │   ├── IConfigurationService.cs # Configuration service interface
 │   │   ├── ConfigurationService.cs  # Configuration service implementation
 │   │   ├── INetworkService.cs       # Network service interface
@@ -440,6 +442,38 @@ SharpCAT2/
 │   │   ├── RadioService.cs          # Radio communication and command handling
 │   │   ├── ISecurityService.cs      # Security service interface
 │   │   └── SecurityService.cs       # IP filtering and rate limiting
+│   └── SharpCAT2.Core.csproj   # Core library project file
+├── SharpCAT2.Console/          # Console application (entry point)
+│   ├── Program.cs              # Main entry point with dependency injection setup
+│   ├── ServerApplication.cs    # Console application logic using Core services
+│   ├── CommandLineParser.cs    # Command-line argument parsing
+│   ├── Constants.cs            # Application constants
+│   ├── PortSelector.cs         # Serial port selection utilities
+│   ├── server_config.sample.json # Default server configuration
+│   ├── SharpCAT2.Console.csproj # Console project file
+│   └── bin/Debug/              # Build output
+├── SharpCAT2.WebApi/           # Web API application
+│   ├── Controllers/            # API controllers
+│   │   └── RadioController.cs  # Radio operations REST API
+│   ├── Program.cs              # Web API startup with Core services DI
+│   ├── SharpCAT2.WebApi.csproj # Web API project file
+│   └── bin/Debug/              # Build output
+├── Client/                     # Client console application
+│   ├── ClientCommandProcessor.cs # Command processing logic
+│   ├── ClientConstants.cs      # Client application constants
+│   ├── Program.cs              # Client console application
+│   ├── client_config.sample.json # Default client configuration
+│   ├── Client.csproj           # Client console app project file
+│   └── bin/Debug/              # Build output
+├── SharpCAT2.ClientLib/        # Client library for remote communication
+│   ├── ClientLib.cs            # Client library implementation
+│   ├── ClientConfig.cs         # Client configuration management
+│   ├── SharpCAT2.ClientLib.csproj # Client library project file
+│   └── bin/Debug/              # Build output
+├── SharpCAT2.Common/           # Shared library with radio models and serial abstraction
+│   ├── Radio/                  # Radio support library
+│   │   ├── IRadio.cs           # Radio interface definition with SupportedFeatures
+│   │   ├── SupportedFeatures.cs # Comprehensive feature enumeration
 │   ├── server_config.json  # Default server configuration
 │   ├── Server.csproj       # Server project file with dependencies
 │   └── bin/Debug/          # Build output
@@ -577,7 +611,7 @@ cd SharpCAT2
 dotnet build SharpCAT2.sln
 
 # Or build individual projects
-cd Server
+cd SharpCAT2.Console
 dotnet restore
 dotnet build
 
@@ -647,7 +681,7 @@ This script validates:
 **Manual Testing:**
 ```bash
 # Test with simulated radio (no hardware required)
-dotnet run --project Server -- --port FAKE --radio "SharpCAT2 DummyRadio"
+dotnet run --project SharpCAT2.Console -- --port FAKE --radio "SharpCAT2 DummyRadio"
 
 # Test radio command responses
 ID;    # Should return: ID999;
