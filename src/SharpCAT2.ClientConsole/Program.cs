@@ -1,6 +1,6 @@
 ﻿using SharpCAT2.ClientLib;
 
-namespace SharpCAT2.Client;
+namespace SharpCAT2.ClientConsole;
 
 class Program
 {

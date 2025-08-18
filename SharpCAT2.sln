@@ -2,21 +2,21 @@
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.ClientLib", "SharpCAT2.ClientLib\SharpCAT2.ClientLib.csproj", "{8B3D8F7E-2345-4567-8901-23456789ABCD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.ClientLib", "src\SharpCAT2.ClientLib\SharpCAT2.ClientLib.csproj", "{8B3D8F7E-2345-4567-8901-23456789ABCD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{8B3D8F7E-3456-4567-8901-23456789ABCD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.ClientConsole", "src\SharpCAT2.ClientConsole\SharpCAT2.ClientConsole.csproj", "{8B3D8F7E-3456-4567-8901-23456789ABCD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Common", "SharpCAT2.Common\SharpCAT2.Common.csproj", "{8B3D8F7E-5678-4567-8901-23456789ABCD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Common", "src\SharpCAT2.Common\SharpCAT2.Common.csproj", "{8B3D8F7E-5678-4567-8901-23456789ABCD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Tests", "SharpCAT2.Tests\SharpCAT2.Tests.csproj", "{D43E4AA7-5812-43A0-9AA0-D19833340DBA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Tests", "tests\SharpCAT2.Tests\SharpCAT2.Tests.csproj", "{D43E4AA7-5812-43A0-9AA0-D19833340DBA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Core", "SharpCAT2.Core\SharpCAT2.Core.csproj", "{2835D580-8791-4E8F-B4C0-697AE588D498}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Core", "src\SharpCAT2.Core\SharpCAT2.Core.csproj", "{2835D580-8791-4E8F-B4C0-697AE588D498}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Console", "SharpCAT2.Console\SharpCAT2.Console.csproj", "{DE672B6E-A895-4D1B-AC41-B0013E7D6340}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.ServerConsole", "src\SharpCAT2.ServerConsole\SharpCAT2.ServerConsole.csproj", "{DE672B6E-A895-4D1B-AC41-B0013E7D6340}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.WebApi", "SharpCAT2.WebApi\SharpCAT2.WebApi.csproj", "{54C21125-3065-436F-9DE6-3FAB7CD239B8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.WebApi", "src\SharpCAT2.WebApi\SharpCAT2.WebApi.csproj", "{54C21125-3065-436F-9DE6-3FAB7CD239B8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.WebClient", "SharpCAT2.WebClient\SharpCAT2.WebClient.csproj", "{AF14792E-DC9E-45A1-AD34-37135BC9D754}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.WebClient", "src\SharpCAT2.WebClient\SharpCAT2.WebClient.csproj", "{AF14792E-DC9E-45A1-AD34-37135BC9D754}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

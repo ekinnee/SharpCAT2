@@ -7,9 +7,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build-server",
-            "program": "${workspaceFolder}/Server/bin/Debug/net8.0/Server.dll",
+            "program": "${workspaceFolder}/src/SharpCAT2.ServerConsole/bin/Debug/net8.0/SharpCAT2.ServerConsole.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/Server",
+            "cwd": "${workspaceFolder}/src/SharpCAT2.ServerConsole",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
@@ -19,11 +19,26 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build-client",
-            "program": "${workspaceFolder}/Client/bin/Debug/net8.0/SharpCAT2.Client.dll",
+            "program": "${workspaceFolder}/src/SharpCAT2.ClientConsole/bin/Debug/net8.0/SharpCAT2.ClientConsole.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/Client",
+            "cwd": "${workspaceFolder}/src/SharpCAT2.ClientConsole",
             "stopAtEntry": false,
             "console": "internalConsole"
+        },
+        {
+            // Debug configuration for the SharpCAT2 WebApi
+            "name": "Launch WebApi",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/SharpCAT2.WebApi/bin/Debug/net8.0/SharpCAT2.WebApi.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/SharpCAT2.WebApi",
+            "stopAtEntry": false,
+            "console": "internalConsole",
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
         },
         {
             // Legacy configuration for backward compatibility
@@ -31,9 +46,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/Server/bin/Debug/net8.0/Server.dll",
+            "program": "${workspaceFolder}/src/SharpCAT2.ServerConsole/bin/Debug/net8.0/SharpCAT2.ServerConsole.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/Server",
+            "cwd": "${workspaceFolder}/src/SharpCAT2.ServerConsole",
             "stopAtEntry": false,
             "console": "internalConsole"
         }

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using SharpCAT2.Common.Serial;
 
-namespace SharpCAT2.Console;
+namespace SharpCAT2.ServerConsole;
 
 /// <summary>
 /// Handles serial port selection and validation logic.

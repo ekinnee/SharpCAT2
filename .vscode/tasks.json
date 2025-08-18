@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/Server/Server.csproj"
+                "${workspaceFolder}/src/SharpCAT2.ServerConsole/SharpCAT2.ServerConsole.csproj"
             ],
             "problemMatcher": "$msCompile",
             "group": {
@@ -21,7 +21,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/Client/Client.csproj"
+                "${workspaceFolder}/src/SharpCAT2.ClientConsole/SharpCAT2.ClientConsole.csproj"
             ],
             "problemMatcher": "$msCompile",
             "group": {
@@ -49,7 +49,9 @@
             "type": "process",
             "args": [
                 "test",
-                "${workspaceFolder}/Server/Server.csproj"
+                "${workspaceFolder}/tests/SharpCAT2.Tests/SharpCAT2.Tests.csproj",
+                "--filter",
+                "FullyQualifiedName~Server"
             ],
             "problemMatcher": "$msCompile",
             "group": {
@@ -63,7 +65,9 @@
             "type": "process",
             "args": [
                 "test",
-                "${workspaceFolder}/Client/Client.csproj"
+                "${workspaceFolder}/tests/SharpCAT2.Tests/SharpCAT2.Tests.csproj",
+                "--filter",
+                "FullyQualifiedName~Client"
             ],
             "problemMatcher": "$msCompile",
             "group": {
