@@ -26,21 +26,6 @@
             "console": "internalConsole"
         },
         {
-            // Debug configuration for the SharpCAT2 WebApi
-            "name": "Launch WebApi",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/SharpCAT2.WebApi/bin/Debug/net8.0/SharpCAT2.WebApi.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/src/SharpCAT2.WebApi",
-            "stopAtEntry": false,
-            "console": "internalConsole",
-            "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
-            }
-        },
-        {
             // Legacy configuration for backward compatibility
             "name": ".NET Launch (console)",
             "type": "coreclr",

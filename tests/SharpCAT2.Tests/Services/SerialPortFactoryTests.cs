@@ -4,7 +4,7 @@ using SharpCAT2.Common.Serial;
 namespace SharpCAT2.Tests.Services;
 
 /// <summary>
-/// Unit tests for SerialPortFactory methods used by WebApi
+/// Unit tests for SerialPortFactory methods
 /// </summary>
 public class SerialPortFactoryTests
 {

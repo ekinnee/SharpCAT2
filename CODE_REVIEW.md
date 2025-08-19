@@ -298,7 +298,6 @@ The architecture has been completely refactored to address design concerns:
 - [ ] **Plugin Architecture**: Design extensible plugin system for custom radio protocols
 - [ ] **Telemetry Integration**: Add configurable telemetry for production monitoring
 - [ ] **Configuration Framework**: Enhanced validation and management for complex setups
-- [ ] **Mobile/Web Interface**: Consider REST API for web-based radio control interfaces
 
 ---
 
