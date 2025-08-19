@@ -441,6 +441,11 @@ public class ServerApplication
                     await SendRadioListResponseAsync(networkStream);
                     return true;
                     
+                case "list-serialports":
+                case "get-serialports":
+                    await SendSerialPortListResponseAsync(networkStream);
+                    return true;
+                    
                 case "set-radio":
                     if (parts.Length >= 2)
                     {
@@ -494,6 +499,35 @@ public class ServerApplication
         catch (Exception ex)
         {
             await SendTcpResponseAsync(networkStream, $"ERROR: Failed to get radio list - {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Sends the available serial port list as a response
+    /// </summary>
+    private async Task SendSerialPortListResponseAsync(System.Net.Sockets.NetworkStream networkStream)
+    {
+        try
+        {
+            var response = new System.Text.StringBuilder();
+            response.AppendLine("SERIALPORT_LIST_START");
+            
+            var realPorts = SerialPortFactory.GetAvailablePortNames();
+            var fakePorts = new[] { "FAKE" }; // Only FAKE is supported as fake port
+            var allPorts = realPorts.Concat(fakePorts).OrderBy(p => p);
+            
+            foreach (var port in allPorts)
+            {
+                response.AppendLine($"{port}");
+            }
+            
+            response.AppendLine("SERIALPORT_LIST_END");
+            
+            await SendTcpResponseAsync(networkStream, response.ToString());
+        }
+        catch (Exception ex)
+        {
+            await SendTcpResponseAsync(networkStream, $"ERROR: Failed to get serial port list - {ex.Message}");
         }
     }
 

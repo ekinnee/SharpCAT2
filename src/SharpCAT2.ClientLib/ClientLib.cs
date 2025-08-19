@@ -234,6 +234,15 @@ public class SharpCAT2Client : IDisposable
     }
 
     /// <summary>
+    /// Gets available serial ports from the server
+    /// </summary>
+    /// <returns>Response with available serial ports</returns>
+    public async Task<string?> GetAvailableSerialPortsAsync()
+    {
+        return await SendCommandAsync("list-serialports");
+    }
+
+    /// <summary>
     /// Sets the active radio on the server
     /// </summary>
     /// <param name="radioName">Name of the radio to set (e.g., "Kenwood TS-2000")</param>

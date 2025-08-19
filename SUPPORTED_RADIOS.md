@@ -165,6 +165,91 @@ dotnet run -- --port COM1 --radio "Kenwood TS-2000"
 dotnet run -- --port /dev/ttyUSB0 --auto-detect
 ```
 
+## API Reference
+
+SharpCAT2 provides unified resource listing APIs for all clients to access available radios and serial ports.
+
+### WebAPI Endpoints
+
+#### GET /api/radios
+Returns list of all supported radio models in a structured format.
+
+**Response Format:**
+```json
+[
+  {
+    "manufacturer": "Kenwood",
+    "model": "TS-2000"
+  },
+  {
+    "manufacturer": "Elecraft", 
+    "model": "K3"
+  }
+]
+```
+
+**Example:**
+```bash
+curl http://localhost:5280/api/radios
+```
+
+#### GET /api/serialports
+Returns list of all available serial ports including the 'FAKE' test port.
+
+**Response Format:**
+```json
+[
+  "COM1",
+  "/dev/ttyUSB0", 
+  "FAKE"
+]
+```
+
+**Example:**
+```bash
+curl http://localhost:5280/api/serialports
+```
+
+### Protocol Commands
+
+#### LIST_RADIOS
+Available via ClientLib and ClientConsole for retrieving radio models through TCP protocol.
+
+**ClientLib Usage:**
+```csharp
+var client = new SharpCAT2Client("localhost", 8080);
+await client.ConnectAsync();
+string radioList = await client.GetAvailableRadiosAsync();
+```
+
+**ClientConsole Usage:**
+```bash
+list-radios
+radios          # Alternative command
+```
+
+#### LIST_SERIALPORTS
+Available via ClientLib and ClientConsole for retrieving serial ports through TCP protocol.
+
+**ClientLib Usage:**
+```csharp
+var client = new SharpCAT2Client("localhost", 8080);
+await client.ConnectAsync();
+string portList = await client.GetAvailableSerialPortsAsync();
+```
+
+**ClientConsole Usage:**
+```bash
+list-serialports
+serialports     # Alternative command
+```
+
+### Serial Port Support
+
+- **Real Ports**: Automatically detected system serial ports (COM1, /dev/ttyUSB0, etc.)
+- **Test Port**: Only 'FAKE' is supported as a fake/simulation port
+- **Removed**: DUMMY, TEST, and SIMULATION ports are no longer exposed
+
 ## Extension Guide
 
 ### Adding New Radio Models
