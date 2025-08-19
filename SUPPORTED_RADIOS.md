@@ -167,48 +167,7 @@ dotnet run -- --port /dev/ttyUSB0 --auto-detect
 
 ## API Reference
 
-SharpCAT2 provides unified resource listing APIs for all clients to access available radios and serial ports.
-
-### WebAPI Endpoints
-
-#### GET /api/radios
-Returns list of all supported radio models in a structured format.
-
-**Response Format:**
-```json
-[
-  {
-    "manufacturer": "Kenwood",
-    "model": "TS-2000"
-  },
-  {
-    "manufacturer": "Elecraft", 
-    "model": "K3"
-  }
-]
-```
-
-**Example:**
-```bash
-curl http://localhost:5280/api/radios
-```
-
-#### GET /api/serialports
-Returns list of all available serial ports including the 'FAKE' test port.
-
-**Response Format:**
-```json
-[
-  "COM1",
-  "/dev/ttyUSB0", 
-  "FAKE"
-]
-```
-
-**Example:**
-```bash
-curl http://localhost:5280/api/serialports
-```
+SharpCAT2 provides unified resource listing APIs for clients to access available radios and serial ports through the TCP protocol.
 
 ### Protocol Commands
 

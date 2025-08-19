@@ -4,10 +4,8 @@ A cross-platform .NET serial port communication server application that provides
 
 ## Features
 
-- **Modular Architecture**: Four distinct applications sharing a common core library
+- **Modular Architecture**: Two main applications sharing a common core library
   - **SharpCAT2.ServerConsole**: Command-line application for direct radio control
-  - **SharpCAT2.WebApi**: HTTP REST API for web-based radio control and integration  
-  - **SharpCAT2.WebClient**: Modern web-based client application with responsive GUI
   - **SharpCAT2.ClientConsole**: Remote client for TCP-based communication
 - **Cross-Platform Support**: Works on Windows, Linux, and macOS
 - **Platform-Specific Guidance**: Automatic detection of operating system with appropriate port naming conventions
@@ -15,8 +13,6 @@ A cross-platform .NET serial port communication server application that provides
 - **Interactive Port Selection**: Smart port discovery and selection
 - **Command-Line Interface**: Flexible command-line options for automation and scripting
 - **TCP Server**: Remote client access via TCP connections
-- **REST API**: Full HTTP REST API with endpoints for radio status, control, and configuration
-- **Web Client**: Modern Blazor web application for browser-based radio control
 - **Client Library**: .NET library for programmatic access to remote serial ports
 - **Client Console App**: Interactive console application for remote serial communication
 - **Radio Support**: Built-in support for 29+ popular amateur radio models with CAT (Computer Aided Transceiver) control
@@ -65,20 +61,6 @@ dotnet run
 dotnet run -- --host 192.168.1.100 --port 8080
 ```
 
-### Web Client (Browser-Based Control)
-
-```bash
-# Start the WebApi first
-cd SharpCAT2.WebApi  
-dotnet run
-
-# In another terminal, start the Web Client
-cd SharpCAT2.WebClient
-dotnet run
-
-# Open browser to https://localhost:5027 (or URL shown in console)
-# Configure WebApi URL in web interface if needed
-```
 
 ## Building and Running
 
@@ -469,11 +451,6 @@ SharpCAT2/
 │   │   ├── PortSelector.cs       # Serial port selection utilities
 │   │   ├── server_config.sample.json # Default server configuration
 │   │   └── SharpCAT2.Console.csproj # Console project file
-│   ├── SharpCAT2.WebApi/         # Web API application
-│   │   ├── Controllers/          # API controllers
-│   │   │   └── RadioController.cs # Radio operations REST API
-│   │   ├── Program.cs            # Web API startup with Core services DI
-│   │   └── SharpCAT2.WebApi.csproj # Web API project file
 │   ├── SharpCAT2.Client/         # Client console application
 │   │   ├── ClientCommandProcessor.cs # Command processing logic
 │   │   ├── ClientConstants.cs    # Client application constants
@@ -505,12 +482,6 @@ SharpCAT2/
 │   │   │   ├── SerialPortFactory.cs # Factory for creating serial port instances
 │   │   │   └── ResilientSerialPort.cs # Resilient serial port with retry logic
 │   │   └── SharpCAT2.Common.csproj # Common library project file
-│   └── SharpCAT2.WebClient/      # Blazor Server web client
-│       ├── Components/           # Blazor components
-│       │   ├── Layout/           # Layout components
-│       │   └── Pages/            # Page components
-│       ├── Services/             # Web client services
-│       └── SharpCAT2.WebClient.csproj # Web client project file
 ├── tests/                        # Test projects
 │   └── SharpCAT2.Tests/          # Comprehensive test suite
 │       ├── Services/             # Service layer tests
@@ -645,21 +616,7 @@ dotnet run
 dotnet run -- --host 192.168.1.100 --port 8080
 ```
 
-**Web API:**
-```bash
-# Run the Web API
-cd src/SharpCAT2.WebApi
-dotnet run
-# Access at https://localhost:5001/swagger
-```
 
-**Web Client:**
-```bash
-# Run the Blazor web client
-cd src/SharpCAT2.WebClient
-dotnet run
-# Access at https://localhost:5001
-```
 
 ### Development Environment
 
