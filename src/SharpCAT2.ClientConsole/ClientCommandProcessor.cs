@@ -78,16 +78,9 @@ public class ClientCommandProcessor
     /// </summary>
     private async Task<CommandProcessingResult> HandleRadioStatusCommandAsync()
     {
-        string? radioStatus = await _client.GetRadioStatusAsync();
-        if (radioStatus != null)
-        {
-            Console.WriteLine(radioStatus);
-        }
-        else
-        {
-            Console.WriteLine("Failed to get radio status");
-        }
-        return new CommandProcessingResult(true, false);
+        return await HandleClientCommandAsync(
+            () => _client.GetRadioStatusAsync(), 
+            "Failed to get radio status");
     }
 
     /// <summary>
@@ -95,16 +88,9 @@ public class ClientCommandProcessor
     /// </summary>
     private async Task<CommandProcessingResult> HandleListRadiosCommandAsync()
     {
-        string? radioList = await _client.GetAvailableRadiosAsync();
-        if (radioList != null)
-        {
-            Console.WriteLine(radioList);
-        }
-        else
-        {
-            Console.WriteLine("Failed to get radio list");
-        }
-        return new CommandProcessingResult(true, false);
+        return await HandleClientCommandAsync(
+            () => _client.GetAvailableRadiosAsync(), 
+            "Failed to get radio list");
     }
 
     /// <summary>
@@ -112,16 +98,9 @@ public class ClientCommandProcessor
     /// </summary>
     private async Task<CommandProcessingResult> HandleListSerialPortsCommandAsync()
     {
-        string? serialPortList = await _client.GetAvailableSerialPortsAsync();
-        if (serialPortList != null)
-        {
-            Console.WriteLine(serialPortList);
-        }
-        else
-        {
-            Console.WriteLine("Failed to get serial port list");
-        }
-        return new CommandProcessingResult(true, false);
+        return await HandleClientCommandAsync(
+            () => _client.GetAvailableSerialPortsAsync(), 
+            "Failed to get serial port list");
     }
 
     /// <summary>
@@ -129,16 +108,9 @@ public class ClientCommandProcessor
     /// </summary>
     private async Task<CommandProcessingResult> HandleCurrentRadioCommandAsync()
     {
-        string? currentRadio = await _client.GetCurrentRadioAsync();
-        if (currentRadio != null)
-        {
-            Console.WriteLine(currentRadio);
-        }
-        else
-        {
-            Console.WriteLine("Failed to get current radio");
-        }
-        return new CommandProcessingResult(true, false);
+        return await HandleClientCommandAsync(
+            () => _client.GetCurrentRadioAsync(), 
+            "Failed to get current radio");
     }
 
     /// <summary>
@@ -149,27 +121,45 @@ public class ClientCommandProcessor
         string radioName = ExtractRadioNameFromSetCommand(input);
         if (!string.IsNullOrWhiteSpace(radioName))
         {
-            string? result = await _client.SetRadioAsync(radioName);
-            if (result != null)
-            {
-                Console.WriteLine(result);
-            }
-            else
-            {
-                Console.WriteLine("Failed to set radio");
-            }
+            return await HandleClientCommandAsync(
+                () => _client.SetRadioAsync(radioName), 
+                "Failed to set radio");
         }
         else
         {
             Console.WriteLine("Usage: set-radio <manufacturer> <model>");
             Console.WriteLine("Example: set-radio Kenwood TS-2000");
+            return new CommandProcessingResult(true, false);
         }
-        return new CommandProcessingResult(true, false);
     }
 
     #endregion
 
     #region Helper Methods
+
+    /// <summary>
+    /// Generic helper for handling client commands that return a string result.
+    /// Reduces code duplication for commands that follow the pattern:
+    /// call client method -> print result or failure message -> return CommandProcessingResult
+    /// </summary>
+    /// <param name="clientOperation">The async client operation to execute</param>
+    /// <param name="failureMessage">Message to display if the operation returns null</param>
+    /// <returns>CommandProcessingResult indicating the command was handled locally</returns>
+    private static async Task<CommandProcessingResult> HandleClientCommandAsync(
+        Func<Task<string?>> clientOperation, 
+        string failureMessage)
+    {
+        string? result = await clientOperation();
+        if (result != null)
+        {
+            Console.WriteLine(result);
+        }
+        else
+        {
+            Console.WriteLine(failureMessage);
+        }
+        return new CommandProcessingResult(true, false);
+    }
 
     /// <summary>
     /// Extracts radio name from set-radio command
@@ -179,10 +169,9 @@ public class ClientCommandProcessor
     private static string ExtractRadioNameFromSetCommand(string input)
     {
         const string prefix = "set-radio ";
-        if (input.Length <= prefix.Length)
-            return string.Empty;
-            
-        return input.Substring(prefix.Length).Trim();
+        return input.Length > prefix.Length 
+            ? input[prefix.Length..].Trim() 
+            : string.Empty;
     }
 
     /// <summary>
