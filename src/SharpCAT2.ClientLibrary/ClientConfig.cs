@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace SharpCAT2.ClientLib;
+namespace SharpCAT2.ClientLibrary;
 
 /// <summary>
 /// Configuration for the SharpCAT2 Client application

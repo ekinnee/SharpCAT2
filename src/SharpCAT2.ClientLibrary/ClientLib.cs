@@ -3,7 +3,7 @@ using System.Text;
 using SharpCAT2.Core.Radio;
 using SharpCAT2.Core.Utils;
 
-namespace SharpCAT2.ClientLib;
+namespace SharpCAT2.ClientLibrary;
 
 /// <summary>
 /// Client library for communicating with SharpCAT2 server over TCP

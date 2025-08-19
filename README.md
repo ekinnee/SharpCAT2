@@ -148,7 +148,7 @@ The fake port provides:
 
 ### Client Library and Application
 
-The client library (`SharpCAT2.ClientLib`) provides methods for connecting to the SharpCAT2 server over TCP and sending commands to the remote serial port. The client console application provides an interactive interface.
+The client library (`SharpCAT2.ClientLibrary`) provides methods for connecting to the SharpCAT2 server over TCP and sending commands to the remote serial port. The client console application provides an interactive interface.
 
 #### Building the Client
 
@@ -157,7 +157,7 @@ The client library (`SharpCAT2.ClientLib`) provides methods for connecting to th
 cd Client
 
 # Build the client library
-dotnet build SharpCAT2.ClientLib.csproj
+dotnet build SharpCAT2.ClientLibrary.csproj
 
 # Build the client console application
 dotnet build Client.csproj
@@ -457,10 +457,10 @@ SharpCAT2/
 │   │   ├── Program.cs            # Client console application
 │   │   ├── client_config.sample.json # Default client configuration
 │   │   └── SharpCAT2.Client.csproj # Client console app project file
-│   ├── SharpCAT2.ClientLib/      # Client library for remote communication
+│   ├── SharpCAT2.ClientLibrary/      # Client library for remote communication
 │   │   ├── ClientLib.cs          # Client library implementation
 │   │   ├── ClientConfig.cs       # Client configuration management
-│   │   └── SharpCAT2.ClientLib.csproj # Client library project file
+│   │   └── SharpCAT2.ClientLibrary.csproj # Client library project file
 │   ├── SharpCAT2.Common/         # Shared library with radio models and serial abstraction
 │   │   ├── Radio/                # Radio support library
 │   │   │   ├── RadioFactory.cs   # Dynamic radio creation and discovery
