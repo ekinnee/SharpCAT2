@@ -771,15 +771,5 @@ public class ServerApplication
         }
     }
 
-    /// <summary>
-    /// Validates if the provided baud rate is supported
-    /// </summary>
-    /// <param name="baudRate">Baud rate to validate</param>
-    /// <returns>True if baud rate is supported</returns>
-    private bool IsValidBaudRate(int baudRate)
-    {
-        return Constants.SupportedBaudRates.Contains(baudRate);
-    }
-
     #endregion
 }
