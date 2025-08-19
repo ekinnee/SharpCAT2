@@ -172,9 +172,9 @@ SharpCAT2 provides unified resource listing APIs for clients to access available
 ### Protocol Commands
 
 #### LIST_RADIOS
-Available via ClientLib and ClientConsole for retrieving radio models through TCP protocol.
+Available via ClientLibrary and ClientConsole for retrieving radio models through TCP protocol.
 
-**ClientLib Usage:**
+**ClientLibrary Usage:**
 ```csharp
 var client = new SharpCAT2Client("localhost", 8080);
 await client.ConnectAsync();
@@ -188,9 +188,9 @@ radios          # Alternative command
 ```
 
 #### LIST_SERIALPORTS
-Available via ClientLib and ClientConsole for retrieving serial ports through TCP protocol.
+Available via ClientLibrary and ClientConsole for retrieving serial ports through TCP protocol.
 
-**ClientLib Usage:**
+**ClientLibrary Usage:**
 ```csharp
 var client = new SharpCAT2Client("localhost", 8080);
 await client.ConnectAsync();

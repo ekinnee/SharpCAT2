@@ -1,4 +1,4 @@
-using SharpCAT2.ClientLib;
+using SharpCAT2.ClientLibrary;
 
 namespace SharpCAT2.ClientConsole;
 

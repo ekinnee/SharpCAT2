@@ -1,5 +1,5 @@
 using SharpCAT2.Core.Configuration;
-using SharpCAT2.ClientLib;
+using SharpCAT2.ClientLibrary;
 using Xunit;
 
 namespace SharpCAT2.Tests.Configuration;
