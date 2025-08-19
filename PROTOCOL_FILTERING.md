@@ -2,11 +2,11 @@
 
 ## Overview
 
-The SharpCAT2 ClientLibrary now includes an internal protocol marker filtering system that automatically removes server protocol markers from list responses, providing clean, user-friendly data to consuming applications.
+The SharpCAT2 ClientLibrary now includes an internal protocol marker filtering system that automatically removes server protocol markers from list responses and provides clean radio names without numerical suffixes, delivering user-friendly data to consuming applications.
 
 ## Problem Solved
 
-Previously, methods like `GetAvailableRadiosAsync()` and `GetAvailableSerialPortsAsync()` returned raw server responses that included protocol markers:
+Previously, methods like `GetAvailableRadiosAsync()` and `GetAvailableSerialPortsAsync()` returned raw server responses that included protocol markers and numerical suffixes:
 
 ```
 RADIO_LIST_START
@@ -15,7 +15,7 @@ Yaesu FT-991A|22
 RADIO_LIST_END
 ```
 
-This required every consumer (ClientConsole, custom applications) to manually filter out these markers to get clean data. This refactoring moves that responsibility into the ClientLibrary itself.
+This required every consumer (ClientConsole, custom applications) to manually filter out these markers and parse radio names from the entries. This refactoring moves that responsibility into the ClientLibrary itself and provides clean radio names by default.
 
 ## How It Works
 
@@ -24,7 +24,7 @@ This required every consumer (ClientConsole, custom applications) to manually fi
 The `ProtocolListFilter` static class handles all protocol marker filtering:
 
 ```csharp
-// Filters radio lists
+// Filters radio lists (retains full entries with numerical suffixes)
 string cleanRadios = ProtocolListFilter.FilterRadioList(serverResponse);
 
 // Filters serial port lists
@@ -32,11 +32,17 @@ string cleanPorts = ProtocolListFilter.FilterSerialPortList(serverResponse);
 
 // Generic filtering for extensibility
 string cleanList = ProtocolListFilter.FilterList(response, ListType.Radios);
+
+// Parse clean radio names (removes numerical suffixes)
+string[] radioNames = ProtocolListFilter.ParseRadioNames(cleanRadios);
+
+// Parse full radio entries (keeps numerical suffixes)
+string[] radioEntries = ProtocolListFilter.ParseRadioEntries(cleanRadios);
 ```
 
 ### Automatic Integration
 
-ClientLibrary methods now automatically apply filtering:
+ClientLibrary methods now automatically apply filtering and return clean radio names:
 
 ```csharp
 // Before refactoring
@@ -49,7 +55,11 @@ public async Task<string?> GetAvailableRadiosAsync()
 public async Task<string?> GetAvailableRadiosAsync()
 {
     var protocolResponse = await SendCommandAsync("list-radios");
-    return ProtocolListFilter.FilterRadioList(protocolResponse); // Clean response
+    var filteredResponse = ProtocolListFilter.FilterRadioList(protocolResponse);
+    
+    // Convert to clean radio names and rejoin as string
+    var radioNames = ProtocolListFilter.ParseRadioNames(filteredResponse);
+    return radioNames.Length > 0 ? string.Join("\n", radioNames) : string.Empty;
 }
 ```
 
@@ -57,12 +67,13 @@ public async Task<string?> GetAvailableRadiosAsync()
 
 ### Modified Methods
 
-- `GetAvailableRadiosAsync()` - Now returns clean radio list without protocol markers
+- `GetAvailableRadiosAsync()` - Now returns clean radio list without protocol markers or numerical suffixes
 - `GetAvailableSerialPortsAsync()` - Now returns clean port list without protocol markers
 
 ### New Methods
 
-- `GetAvailableRadioEntriesAsync()` - Returns parsed radio entries as string array
+- `GetAvailableRadioEntriesAsync()` - Returns parsed radio names as string array (clean names only)
+- `GetAvailableRadioFullEntriesAsync()` - Returns full radio entries with feature counts as string array
 - `GetAvailableSerialPortEntriesAsync()` - Returns parsed port entries as string array
 
 ### Example Usage
@@ -71,18 +82,26 @@ public async Task<string?> GetAvailableRadiosAsync()
 var client = new SharpCAT2Client("localhost", 8080);
 await client.ConnectAsync();
 
-// Get clean string response (no protocol markers)
+// Get clean string response (no protocol markers, no numerical suffixes)
 string radioList = await client.GetAvailableRadiosAsync();
 Console.WriteLine(radioList);
 // Output:
-// Kenwood TS-2000|25
-// Yaesu FT-991A|22
+// Kenwood TS-2000
+// Yaesu FT-991A
 
-// Get parsed array for programmatic use
+// Get parsed array for programmatic use (clean names only)
 string[] radios = await client.GetAvailableRadioEntriesAsync();
 foreach (var radio in radios)
 {
     Console.WriteLine($"Radio: {radio}");
+}
+
+// Get full entries with feature counts for detailed programmatic use
+string[] fullRadios = await client.GetAvailableRadioFullEntriesAsync();
+foreach (var radio in fullRadios)
+{
+    Console.WriteLine($"Radio with features: {radio}");
+    // Output: "Radio with features: Kenwood TS-2000|25"
 }
 ```
 

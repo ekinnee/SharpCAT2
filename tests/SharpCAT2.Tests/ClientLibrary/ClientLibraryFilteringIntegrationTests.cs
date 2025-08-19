@@ -74,6 +74,19 @@ public class ClientLibraryFilteringIntegrationTests
     }
 
     [Fact]
+    public void GetAvailableRadioFullEntriesAsync_MethodExists_WithCorrectSignature()
+    {
+        // Arrange
+        var client = new SharpCAT2Client("localhost", 8080);
+
+        // Act & Assert
+        var method = typeof(SharpCAT2Client).GetMethod("GetAvailableRadioFullEntriesAsync");
+        Assert.NotNull(method);
+        Assert.Equal(typeof(Task<string[]>), method.ReturnType);
+        Assert.Empty(method.GetParameters());
+    }
+
+    [Fact]
     public void GetAvailableSerialPortEntriesAsync_MethodExists_WithCorrectSignature()
     {
         // Arrange
@@ -161,6 +174,25 @@ Icom IC-7300|20";
         Assert.Equal("Kenwood TS-2000|25", radioEntries[0]);
         Assert.Equal("Yaesu FT-991A|22", radioEntries[1]);
         Assert.Equal("Icom IC-7300|20", radioEntries[2]);
+    }
+
+    [Fact]
+    public void ProtocolListFilter_RadioNameParsing_ExtractsCleanNames()
+    {
+        // Arrange - Radio list with feature counts (|25, |22, |20)
+        var filteredRadioList = @"Kenwood TS-2000|25
+Yaesu FT-991A|22
+Icom IC-7300|20";
+
+        // Act
+        var radioNames = ProtocolListFilter.ParseRadioNames(filteredRadioList);
+
+        // Assert - Should get clean names without numerical suffix
+        Assert.NotNull(radioNames);
+        Assert.Equal(3, radioNames.Length);
+        Assert.Equal("Kenwood TS-2000", radioNames[0]);
+        Assert.Equal("Yaesu FT-991A", radioNames[1]);
+        Assert.Equal("Icom IC-7300", radioNames[2]);
     }
 
     [Fact]

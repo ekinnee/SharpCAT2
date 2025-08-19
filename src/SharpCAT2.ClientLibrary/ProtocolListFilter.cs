@@ -63,6 +63,7 @@ public static class ProtocolListFilter
     /// <summary>
     /// Filters a radio list response, returning only the radio entries without protocol markers.
     /// Each line contains radio information in the format: "Manufacturer Model|FeatureCount"
+    /// For clean radio names without the numerical suffix, use ParseRadioNames() on the result.
     /// </summary>
     /// <param name="protocolResponse">Raw protocol response containing radio list</param>
     /// <returns>Clean radio list without markers, or empty string if no valid list found</returns>
@@ -98,6 +99,41 @@ public static class ProtocolListFilter
             .Select(line => line.Trim())
             .Where(line => !string.IsNullOrWhiteSpace(line))
             .ToArray();
+    }
+
+    /// <summary>
+    /// Parses a filtered radio list into clean radio names, removing the numerical suffix.
+    /// This provides user-friendly radio names without feature count information.
+    /// </summary>
+    /// <param name="filteredRadioList">Filtered radio list (output from FilterRadioList)</param>
+    /// <returns>Array of clean radio names (e.g., "Kenwood TS-2000" instead of "Kenwood TS-2000|25")</returns>
+    public static string[] ParseRadioNames(string? filteredRadioList)
+    {
+        if (string.IsNullOrWhiteSpace(filteredRadioList))
+            return Array.Empty<string>();
+
+        return filteredRadioList
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Select(ExtractRadioName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Extracts the clean radio name from a radio entry, removing any numerical suffix.
+    /// Converts "Kenwood TS-2000|25" to "Kenwood TS-2000".
+    /// </summary>
+    /// <param name="radioEntry">Radio entry that may contain numerical suffix</param>
+    /// <returns>Clean radio name without numerical suffix</returns>
+    private static string ExtractRadioName(string radioEntry)
+    {
+        if (string.IsNullOrWhiteSpace(radioEntry))
+            return string.Empty;
+
+        var pipeIndex = radioEntry.IndexOf('|');
+        return pipeIndex == -1 ? radioEntry.Trim() : radioEntry.Substring(0, pipeIndex).Trim();
     }
 
     /// <summary>

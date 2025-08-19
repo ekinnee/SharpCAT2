@@ -227,11 +227,15 @@ public class SharpCAT2Client : IDisposable
     /// <summary>
     /// Gets available radio models from the server
     /// </summary>
-    /// <returns>Clean radio list without protocol markers, containing only radio model information</returns>
+    /// <returns>Clean radio list without protocol markers, containing only radio names (without numerical suffixes)</returns>
     public async Task<string?> GetAvailableRadiosAsync()
     {
         var protocolResponse = await SendCommandAsync("list-radios");
-        return ProtocolListFilter.FilterRadioList(protocolResponse);
+        var filteredResponse = ProtocolListFilter.FilterRadioList(protocolResponse);
+        
+        // Convert to clean radio names and rejoin as string
+        var radioNames = ProtocolListFilter.ParseRadioNames(filteredResponse);
+        return radioNames.Length > 0 ? string.Join("\n", radioNames) : string.Empty;
     }
 
     /// <summary>
@@ -247,11 +251,22 @@ public class SharpCAT2Client : IDisposable
     /// <summary>
     /// Gets available radio models from the server as a parsed array
     /// </summary>
-    /// <returns>Array of radio entries, each containing "Manufacturer Model|FeatureCount"</returns>
+    /// <returns>Array of clean radio names (e.g., "Kenwood TS-2000" without numerical suffixes)</returns>
     public async Task<string[]> GetAvailableRadioEntriesAsync()
     {
         var radioList = await GetAvailableRadiosAsync();
-        return ProtocolListFilter.ParseRadioEntries(radioList);
+        return ProtocolListFilter.ParseRadioNames(radioList);
+    }
+
+    /// <summary>
+    /// Gets available radio models from the server as a parsed array with full entries
+    /// </summary>
+    /// <returns>Array of radio entries, each containing "Manufacturer Model|FeatureCount"</returns>
+    public async Task<string[]> GetAvailableRadioFullEntriesAsync()
+    {
+        var protocolResponse = await SendCommandAsync("list-radios");
+        var filteredResponse = ProtocolListFilter.FilterRadioList(protocolResponse);
+        return ProtocolListFilter.ParseRadioEntries(filteredResponse);
     }
 
     /// <summary>

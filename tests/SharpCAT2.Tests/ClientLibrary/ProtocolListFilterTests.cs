@@ -271,6 +271,96 @@ Icom IC-7300|20";
     }
 
     [Fact]
+    public void ParseRadioNames_ValidInput_ReturnsCleanNames()
+    {
+        // Arrange
+        var filteredList = @"Kenwood TS-2000|25
+Yaesu FT-991A|22
+Icom IC-7300|20";
+
+        // Act
+        var result = ProtocolListFilter.ParseRadioNames(filteredList);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Length);
+        Assert.Equal("Kenwood TS-2000", result[0]);
+        Assert.Equal("Yaesu FT-991A", result[1]);
+        Assert.Equal("Icom IC-7300", result[2]);
+    }
+
+    [Fact]
+    public void ParseRadioNames_EntriesWithoutSuffix_ReturnsAsIs()
+    {
+        // Arrange
+        var filteredList = @"Kenwood TS-2000
+Yaesu FT-991A
+Icom IC-7300";
+
+        // Act
+        var result = ProtocolListFilter.ParseRadioNames(filteredList);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Length);
+        Assert.Equal("Kenwood TS-2000", result[0]);
+        Assert.Equal("Yaesu FT-991A", result[1]);
+        Assert.Equal("Icom IC-7300", result[2]);
+    }
+
+    [Fact]
+    public void ParseRadioNames_MixedFormat_ReturnsCleanNames()
+    {
+        // Arrange
+        var filteredList = @"Kenwood TS-2000|25
+Yaesu FT-991A
+Icom IC-7300|20";
+
+        // Act
+        var result = ProtocolListFilter.ParseRadioNames(filteredList);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Length);
+        Assert.Equal("Kenwood TS-2000", result[0]);
+        Assert.Equal("Yaesu FT-991A", result[1]);
+        Assert.Equal("Icom IC-7300", result[2]);
+    }
+
+    [Fact]
+    public void ParseRadioNames_EmptyInput_ReturnsEmptyArray()
+    {
+        // Act
+        var result = ProtocolListFilter.ParseRadioNames("");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ParseRadioNames_NullInput_ReturnsEmptyArray()
+    {
+        // Act
+        var result = ProtocolListFilter.ParseRadioNames(null);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ParseRadioNames_WhitespaceInput_ReturnsEmptyArray()
+    {
+        // Act
+        var result = ProtocolListFilter.ParseRadioNames("   \n  \t  ");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
     public void ParsePortEntries_ValidInput_ReturnsArray()
     {
         // Arrange
