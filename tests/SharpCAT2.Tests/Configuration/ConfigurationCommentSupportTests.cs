@@ -7,13 +7,45 @@ namespace SharpCAT2.Tests.Configuration;
 /// <summary>
 /// Tests for JSON configuration file comment support using Newtonsoft.Json
 /// </summary>
-public class ConfigurationCommentSupportTests
+public class ConfigurationCommentSupportTests : IDisposable
 {
+    private readonly TestConfigPathHelper _pathHelper;
+
+    public ConfigurationCommentSupportTests()
+    {
+        _pathHelper = new TestConfigPathHelper();
+        SetupTestFiles();
+    }
+
+    private void SetupTestFiles()
+    {
+        // Create test configuration files with comments
+        var serverConfigContent = @"{
+  // Server configuration with comments
+  ""SerialPort"": ""COM3"",
+  ""Radio"": ""Kenwood TS-2000"",
+  ""BaudRate"": 57600,
+  ""TcpPort"": 8888,
+  ""AutoDetectRadio"": false
+  /* This is a block comment for testing */
+}";
+
+        var clientConfigContent = @"{
+  // Client configuration with comments
+  ""ServerHost"": ""192.168.1.100"",
+  ""ServerPort"": 9090
+  /* Block comment test */
+}";
+
+        File.WriteAllText(_pathHelper.GetTestConfigPath("server_config_with_comments.json"), serverConfigContent);
+        File.WriteAllText(_pathHelper.GetTestConfigPath("client_config_with_comments.json"), clientConfigContent);
+    }
+
     [Fact]
     public async Task ServerConfig_LoadAsync_ShouldParseFileWithComments()
     {
         // Arrange
-        var testConfigPath = "/tmp/config_tests/server_config_with_comments.json";
+        var testConfigPath = _pathHelper.GetTestConfigPath("server_config_with_comments.json");
         
         // Act
         var config = await ServerConfig.LoadAsync(testConfigPath);
@@ -31,7 +63,7 @@ public class ConfigurationCommentSupportTests
     public async Task ClientConfig_LoadAsync_ShouldParseFileWithComments()
     {
         // Arrange
-        var testConfigPath = "/tmp/config_tests/client_config_with_comments.json";
+        var testConfigPath = _pathHelper.GetTestConfigPath("client_config_with_comments.json");
         
         // Act
         var config = await ClientConfig.LoadAsync(testConfigPath);
@@ -46,7 +78,7 @@ public class ConfigurationCommentSupportTests
     public async Task ServerConfig_SaveAndLoadRoundTrip_ShouldPreserveData()
     {
         // Arrange
-        var testConfigPath = "/tmp/config_tests/server_roundtrip_test.json";
+        var testConfigPath = _pathHelper.GetTestConfigPath("server_roundtrip_test.json");
         var originalConfig = new ServerConfig
         {
             SerialPort = "COM5",
@@ -70,17 +102,13 @@ public class ConfigurationCommentSupportTests
         Assert.Equal(originalConfig.BaudRate, loadedConfig.BaudRate);
         Assert.Equal(originalConfig.TcpPort, loadedConfig.TcpPort);
         Assert.Equal(originalConfig.AutoDetectRadio, loadedConfig.AutoDetectRadio);
-        
-        // Cleanup
-        if (File.Exists(testConfigPath))
-            File.Delete(testConfigPath);
     }
     
     [Fact]
     public async Task ClientConfig_SaveAndLoadRoundTrip_ShouldPreserveData()
     {
         // Arrange
-        var testConfigPath = "/tmp/config_tests/client_roundtrip_test.json";
+        var testConfigPath = _pathHelper.GetTestConfigPath("client_roundtrip_test.json");
         var originalConfig = new ClientConfig
         {
             ServerHost = "test.example.com",
@@ -98,9 +126,10 @@ public class ConfigurationCommentSupportTests
         Assert.NotNull(loadedConfig);
         Assert.Equal(originalConfig.ServerHost, loadedConfig.ServerHost);
         Assert.Equal(originalConfig.ServerPort, loadedConfig.ServerPort);
-        
-        // Cleanup
-        if (File.Exists(testConfigPath))
-            File.Delete(testConfigPath);
+    }
+
+    public void Dispose()
+    {
+        _pathHelper?.Dispose();
     }
 }
