@@ -351,8 +351,7 @@ public class ServerApplication
                     async () => await Task.Run(() => _serialPort.WriteLine(command)),
                     RetryPolicy.Serial,
                     _logger,
-                    "SerialPort.WriteLine",
-                    ShouldRetrySerialOperation
+                    "SerialPort.WriteLine"
                 );
             }
             catch (Exception ex)
@@ -364,30 +363,6 @@ public class ServerApplication
         {
             _logger.LogWarning("Serial port is not open, cannot send command: {Command}", command);
         }
-    }
-
-    /// <summary>
-    /// Determines if a serial operation should be retried based on the exception type.
-    /// This logic encapsulates knowledge about which radio communication errors
-    /// are transient (network timeouts, temporary disconnections) versus
-    /// permanent (permission issues, hardware failure).
-    /// </summary>
-    /// <param name="ex">Exception that occurred during serial operation</param>
-    /// <returns>True if the operation should be retried, false if it's a permanent failure</returns>
-    private bool ShouldRetrySerialOperation(Exception ex)
-    {
-        return ex switch
-        {
-            // Transient connection issues - retry these
-            InvalidOperationException when ex.Message.Contains("port is closed") => true,
-            InvalidOperationException when ex.Message.Contains("port is not open") => true,
-            IOException => true,  // Often caused by temporary hardware issues
-            TimeoutException => true,  // Radio may be busy, retry
-            
-            // Permanent issues - don't retry these
-            UnauthorizedAccessException => false, // User lacks permissions
-            _ => false  // Unknown errors are assumed permanent for safety
-        };
     }
 
     /// <summary>
@@ -406,17 +381,6 @@ public class ServerApplication
     {
         _logger.LogInformation("Serial connection restored: {PortName}", e.PortName);
         global::System.Console.WriteLine($"Serial connection restored: {e.PortName}");
-    }
-
-    /// <summary>
-    /// Legacy method name preserved for compatibility.
-    /// Delegates to the renamed method with improved clarity.
-    /// </summary>
-    /// <param name="command">Command string to send to the serial port</param>
-    /// <returns>Task representing the async send operation</returns>
-    private async Task SendToSerialPortAsync(string command)
-    {
-        await SendCommandToSerialPortWithRetryAsync(command);
     }
 
     /// <summary>
@@ -805,16 +769,6 @@ public class ServerApplication
         {
             return "Check that the port is not in use by another application";
         }
-    }
-
-    /// <summary>
-    /// Validates if the provided baud rate is supported
-    /// </summary>
-    /// <param name="baudRate">Baud rate to validate</param>
-    /// <returns>True if baud rate is supported</returns>
-    private bool IsValidBaudRate(int baudRate)
-    {
-        return Constants.SupportedBaudRates.Contains(baudRate);
     }
 
     #endregion

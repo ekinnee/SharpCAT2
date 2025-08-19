@@ -188,7 +188,8 @@ public static class RetryHelper
     }
 
     /// <summary>
-    /// Default logic for determining if an exception should trigger a retry
+    /// Default logic for determining if an exception should trigger a retry.
+    /// Handles both network and serial communication errors with appropriate retry logic.
     /// </summary>
     private static bool DefaultShouldRetry(Exception ex)
     {
@@ -199,7 +200,12 @@ public static class RetryHelper
             System.IO.IOException => true,
             TimeoutException => true,
             
-            // Serial port exceptions that might be recoverable
+            // Serial port specific transient issues
+            InvalidOperationException when ex.Message.Contains("port is closed") => true,
+            InvalidOperationException when ex.Message.Contains("port is not open") => true,
+            InvalidOperationException => true, // Other InvalidOperation exceptions might be transient
+            
+            // Permanent issues - don't retry these
             UnauthorizedAccessException => false, // Don't retry permission errors
             
             // Task-related exceptions
@@ -209,9 +215,6 @@ public static class RetryHelper
             // Argument exceptions shouldn't be retried
             ArgumentNullException => false,
             ArgumentException => false,
-            
-            // Generic system exceptions that might be transient
-            InvalidOperationException => true,
             
             _ => false // Conservative approach - don't retry unknown exceptions
         };
