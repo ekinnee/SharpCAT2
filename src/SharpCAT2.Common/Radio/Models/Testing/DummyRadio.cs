@@ -8,9 +8,33 @@ namespace SharpCAT2.Common.Radio.Models.Testing;
 /// <summary>
 /// DummyRadio class for demonstration and testing purposes.
 /// 
-/// This radio implementation provides comprehensive radio simulation with deterministic responses
-/// for development, testing, and demonstration purposes. Unlike the base implementation,
-/// DummyRadio contains full radio state management and CAT command simulation logic.
+/// This radio implementation provides comprehensive Kenwood-style CAT command simulation 
+/// with protocol-accurate responses for development, testing, and demonstration purposes. 
+/// Unlike the base implementation, DummyRadio contains full radio state management and 
+/// comprehensive CAT command simulation logic.
+/// 
+/// SUPPORTED CAT COMMANDS:
+/// - ID: Radio identification (ID020; - TS-2000 compatible)
+/// - FA/FB: VFO A/B frequency get/set (11-digit Hz format)
+/// - MD: Mode get/set (1=LSB, 2=USB, 3=CW, 4=FM, 5=AM, 6=FSK, 7=CW-R, 8=FSK-R)
+/// - IF: Comprehensive transceiver information (Kenwood format)
+/// - PS: Power status get/set (0=off, 1=on)
+/// - FR: VFO selection (0=A, 1=B)
+/// - FT: Split operation get/set (0=off, 1=on)
+/// - RT/XT: RIT/XIT offset get/set (±9999 Hz format)
+/// - RC/RC2: RIT/XIT clear commands
+/// - PC: Power output level get/set (000-100%)
+/// - SM/SM0/SM1: S-meter readings (main/sub receiver)
+/// - AN: Antenna selection (1-4)
+/// - RS: Radio status (TX/RIT/XIT/Split flags)
+/// - MC: Memory channel get/set (000-999)
+/// - KS: CW speed get/set (004-060 WPM)
+/// - KY: CW message transmission
+/// - NR: Noise reduction get/set (00-10)
+/// - BW: IF bandwidth get/set (Hz)
+/// - RM3: SWR meter reading
+/// - SV: VFO swap command
+/// - VV: VFO equal (copy A to B)
 /// 
 /// The radio uses FakeSerialPort purely as a transport mechanism, implementing all radio
 /// protocol logic at the radio layer for proper separation of concerns.
@@ -26,6 +50,12 @@ namespace SharpCAT2.Common.Radio.Models.Testing;
 /// - DummyRadio: Radio protocol logic (CAT commands, state management, responses)
 /// - ResilientRadio: Connection management (health checks, retries, error recovery)
 /// 
+/// REALISTIC BEHAVIOR:
+/// - S-meter readings vary dynamically with time-based simulation
+/// - SWR readings change based on frequency and band characteristics
+/// - All state is maintained consistently across commands
+/// - Protocol-accurate response formatting matches real Kenwood radios
+/// 
 /// TROUBLESHOOTING:
 /// - Enable Debug logging to see health check commands and responses
 /// - Check that DummyRadio is properly connected (IsConnected = true)
@@ -37,6 +67,7 @@ namespace SharpCAT2.Common.Radio.Models.Testing;
 /// - Demonstrating radio features in development environments
 /// - Training and educational purposes
 /// - UI development and feature testing
+/// - CAT protocol validation and testing
 /// 
 /// LIMITATIONS:
 /// - Simulated responses only - no actual radio communication
@@ -57,10 +88,14 @@ public class DummyRadio : BaseRadio
     
     // Simulated radio state - moved from FakeSerialPort
     private long _currentFrequency = 14074000; // Default to 20m FT8 frequency
+    private long _vfoBFrequency = 14074000; // VFO B frequency
     private string _currentMode = "USB";
+    private string _vfoBMode = "USB"; // VFO B mode
     private string _currentVfo = "A";
     private bool _splitEnabled = false;
     private bool _powerOn = true;
+    private bool _ritEnabled = false;
+    private bool _xitEnabled = false;
     private int _ritOffset = 0;
     private int _xitOffset = 0;
     private int _powerOutput = 100; // Percentage
@@ -70,6 +105,8 @@ public class DummyRadio : BaseRadio
     private int _cwSpeed = 20; // CW speed in WPM
     private int _noiseReduction = 0; // Noise reduction level
     private int _ifBandwidth = 2400; // IF bandwidth in Hz
+    private int _memoryChannel = 0; // Current memory channel
+    private bool _transmitting = false; // TX status
 
     #endregion
 
@@ -264,12 +301,22 @@ public class DummyRadio : BaseRadio
         }
         else if (cmd == "IF;")
         {
-            // Transceiver information
-            var ritFlag = _ritOffset != 0 ? "1" : "0";
-            var xitFlag = _xitOffset != 0 ? "1" : "0";
+            // Transceiver information - Enhanced to match Kenwood TS-2000 format exactly
+            // Format: IF[freq 11][spaces 5][rit offset 5][rit flag][xit flag][ch 3][tx flag][mode][fr][scan][split][tone][tone# 2][shift];
+            var ritFlag = _ritEnabled ? "1" : "0";
+            var xitFlag = _xitEnabled ? "1" : "0";
             var splitFlag = _splitEnabled ? "1" : "0";
+            var txFlag = _transmitting ? "1" : "0";
+            var vfoFlag = _currentVfo == "A" ? "0" : "1";
+            var scanFlag = "0"; // Not scanning
+            var toneFlag = "0"; // No tone
+            var toneNumber = "00"; // No tone number
+            var shiftFlag = "0"; // No shift
             
-            return $"IF{_currentFrequency:D11}     {_ritOffset:+0000;-0000;+0000}{ritFlag}{xitFlag}000{0}{GetModeNumber(_currentMode)}{_currentVfo[0]}{0}{splitFlag}00000;";
+            // Build the response according to Kenwood specification
+            var response = $"IF{_currentFrequency:D11}     {_ritOffset:+0000;-0000;+0000}{ritFlag}{xitFlag}{_memoryChannel:D3}{txFlag}{GetModeNumber(_currentMode)}{vfoFlag}{scanFlag}{splitFlag}{toneFlag}{toneNumber}{shiftFlag};";
+            
+            return response;
         }
         else if (cmd == "PS;")
         {
@@ -310,12 +357,19 @@ public class DummyRadio : BaseRadio
         {
             return $"FT{(_splitEnabled ? "1" : "0")};";
         }
-        else if (cmd.StartsWith("RC;") || cmd.StartsWith("RT;"))
+        else if (cmd == "RC;" || cmd == "RD;")
         {
-            // RIT/XIT clear
-            _ritOffset = 0;
-            _xitOffset = 0;
-            return cmd;
+            // RIT/XIT clear - RC clears RIT, RD gets RIT
+            if (cmd == "RC;")
+            {
+                _ritOffset = 0;
+                _ritEnabled = false;
+                return cmd;
+            }
+            else // RD;
+            {
+                return $"RD{_ritOffset:+0000;-0000;+0000};";
+            }
         }
         else if (cmd.StartsWith("PC") && cmd.EndsWith(";"))
         {
@@ -333,8 +387,184 @@ public class DummyRadio : BaseRadio
         }
         else if (cmd.StartsWith("SM") && cmd.EndsWith(";"))
         {
-            // S-meter request
-            return $"SM0{_sMeter:D3};"; // Return simulated S-meter reading
+            // S-meter request - handle various SM commands
+            if (cmd == "SM;")
+                return $"SM0{_sMeter:D3};"; // Main receiver S-meter
+            else if (cmd == "SM0;")
+                return $"SM0{_sMeter:D3};"; // Main receiver S-meter explicit
+            else if (cmd == "SM1;")
+                return $"SM1{_sMeter:D3};"; // Sub receiver S-meter (same as main for dummy)
+            else
+                return $"SM0{_sMeter:D3};"; // Default to main receiver
+        }
+        // VFO B frequency commands
+        else if (cmd == "FB;")
+        {
+            return $"FB{_vfoBFrequency:D11};";
+        }
+        else if (cmd.StartsWith("FB") && cmd.EndsWith(";"))
+        {
+            // Set VFO B frequency command
+            var freqStr = cmd.Substring(2, cmd.Length - 3);
+            if (long.TryParse(freqStr, out long freq))
+            {
+                _vfoBFrequency = freq;
+                return cmd; // Echo the command
+            }
+        }
+        // RIT commands (RT)
+        else if (cmd == "RT;")
+        {
+            return $"RT{_ritOffset:+0000;-0000;+0000};";
+        }
+        else if (cmd.StartsWith("RT") && cmd.EndsWith(";"))
+        {
+            // Set RIT offset
+            var offsetStr = cmd.Substring(2, cmd.Length - 3);
+            if (int.TryParse(offsetStr, out int offset))
+            {
+                _ritOffset = offset;
+                _ritEnabled = offset != 0;
+                return cmd;
+            }
+        }
+        // XIT commands (XT)
+        else if (cmd == "XT;")
+        {
+            return $"XT{_xitOffset:+0000;-0000;+0000};";
+        }
+        else if (cmd.StartsWith("XT") && cmd.EndsWith(";"))
+        {
+            // Set XIT offset
+            var offsetStr = cmd.Substring(2, cmd.Length - 3);
+            if (int.TryParse(offsetStr, out int offset))
+            {
+                _xitOffset = offset;
+                _xitEnabled = offset != 0;
+                return cmd;
+            }
+        }
+        // XIT clear command
+        else if (cmd == "RC2;")
+        {
+            // Clear XIT
+            _xitOffset = 0;
+            _xitEnabled = false;
+            return cmd;
+        }
+        // Antenna commands (AN)
+        else if (cmd == "AN;")
+        {
+            return $"AN{_antenna};";
+        }
+        else if (cmd.StartsWith("AN") && cmd.EndsWith(";"))
+        {
+            // Set antenna
+            var antennaStr = cmd.Substring(2, cmd.Length - 3);
+            if (int.TryParse(antennaStr, out int antenna) && antenna >= 1 && antenna <= 4)
+            {
+                _antenna = antenna;
+                return cmd;
+            }
+        }
+        // Radio status commands (RS)
+        else if (cmd == "RS;")
+        {
+            // Radio status - return comprehensive status
+            var txStatus = _transmitting ? "1" : "0";
+            var ritStatus = _ritEnabled ? "1" : "0";
+            var xitStatus = _xitEnabled ? "1" : "0";
+            var splitStatus = _splitEnabled ? "1" : "0";
+            return $"RS{txStatus}{ritStatus}{xitStatus}{splitStatus}000;";
+        }
+        // Memory channel commands (MC)
+        else if (cmd == "MC;")
+        {
+            return $"MC{_memoryChannel:D3};";
+        }
+        else if (cmd.StartsWith("MC") && cmd.EndsWith(";"))
+        {
+            // Set memory channel
+            var channelStr = cmd.Substring(2, cmd.Length - 3);
+            if (int.TryParse(channelStr, out int channel) && channel >= 0 && channel <= 999)
+            {
+                _memoryChannel = channel;
+                return cmd;
+            }
+        }
+        // CW speed commands (KS)
+        else if (cmd == "KS;")
+        {
+            return $"KS{_cwSpeed:D3};";
+        }
+        else if (cmd.StartsWith("KS") && cmd.EndsWith(";"))
+        {
+            // Set CW speed
+            var speedStr = cmd.Substring(2, cmd.Length - 3);
+            if (int.TryParse(speedStr, out int speed) && speed >= 4 && speed <= 60)
+            {
+                _cwSpeed = speed;
+                return cmd;
+            }
+        }
+        // CW message commands (KY)
+        else if (cmd.StartsWith("KY ") && cmd.EndsWith(";"))
+        {
+            // Send CW message - just echo for simulation
+            return cmd;
+        }
+        // Noise reduction commands (NR)
+        else if (cmd == "NR;")
+        {
+            return $"NR{_noiseReduction:D2};";
+        }
+        else if (cmd.StartsWith("NR") && cmd.EndsWith(";"))
+        {
+            // Set noise reduction
+            var levelStr = cmd.Substring(2, cmd.Length - 3);
+            if (int.TryParse(levelStr, out int level) && level >= 0 && level <= 10)
+            {
+                _noiseReduction = level;
+                return cmd;
+            }
+        }
+        // IF bandwidth commands (BW)
+        else if (cmd == "BW;")
+        {
+            return $"BW{_ifBandwidth:D4};";
+        }
+        else if (cmd.StartsWith("BW") && cmd.EndsWith(";"))
+        {
+            // Set IF bandwidth
+            var bwStr = cmd.Substring(2, cmd.Length - 3);
+            if (int.TryParse(bwStr, out int bandwidth))
+            {
+                _ifBandwidth = bandwidth;
+                return cmd;
+            }
+        }
+        // SWR meter commands (RM3)
+        else if (cmd == "RM3;")
+        {
+            // SWR meter reading - convert SWR to Kenwood format
+            var swrReading = (int)((_swr - 1.0) * 100);
+            return $"RM3{swrReading:D3};";
+        }
+        // VFO swap command (SV)
+        else if (cmd == "SV;")
+        {
+            // Swap VFO A and B
+            (_currentFrequency, _vfoBFrequency) = (_vfoBFrequency, _currentFrequency);
+            (_currentMode, _vfoBMode) = (_vfoBMode, _currentMode);
+            return cmd;
+        }
+        // VFO equal command (VV)
+        else if (cmd == "VV;")
+        {
+            // Copy VFO A to VFO B
+            _vfoBFrequency = _currentFrequency;
+            _vfoBMode = _currentMode;
+            return cmd;
         }
 
         // Return a generic success response for unrecognized commands
@@ -511,8 +741,11 @@ public class DummyRadio : BaseRadio
     /// </summary>
     public override Task<int> GetSMeterAsync()
     {
-        // Simulate varying S-meter readings
-        _sMeter = 5 + (int)(Math.Sin(DateTime.Now.Millisecond / 100.0) * 4); // S5-S9
+        // Simulate varying S-meter readings with more realistic behavior
+        var baseTime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+        var variation = Math.Sin(baseTime / 1000.0) * 3; // Slow variation
+        var noise = (Random.Shared.NextDouble() - 0.5) * 2; // Random noise
+        _sMeter = Math.Max(1, Math.Min(15, 7 + (int)(variation + noise))); // S1-S9+60dB range
         return Task.FromResult(_sMeter);
     }
 
@@ -521,9 +754,34 @@ public class DummyRadio : BaseRadio
     /// </summary>
     public override Task<double> GetSWRAsync()
     {
-        // Simulate SWR reading with slight variation
-        _swr = 1.0 + (Math.Sin(DateTime.Now.Millisecond / 200.0) * 0.5);
-        return Task.FromResult(Math.Max(1.0, _swr));
+        // Simulate SWR reading with realistic variation based on frequency
+        var freqMHz = _currentFrequency / 1000000.0;
+        var bandCenter = GetBandCenter(freqMHz);
+        var bandDeviation = Math.Abs(freqMHz - bandCenter) / bandCenter;
+        
+        // SWR increases as we move away from band center
+        var baseSWR = 1.0 + (bandDeviation * 2.0);
+        var variation = Math.Sin(DateTime.Now.Millisecond / 300.0) * 0.2;
+        _swr = Math.Max(1.0, Math.Min(3.0, baseSWR + variation));
+        
+        return Task.FromResult(_swr);
+    }
+    
+    /// <summary>
+    /// Gets the approximate band center frequency for SWR simulation
+    /// </summary>
+    private double GetBandCenter(double freqMHz)
+    {
+        return freqMHz switch
+        {
+            >= 1.8 and <= 2.0 => 1.9,     // 160m
+            >= 3.5 and <= 4.0 => 3.75,    // 80m
+            >= 7.0 and <= 7.3 => 7.15,    // 40m
+            >= 14.0 and <= 14.35 => 14.175, // 20m
+            >= 21.0 and <= 21.45 => 21.225, // 15m
+            >= 28.0 and <= 29.7 => 28.85,   // 10m
+            _ => freqMHz // Default to current frequency
+        };
     }
 
     /// <summary>
