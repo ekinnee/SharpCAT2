@@ -63,6 +63,7 @@ public class ServerCommandHandler : IServerCommandHandler
                     
                 case "get-current-radio":
                 case "current-radio":
+                case "cr":
                     await SendCurrentRadioResponseAsync(networkStream);
                     return true;
 
@@ -206,12 +207,19 @@ public class ServerCommandHandler : IServerCommandHandler
     {
         try
         {
-            var statusInfo = await _radioService.GetRadioStatusAsync();
-            var response = _commandDisplayService.FormatCurrentRadioResponse(statusInfo, _radioService.ConnectedPortName);
-            await SendTcpResponseAsync(networkStream, response);
+            if (_radioService.IsRadioConnected && _radioService.ConnectedRadio != null)
+            {
+                var statusString = await _radioService.ConnectedRadio.GetUniversalStatusStringAsync();
+                await SendTcpResponseAsync(networkStream, statusString);
+            }
+            else
+            {
+                await SendTcpResponseAsync(networkStream, "ERROR: No radio connected");
+            }
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error getting current radio status");
             await SendTcpResponseAsync(networkStream, $"ERROR: Failed to get current radio - {ex.Message}");
         }
     }
