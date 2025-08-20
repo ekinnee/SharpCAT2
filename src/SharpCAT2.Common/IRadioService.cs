@@ -20,6 +20,11 @@ public interface IRadioService
     bool IsRadioConnected { get; }
 
     /// <summary>
+    /// Gets the name of the serial port the radio is connected to
+    /// </summary>
+    string? ConnectedPortName { get; }
+
+    /// <summary>
     /// Initializes radio communication based on options
     /// </summary>
     /// <param name="options">Command line options containing radio settings</param>
