@@ -477,6 +477,12 @@ public class DummyRadio : BaseRadio
             var splitStatus = _splitEnabled ? "1" : "0";
             return $"RS{txStatus}{ritStatus}{xitStatus}{splitStatus}000;";
         }
+        // Universal radio status commands
+        else if (cmd == "RADIO-STATUS;" || cmd == "RS")
+        {
+            // Return universal key=value status format
+            return GetUniversalStatusStringAsync().Result;
+        }
         // Memory channel commands (MC)
         else if (cmd == "MC;")
         {

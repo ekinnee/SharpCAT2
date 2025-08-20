@@ -341,4 +341,10 @@ public interface IRadio : IDisposable
     /// </summary>
     /// <returns>Notch frequency in Hz (0 if disabled)</returns>
     Task<int> GetNotchAsync();
+
+    /// <summary>
+    /// Gets the radio status as a key=value semicolon-delimited string for universal radio status commands
+    /// </summary>
+    /// <returns>Status string in format "MODEL=RadioName;PORT=COMx;FREQ=14074000;..."</returns>
+    Task<string> GetUniversalStatusStringAsync();
 }

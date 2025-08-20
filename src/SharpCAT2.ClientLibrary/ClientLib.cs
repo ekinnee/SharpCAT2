@@ -221,7 +221,15 @@ public class SharpCAT2Client : IDisposable
     /// <returns>Response with radio status information</returns>
     public async Task<string?> GetRadioStatusAsync()
     {
-        return await SendCommandAsync("s");
+        var rawStatus = await SendCommandAsync("s");
+        
+        if (rawStatus == null)
+        {
+            return "Failed to get radio status from server.";
+        }
+        
+        // Parse and format the key=value response for pretty display
+        return RadioStatusParser.ParseAndFormat(rawStatus);
     }
 
     /// <summary>

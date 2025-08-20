@@ -427,6 +427,12 @@ public class ServerApplication
                 case "current-radio":
                     await SendCurrentRadioResponseAsync(networkStream);
                     return true;
+
+                case "s":
+                case "radio-status":
+                case "rs":
+                    await SendRadioStatusResponseAsync(networkStream);
+                    return true;
                     
                 default:
                     return false; // Not a radio management command
@@ -539,6 +545,30 @@ public class ServerApplication
         catch (Exception ex)
         {
             await SendTcpResponseAsync(networkStream, $"ERROR: Failed to get current radio - {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Sends the radio status in key=value format as a response
+    /// </summary>
+    private async Task SendRadioStatusResponseAsync(System.Net.Sockets.NetworkStream networkStream)
+    {
+        try
+        {
+            if (_radioService.IsRadioConnected && _radioService.ConnectedRadio != null)
+            {
+                var statusString = await _radioService.ConnectedRadio.GetUniversalStatusStringAsync();
+                await SendTcpResponseAsync(networkStream, statusString);
+            }
+            else
+            {
+                await SendTcpResponseAsync(networkStream, "ERROR: No radio connected");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting radio status");
+            await SendTcpResponseAsync(networkStream, $"ERROR: Failed to get radio status - {ex.Message}");
         }
     }
 
