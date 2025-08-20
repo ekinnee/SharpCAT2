@@ -363,6 +363,11 @@ public class ResilientRadio : IRadio
         return await ExecuteWithRetryAsync(() => _innerRadio.GetNotchAsync(), "GetNotch");
     }
 
+    public async Task<string> GetUniversalStatusStringAsync()
+    {
+        return await ExecuteWithRetryAsync(() => _innerRadio.GetUniversalStatusStringAsync(), "GetUniversalStatusString");
+    }
+
     public void Dispose()
     {
         if (!_disposed)

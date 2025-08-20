@@ -834,6 +834,102 @@ public abstract class BaseRadio : IRadio
     }
 
     /// <summary>
+    /// Generates a key=value semicolon-delimited status string for universal radio status commands.
+    /// This method creates a standardized format that can be parsed by clients for pretty-printing.
+    /// </summary>
+    /// <returns>Key=value status string (e.g., "MODEL=DummyRadio;PORT=COM7;FREQ=14074000;...")</returns>
+    public virtual async Task<string> GetUniversalStatusStringAsync()
+    {
+        try
+        {
+            var status = await GetStatusAsync();
+            var sb = new StringBuilder();
+            
+            // Radio identification
+            sb.Append($"MODEL={Manufacturer} {ModelName}");
+            
+            // Serial port info
+            var portName = _serialPort?.PortName ?? "Unknown";
+            sb.Append($";PORT={portName}");
+            
+            // Core radio status
+            sb.Append($";FREQ={status.Frequency}");
+            sb.Append($";MODE={status.Mode}");
+            sb.Append($";VFO={status.CurrentVfo}");
+            sb.Append($";POWER={status.IsPoweredOn}");
+            sb.Append($";TX={status.IsTransmitting}");
+            
+            // VFO and split operations
+            if (SupportedFeatures.HasFeature(SupportedFeatures.SplitOperation))
+            {
+                sb.Append($";SPLIT={status.SplitEnabled}");
+            }
+            
+            // RIT/XIT support
+            if (SupportedFeatures.HasFeature(SupportedFeatures.RIT))
+            {
+                sb.Append($";RIT={status.RitEnabled}");
+                sb.Append($";RIT_OFFSET={status.RitOffset}");
+            }
+            
+            if (SupportedFeatures.HasFeature(SupportedFeatures.XIT))
+            {
+                sb.Append($";XIT={status.XitEnabled}");
+                sb.Append($";XIT_OFFSET={status.XitOffset}");
+            }
+            
+            // Power and meters
+            if (SupportedFeatures.HasFeature(SupportedFeatures.PowerOutput))
+            {
+                sb.Append($";POWER_LEVEL={status.PowerOutputPercent}");
+            }
+            
+            if (SupportedFeatures.HasFeature(SupportedFeatures.SMeter))
+            {
+                sb.Append($";S_METER={status.SignalStrength}");
+            }
+            
+            if (SupportedFeatures.HasFeature(SupportedFeatures.SWRMeter))
+            {
+                sb.Append($";SWR={status.SWR:F1}");
+            }
+            
+            // Antenna selection
+            if (SupportedFeatures.HasFeature(SupportedFeatures.AntennaSelection))
+            {
+                sb.Append($";ANTENNA={status.Antenna}");
+            }
+            
+            // Memory and bandwidth
+            if (SupportedFeatures.HasFeature(SupportedFeatures.MemoryChannels) && status.MemoryChannel > 0)
+            {
+                sb.Append($";MEMORY={status.MemoryChannel}");
+            }
+            
+            if (SupportedFeatures.HasFeature(SupportedFeatures.IFBandwidth))
+            {
+                sb.Append($";IF_BW={status.IfBandwidth}");
+            }
+            
+            // Noise reduction
+            if (SupportedFeatures.HasFeature(SupportedFeatures.NoiseReduction))
+            {
+                sb.Append($";NR={status.NoiseReductionLevel}");
+            }
+            
+            // Timestamp
+            sb.Append($";TIMESTAMP={status.Timestamp:yyyy-MM-ddTHH:mm:ss}Z");
+            
+            return sb.ToString();
+        }
+        catch (Exception)
+        {
+            // Return minimal status on error
+            return $"MODEL={Manufacturer} {ModelName};PORT={_serialPort?.PortName ?? "Unknown"};ERROR=Status retrieval failed";
+        }
+    }
+
+    /// <summary>
     /// Disposes the radio instance
     /// </summary>
     public virtual void Dispose()
