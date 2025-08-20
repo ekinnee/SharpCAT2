@@ -61,7 +61,6 @@ public class ServerCommandHandler : IServerCommandHandler
                         return true;
                     }
                     
-                case "get-current-radio":
                 case "current-radio":
                 case "cr":
                     await SendCurrentRadioResponseAsync(networkStream);

@@ -111,11 +111,6 @@ public static class ClientConstants
     public const string CurrentRadioShortCommand = "cr";
 
     /// <summary>
-    /// Alternative command to get current radio
-    /// </summary>
-    public const string GetCurrentRadioCommand = "get-current-radio";
-
-    /// <summary>
     /// Command to set radio model
     /// </summary>
     public const string SetRadioCommand = "set-radio";

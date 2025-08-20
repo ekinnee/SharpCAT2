@@ -13,7 +13,7 @@ namespace SharpCAT2.Tests.Integration;
 
 /// <summary>
 /// Tests for ServerCommandHandler current radio command functionality
-/// Verifies that 'cr', 'current-radio', and 'get-current-radio' commands 
+/// Verifies that 'cr' and 'current-radio' commands 
 /// are properly recognized and handled by the server command handler
 /// </summary>
 public class ServerCommandHandlerCurrentRadioTests
@@ -21,7 +21,6 @@ public class ServerCommandHandlerCurrentRadioTests
     [Theory]
     [InlineData("cr")]
     [InlineData("current-radio")]
-    [InlineData("get-current-radio")]
     public async Task HandleRadioManagementCommandAsync_CurrentRadioCommands_AreRecognizedAndHandled(string command)
     {
         // Arrange
@@ -48,7 +47,7 @@ public class ServerCommandHandlerCurrentRadioTests
         
         // Instead of testing with null, let's test if the command would be recognized
         // by checking the switch statement logic indirectly
-        var testCommands = new[] { "cr", "current-radio", "get-current-radio" };
+        var testCommands = new[] { "cr", "current-radio" };
         wasHandled = testCommands.Contains(command.ToLower());
         
         // If we have a connected radio, the command should be handled

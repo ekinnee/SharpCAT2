@@ -36,7 +36,7 @@ public class ClientCommandProcessor
             ClientConstants.RadioStatusCommand or ClientConstants.RadioStatusShortCommand => await HandleRadioStatusCommandAsync(),
             ClientConstants.ListRadiosCommand or ClientConstants.ListRadiosShortCommand => await HandleListRadiosCommandAsync(),
             ClientConstants.ListSerialPortsCommand or ClientConstants.ListSerialPortsShortCommand => await HandleListSerialPortsCommandAsync(),
-            ClientConstants.CurrentRadioCommand or ClientConstants.CurrentRadioShortCommand or ClientConstants.GetCurrentRadioCommand => await HandleCurrentRadioCommandAsync(),
+            ClientConstants.CurrentRadioCommand or ClientConstants.CurrentRadioShortCommand => await HandleCurrentRadioCommandAsync(),
             _ when normalizedInput.StartsWith(ClientConstants.SetRadioCommand + " ") => await HandleSetRadioCommandAsync(input),
             _ when normalizedInput.StartsWith(ClientConstants.SetRadioShortCommand + " ") => await HandleSetRadioCommandAsync(input),
             _ => new CommandProcessingResult(false, false) // Not handled, send to server

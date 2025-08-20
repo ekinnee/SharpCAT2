@@ -308,7 +308,7 @@ public class SharpCAT2Client : IDisposable
     /// <returns>Response with current radio information</returns>
     public async Task<string?> GetCurrentRadioAsync()
     {
-        return await SendCommandAsync("get-current-radio");
+        return await SendCommandAsync("current-radio");
     }
 
     /// <summary>
