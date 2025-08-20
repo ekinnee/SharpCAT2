@@ -102,7 +102,7 @@ public static class RadioStatusParser
         
         if (status.TryGetValue("FREQ", out var freq) && long.TryParse(freq, out var freqHz))
         {
-            sb.AppendLine($"Frequency:        {freqHz:N0} Hz ({FormatFrequencyMHz(freqHz)})");
+            sb.AppendLine($"Frequency:        {FormatFrequencyMHz(freqHz)}");
         }
         
         if (status.TryGetValue("MODE", out var mode))
@@ -233,24 +233,12 @@ public static class RadioStatusParser
     }
 
     /// <summary>
-    /// Formats frequency in Hz to MHz with appropriate precision
+    /// Formats frequency in Hz to MHz with 5 decimal places
     /// </summary>
     private static string FormatFrequencyMHz(long frequencyHz)
     {
         var frequencyMHz = frequencyHz / 1_000_000.0;
-        
-        if (frequencyMHz < 10)
-        {
-            return $"{frequencyMHz:F6} MHz";
-        }
-        else if (frequencyMHz < 100)
-        {
-            return $"{frequencyMHz:F5} MHz";
-        }
-        else
-        {
-            return $"{frequencyMHz:F4} MHz";
-        }
+        return $"{frequencyMHz:F5} MHz";
     }
 
     /// <summary>

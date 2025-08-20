@@ -18,8 +18,8 @@ public class RadioStatusParserTests
         Assert.NotNull(result);
         Assert.Contains("Radio Status:", result);
         Assert.Contains("SharpCAT2 DummyRadio", result);
-        Assert.Contains("14,074,000 Hz", result);
         Assert.Contains("14.07400 MHz", result);
+        Assert.DoesNotContain("14,074,000 Hz", result); // Should not contain Hz format
         Assert.Contains("USB", result);
         Assert.Contains("FAKE", result);
         Assert.Contains("S5", result);
@@ -80,5 +80,31 @@ public class RadioStatusParserTests
         
         // Assert
         Assert.Contains("S-Meter:          S9+3dB", result);
+    }
+
+    [Fact]
+    public void ParseAndFormat_WithFrequency_ShowsOnlyMHzWith5DecimalPlaces()
+    {
+        // Arrange - Test various frequency ranges to ensure consistent 5 decimal place formatting
+        var testCases = new[]
+        {
+            ("FREQ=3500000", "3.50000 MHz"),     // HF low
+            ("FREQ=14074000", "14.07400 MHz"),   // HF mid 
+            ("FREQ=28074000", "28.07400 MHz"),   // HF high
+            ("FREQ=144074000", "144.07400 MHz"), // VHF
+            ("FREQ=440074000", "440.07400 MHz")  // UHF
+        };
+
+        foreach (var (statusString, expectedFreq) in testCases)
+        {
+            var fullStatusString = $"MODEL=Test Radio;{statusString}";
+            
+            // Act
+            var result = RadioStatusParser.ParseAndFormat(fullStatusString);
+            
+            // Assert
+            Assert.Contains(expectedFreq, result);
+            Assert.DoesNotContain(" Hz", result); // Should not contain Hz format anywhere
+        }
     }
 }
