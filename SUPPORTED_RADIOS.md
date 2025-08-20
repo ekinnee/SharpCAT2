@@ -184,7 +184,7 @@ string radioList = await client.GetAvailableRadiosAsync();
 **ClientConsole Usage:**
 ```bash
 list-radios
-radios          # Alternative command
+lr              # Short form
 ```
 
 #### LIST_SERIALPORTS
@@ -200,7 +200,7 @@ string portList = await client.GetAvailableSerialPortsAsync();
 **ClientConsole Usage:**
 ```bash
 list-serialports
-serialports     # Alternative command
+ls              # Short form
 ```
 
 ### Serial Port Support

@@ -193,8 +193,13 @@ rs                    # Short form of radio-status command
 
 # Radio Management Commands
 list-radios           # List all available radio models
+lr                    # Short form of list-radios command
+list-serialports      # List available serial ports
+ls                    # Short form of list-serialports command
 current-radio         # Show currently connected radio
+cr                    # Short form of current-radio command
 set-radio <name>      # Change active radio (e.g., set-radio "Kenwood TS-2000")
+sr <name>             # Short form of set-radio command
 
 # Connection Commands  
 status                # Show client connection status

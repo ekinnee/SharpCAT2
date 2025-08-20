@@ -34,10 +34,11 @@ public class ClientCommandProcessor
             ClientConstants.HelpCommand => HandleHelpCommand(),
             ClientConstants.StatusCommand => HandleStatusCommand(),
             ClientConstants.RadioStatusCommand or ClientConstants.RadioStatusShortCommand => await HandleRadioStatusCommandAsync(),
-            ClientConstants.ListRadiosCommand or ClientConstants.RadiosCommand => await HandleListRadiosCommandAsync(),
-            ClientConstants.ListSerialPortsCommand or ClientConstants.SerialPortsCommand => await HandleListSerialPortsCommandAsync(),
-            ClientConstants.CurrentRadioCommand or ClientConstants.GetCurrentRadioCommand => await HandleCurrentRadioCommandAsync(),
+            ClientConstants.ListRadiosCommand or ClientConstants.ListRadiosShortCommand => await HandleListRadiosCommandAsync(),
+            ClientConstants.ListSerialPortsCommand or ClientConstants.ListSerialPortsShortCommand => await HandleListSerialPortsCommandAsync(),
+            ClientConstants.CurrentRadioCommand or ClientConstants.CurrentRadioShortCommand or ClientConstants.GetCurrentRadioCommand => await HandleCurrentRadioCommandAsync(),
             _ when normalizedInput.StartsWith(ClientConstants.SetRadioCommand + " ") => await HandleSetRadioCommandAsync(input),
+            _ when normalizedInput.StartsWith(ClientConstants.SetRadioShortCommand + " ") => await HandleSetRadioCommandAsync(input),
             _ => new CommandProcessingResult(false, false) // Not handled, send to server
         };
     }
@@ -162,16 +163,26 @@ public class ClientCommandProcessor
     }
 
     /// <summary>
-    /// Extracts radio name from set-radio command
+    /// Extracts radio name from set-radio command (supports both full and short form)
     /// </summary>
     /// <param name="input">Full command input</param>
     /// <returns>Radio name or empty string if invalid</returns>
     private static string ExtractRadioNameFromSetCommand(string input)
     {
-        const string prefix = "set-radio ";
-        return input.Length > prefix.Length 
-            ? input[prefix.Length..].Trim() 
-            : string.Empty;
+        const string fullPrefix = "set-radio ";
+        const string shortPrefix = "sr ";
+        
+        if (input.StartsWith(fullPrefix, StringComparison.OrdinalIgnoreCase) && input.Length > fullPrefix.Length)
+        {
+            return input[fullPrefix.Length..].Trim();
+        }
+        
+        if (input.StartsWith(shortPrefix, StringComparison.OrdinalIgnoreCase) && input.Length > shortPrefix.Length)
+        {
+            return input[shortPrefix.Length..].Trim();
+        }
+        
+        return string.Empty;
     }
 
     /// <summary>
@@ -184,10 +195,10 @@ public class ClientCommandProcessor
         Console.WriteLine("  help                        - Show this help message");
         Console.WriteLine("  status                      - Show connection status");
         Console.WriteLine("  radio-status, rs            - Get current radio status");
-        Console.WriteLine("  list-radios, radios         - List available radio models");
-        Console.WriteLine("  list-serialports, serialports - List available serial ports");
-        Console.WriteLine("  current-radio               - Show current active radio");
-        Console.WriteLine("  set-radio <name>            - Change active radio (e.g., set-radio Kenwood TS-2000)");
+        Console.WriteLine("  list-radios, lr             - List available radio models");
+        Console.WriteLine("  list-serialports, ls        - List available serial ports");
+        Console.WriteLine("  current-radio, cr           - Show current active radio");
+        Console.WriteLine("  set-radio, sr <name>        - Change active radio (e.g., set-radio Kenwood TS-2000)");
         Console.WriteLine("  quit, exit                  - Disconnect and exit");
         Console.WriteLine();
         Console.WriteLine("All other commands are sent directly to the remote serial port/radio.");
