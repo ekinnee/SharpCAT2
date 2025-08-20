@@ -2,6 +2,7 @@ using SharpCAT2.Common.Radio.Models.Testing;
 using SharpCAT2.Common.Serial;
 using SharpCAT2.Core.Radio;
 using SharpCAT2.Core.Services;
+using SharpCAT2.Core.Configuration;
 using SharpCAT2.Common;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -21,19 +22,22 @@ public class CurrentRadioCommandTests
         var mockLogger = new Mock<ILogger<RadioService>>();
         var radioService = new RadioService(mockLogger.Object);
         
-        var radio = new DummyRadio();
         var fakePort = new FakeSerialPort("COM7");
+        var options = new CommandLineOptions
+        {
+            RadioModel = "DummyRadio",
+            AutoDetectRadio = false
+        };
         
-        // Connect the radio
-        await radio.ConnectAsync(fakePort);
+        // Connect the radio through RadioService
+        await radioService.InitializeRadioAsync(options, fakePort);
         
-        // Act - Simulate getting the radio information as ServerApplication would
-        var manufacturer = radio.Manufacturer;
-        var modelName = radio.ModelName;
-        var portName = radio.PortName;
-        var connectionStatus = radio.IsConnected ? "CONNECTED" : "DISCONNECTED";
+        // Act - Get the radio information as ServerApplication would
+        var radio = radioService.ConnectedRadio;
+        var portName = radioService.ConnectedPortName ?? "Unknown";
+        var connectionStatus = radio?.IsConnected == true ? "CONNECTED" : "DISCONNECTED";
         
-        var currentRadioResponse = $"CURRENT_RADIO:{manufacturer} {modelName}|{portName}|{connectionStatus}";
+        var currentRadioResponse = $"CURRENT_RADIO:{radio?.Manufacturer} {radio?.ModelName}|{portName}|{connectionStatus}";
         
         // Assert
         Assert.Equal("CURRENT_RADIO:SharpCAT2 DummyRadio|COM7|CONNECTED", currentRadioResponse);
@@ -41,8 +45,8 @@ public class CurrentRadioCommandTests
         Assert.DoesNotContain("22", currentRadioResponse); // Should not contain feature count
         
         // Cleanup
-        radio.Disconnect();
-        radio.Dispose();
+        await radioService.DisconnectRadioAsync();
+        radioService.Dispose();
     }
 
     [Theory]
@@ -52,46 +56,52 @@ public class CurrentRadioCommandTests
     public async Task RadioService_GetCurrentRadioInfo_ReturnsCorrectFormatForDifferentPorts(string portName, string expectedResponse)
     {
         // Arrange
-        var radio = new DummyRadio();
+        var mockLogger = new Mock<ILogger<RadioService>>();
+        var radioService = new RadioService(mockLogger.Object);
+        
         var fakePort = new FakeSerialPort(portName);
+        var options = new CommandLineOptions
+        {
+            RadioModel = "DummyRadio",
+            AutoDetectRadio = false
+        };
         
-        // Connect the radio
-        await radio.ConnectAsync(fakePort);
+        // Connect the radio through RadioService
+        await radioService.InitializeRadioAsync(options, fakePort);
         
-        // Act - Simulate the ServerApplication.SendCurrentRadioResponseAsync logic
-        var manufacturer = radio.Manufacturer;
-        var modelName = radio.ModelName;
-        var actualPortName = radio.PortName;
-        var connectionStatus = radio.IsConnected ? "CONNECTED" : "DISCONNECTED";
+        // Act - Get the radio information as ServerApplication would
+        var radio = radioService.ConnectedRadio;
+        var actualPortName = radioService.ConnectedPortName ?? "Unknown";
+        var connectionStatus = radio?.IsConnected == true ? "CONNECTED" : "DISCONNECTED";
         
-        var currentRadioResponse = $"CURRENT_RADIO:{manufacturer} {modelName}|{actualPortName}|{connectionStatus}";
+        var currentRadioResponse = $"CURRENT_RADIO:{radio?.Manufacturer} {radio?.ModelName}|{actualPortName}|{connectionStatus}";
         
         // Assert
         Assert.Equal(expectedResponse, currentRadioResponse);
         
         // Cleanup
-        radio.Disconnect();
-        radio.Dispose();
+        await radioService.DisconnectRadioAsync();
+        radioService.Dispose();
     }
 
     [Fact]
     public void RadioService_GetCurrentRadioInfo_DisconnectedRadio_ReturnsUnknownPort()
     {
         // Arrange
-        var radio = new DummyRadio();
+        var mockLogger = new Mock<ILogger<RadioService>>();
+        var radioService = new RadioService(mockLogger.Object);
         
-        // Act - Get info without connecting
-        var manufacturer = radio.Manufacturer;
-        var modelName = radio.ModelName;
-        var portName = radio.PortName;
-        var connectionStatus = radio.IsConnected ? "CONNECTED" : "DISCONNECTED";
+        // Act - Get info without connecting any radio
+        var radio = radioService.ConnectedRadio;
+        var portName = radioService.ConnectedPortName ?? "Unknown";
+        var connectionStatus = radio?.IsConnected == true ? "CONNECTED" : "DISCONNECTED";
         
-        var currentRadioResponse = $"CURRENT_RADIO:{manufacturer} {modelName}|{portName}|{connectionStatus}";
+        var currentRadioResponse = $"CURRENT_RADIO:{radio?.Manufacturer ?? "None"} {radio?.ModelName ?? "None"}|{portName}|{connectionStatus}";
         
         // Assert
-        Assert.Equal("CURRENT_RADIO:SharpCAT2 DummyRadio|Unknown|DISCONNECTED", currentRadioResponse);
+        Assert.Equal("CURRENT_RADIO:None None|Unknown|DISCONNECTED", currentRadioResponse);
         
         // Cleanup
-        radio.Dispose();
+        radioService.Dispose();
     }
 }

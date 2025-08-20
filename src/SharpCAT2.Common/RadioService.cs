@@ -15,6 +15,7 @@ public class RadioService : IRadioService, IDisposable
 {
     private readonly ILogger<RadioService> _logger;
     private IRadio? _connectedRadio;
+    private string? _connectedPortName;
 
     public RadioService(ILogger<RadioService> logger)
     {
@@ -26,6 +27,9 @@ public class RadioService : IRadioService, IDisposable
 
     /// <inheritdoc />
     public bool IsRadioConnected => _connectedRadio?.IsConnected == true;
+
+    /// <inheritdoc />
+    public string? ConnectedPortName => _connectedPortName;
 
     /// <inheritdoc />
     public async Task InitializeRadioAsync(CommandLineOptions options, ISerialPort serialPort)
@@ -46,6 +50,7 @@ public class RadioService : IRadioService, IDisposable
                 // Wrap with resilient wrapper
                 _connectedRadio = new ResilientRadio(baseRadio, _logger);
                 await _connectedRadio.ConnectAsync(serialPort);
+                _connectedPortName = serialPort.PortName;
             }
             else if (!string.IsNullOrWhiteSpace(options.RadioModel))
             {
@@ -65,6 +70,11 @@ public class RadioService : IRadioService, IDisposable
                     _logger.LogWarning("Failed to connect to radio. Continuing with basic serial communication.");
                     _connectedRadio.Dispose();
                     _connectedRadio = null;
+                    _connectedPortName = null;
+                }
+                else
+                {
+                    _connectedPortName = serialPort.PortName;
                 }
             }
         }
@@ -73,6 +83,7 @@ public class RadioService : IRadioService, IDisposable
             _logger.LogError(ex, "Error initializing radio");
             _connectedRadio?.Dispose();
             _connectedRadio = null;
+            _connectedPortName = null;
         }
 
         // Set up resilient radio event handlers if available
@@ -184,6 +195,7 @@ public class RadioService : IRadioService, IDisposable
                 _connectedRadio.Disconnect();
                 _connectedRadio.Dispose();
                 _connectedRadio = null;
+                _connectedPortName = null;
             }
             
             // Connect new radio
@@ -193,6 +205,7 @@ public class RadioService : IRadioService, IDisposable
                 if (connected)
                 {
                     _connectedRadio = newRadio;
+                    _connectedPortName = serialPort.PortName;
                     _logger.LogInformation("Successfully changed radio to: {Manufacturer} {ModelName}", 
                         _connectedRadio.Manufacturer, _connectedRadio.ModelName);
                     return true;
@@ -295,12 +308,15 @@ public class RadioService : IRadioService, IDisposable
             await Task.Run(() => _connectedRadio.Disconnect());
             _connectedRadio.Dispose();
             _connectedRadio = null;
+            _connectedPortName = null;
         }
     }
 
     public void Dispose()
     {
         _connectedRadio?.Dispose();
+        _connectedRadio = null;
+        _connectedPortName = null;
         GC.SuppressFinalize(this);
     }
 

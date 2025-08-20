@@ -28,11 +28,6 @@ public interface IRadio : IDisposable
     bool IsConnected { get; }
 
     /// <summary>
-    /// Gets the name of the serial port this radio is connected to
-    /// </summary>
-    string PortName { get; }
-
-    /// <summary>
     /// Gets or sets the frequency in Hz
     /// </summary>
     long Frequency { get; set; }

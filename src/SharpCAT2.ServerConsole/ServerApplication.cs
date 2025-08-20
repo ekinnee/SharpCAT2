@@ -534,7 +534,8 @@ public class ServerApplication
             if (_radioService.IsRadioConnected && _radioService.ConnectedRadio != null)
             {
                 var radio = _radioService.ConnectedRadio;
-                var response = $"CURRENT_RADIO:{radio.Manufacturer} {radio.ModelName}|{radio.PortName}|{(radio.IsConnected ? "CONNECTED" : "DISCONNECTED")}";
+                var portName = _radioService.ConnectedPortName ?? "Unknown";
+                var response = $"CURRENT_RADIO:{radio.Manufacturer} {radio.ModelName}|{portName}|{(radio.IsConnected ? "CONNECTED" : "DISCONNECTED")}";
                 await SendTcpResponseAsync(networkStream, response);
             }
             else
