@@ -67,6 +67,8 @@ public class ResilientRadio : IRadio
 
     public bool IsConnected => _innerRadio.IsConnected && _healthMonitor.CurrentState == ConnectionState.Connected;
 
+    public string PortName => _innerRadio.PortName;
+
     public long Frequency 
     { 
         get => _innerRadio.Frequency; 

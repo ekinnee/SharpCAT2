@@ -39,6 +39,11 @@ public abstract class BaseRadio : IRadio
     public bool IsConnected => _serialPort?.IsOpen == true;
 
     /// <summary>
+    /// Gets the name of the serial port this radio is connected to
+    /// </summary>
+    public string PortName => _serialPort?.PortName ?? "Unknown";
+
+    /// <summary>
     /// Gets or sets the frequency in Hz
     /// </summary>
     public virtual long Frequency { get; set; }
