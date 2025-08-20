@@ -86,9 +86,9 @@ public static class ClientConstants
     public const string ListRadiosCommand = "list-radios";
 
     /// <summary>
-    /// Alternative command to list radios
+    /// Short form of list radios command
     /// </summary>
-    public const string RadiosCommand = "radios";
+    public const string ListRadiosShortCommand = "lr";
 
     /// <summary>
     /// Command to list available serial ports
@@ -96,14 +96,19 @@ public static class ClientConstants
     public const string ListSerialPortsCommand = "list-serialports";
 
     /// <summary>
-    /// Alternative command to list serial ports
+    /// Short form of list serial ports command
     /// </summary>
-    public const string SerialPortsCommand = "serialports";
+    public const string ListSerialPortsShortCommand = "ls";
 
     /// <summary>
     /// Command to get current radio information
     /// </summary>
     public const string CurrentRadioCommand = "current-radio";
+
+    /// <summary>
+    /// Short form of current radio command
+    /// </summary>
+    public const string CurrentRadioShortCommand = "cr";
 
     /// <summary>
     /// Alternative command to get current radio
@@ -114,6 +119,11 @@ public static class ClientConstants
     /// Command to set radio model
     /// </summary>
     public const string SetRadioCommand = "set-radio";
+
+    /// <summary>
+    /// Short form of set radio command
+    /// </summary>
+    public const string SetRadioShortCommand = "sr";
 
     #endregion
 

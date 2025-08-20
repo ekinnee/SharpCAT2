@@ -13,7 +13,7 @@ public class ClientConstantsTests
     {
         // Assert
         Assert.Equal("list-serialports", ClientConstants.ListSerialPortsCommand);
-        Assert.Equal("serialports", ClientConstants.SerialPortsCommand);
+        Assert.Equal("ls", ClientConstants.ListSerialPortsShortCommand);
     }
 
     [Fact]
@@ -21,6 +21,31 @@ public class ClientConstantsTests
     {
         // Assert
         Assert.Equal("list-radios", ClientConstants.ListRadiosCommand);
-        Assert.Equal("radios", ClientConstants.RadiosCommand);
+        Assert.Equal("lr", ClientConstants.ListRadiosShortCommand);
+    }
+
+    [Fact]
+    public void CurrentRadioConstants_ShouldBeCorrect()
+    {
+        // Assert
+        Assert.Equal("current-radio", ClientConstants.CurrentRadioCommand);
+        Assert.Equal("cr", ClientConstants.CurrentRadioShortCommand);
+        Assert.Equal("get-current-radio", ClientConstants.GetCurrentRadioCommand);
+    }
+
+    [Fact]
+    public void SetRadioConstants_ShouldBeCorrect()
+    {
+        // Assert
+        Assert.Equal("set-radio", ClientConstants.SetRadioCommand);
+        Assert.Equal("sr", ClientConstants.SetRadioShortCommand);
+    }
+
+    [Fact]
+    public void RadioStatusConstants_ShouldBeCorrect()
+    {
+        // Assert
+        Assert.Equal("radio-status", ClientConstants.RadioStatusCommand);
+        Assert.Equal("rs", ClientConstants.RadioStatusShortCommand);
     }
 }
