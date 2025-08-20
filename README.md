@@ -182,6 +182,70 @@ dotnet run --project ClientConsole.csproj -- --host localhost --port 9090
 dotnet run --project ClientConsole.csproj -- --help
 ```
 
+#### Client Commands
+
+When connected to a SharpCAT2 server, the client provides several built-in commands for radio management and status monitoring:
+
+```bash
+# Universal Radio Status Commands (NEW)
+radio-status          # Get comprehensive radio status with formatted output
+rs                    # Short form of radio-status command
+
+# Radio Management Commands
+list-radios           # List all available radio models
+current-radio         # Show currently connected radio
+set-radio <name>      # Change active radio (e.g., set-radio "Kenwood TS-2000")
+
+# Connection Commands  
+status                # Show client connection status
+help                  # Show available commands
+quit / exit           # Disconnect and exit
+
+# Direct CAT Commands
+# All other commands are sent directly to the radio/serial port
+FA;                   # Get frequency (radio-specific)
+PS1;                  # Power on (radio-specific)
+```
+
+**Universal Radio Status Output Example:**
+```
+Radio Status:
+=============
+Radio Model:      SharpCAT2 DummyRadio
+Serial Port:      FAKE
+
+Operating Status:
+-----------------
+Power:            ON
+Transmitting:     NO
+
+Frequency & Mode:
+-----------------
+Frequency:        14,074,000 Hz (14.07400 MHz)
+Mode:             USB
+Active VFO:       A
+
+Split & Tuning:
+---------------
+Split Operation:  DISABLED
+RIT:              DISABLED
+XIT:              DISABLED
+
+Power & Meters:
+---------------
+Power Output:     50%
+S-Meter:          S5
+SWR:              1.2:1
+
+Additional Settings:
+--------------------
+Antenna:          1
+IF Bandwidth:     2400 Hz
+Noise Reduction:  Level 3
+
+Status Retrieved: 2025-08-20T15:30:00Z
+```
+
 ## Configuration
 
 SharpCAT2 supports configuration through both command-line arguments and JSON configuration files. Configuration files provide default values that can be overridden by command-line arguments.
@@ -682,7 +746,8 @@ dotnet run --project SharpCAT2.ServerConsole -- --port FAKE --radio "SharpCAT2 D
 # Test radio command responses
 ID;    # Should return: ID999;
 FA;    # Should return: FA00014074000;
-s      # Should show detailed radio status
+s      # Should show detailed radio status (formatted)
+rs     # Universal radio status command (key=value format)
 ```
 
 ## Contributing
