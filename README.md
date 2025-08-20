@@ -530,7 +530,7 @@ SharpCAT2/
 │   │   ├── ClientLib.cs          # Client library implementation
 │   │   ├── ClientConfig.cs       # Client configuration management
 │   │   └── SharpCAT2.ClientLibrary.csproj # Client library project file
-│   ├── SharpCAT2.Common/         # Shared library with radio models and serial abstraction
+│   ├── SharpCAT2.ServerLibrary/   # Server-side library with radio models and serial abstraction
 │   │   ├── Radio/                # Radio support library
 │   │   │   ├── RadioFactory.cs   # Dynamic radio creation and discovery
 │   │   │   ├── Models/           # Radio model implementations by brand
@@ -550,7 +550,7 @@ SharpCAT2/
 │   │   │   ├── FakeSerialPort.cs # Protocol-agnostic simulated serial port
 │   │   │   ├── SerialPortFactory.cs # Factory for creating serial port instances
 │   │   │   └── ResilientSerialPort.cs # Resilient serial port with retry logic
-│   │   └── SharpCAT2.Common.csproj # Common library project file
+│   │   └── SharpCAT2.ServerLibrary.csproj # Server library project file
 ├── tests/                        # Test projects
 │   └── SharpCAT2.Tests/          # Comprehensive test suite
 │       ├── Services/             # Service layer tests
@@ -573,7 +573,7 @@ SharpCAT2/
 - **System.IO.Ports**: Cross-platform serial port communication
 - **.NET 8.0**: Runtime platform
 - **Newtonsoft.Json**: JSON configuration file parsing with comment support
-- **SharpCAT2.Common**: Shared library containing radio control and serial abstraction
+- **SharpCAT2.ServerLibrary**: Server-side library containing radio control and serial abstraction
 - **Microsoft.Extensions.DependencyInjection**: Dependency injection framework
 - **Microsoft.Extensions.Hosting**: Generic Host pattern for service lifecycle management
 - **Microsoft.Extensions.Logging**: Structured logging framework
@@ -609,7 +609,7 @@ For detailed information about the architecture, see [DI_ARCHITECTURE.md](DI_ARC
 
 ### Radio Architecture
 
-The radio support is implemented through the `SharpCAT2.Common.Radio` namespace which provides:
+The radio support is implemented through the `SharpCAT2.ServerLibrary.Radio` namespace which provides:
 
 - **IRadio Interface**: Defines the contract for radio communication with SupportedFeatures property
 - **SupportedFeatures Enum**: Comprehensive enumeration of 47 radio capabilities

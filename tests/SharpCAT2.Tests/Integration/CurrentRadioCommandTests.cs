@@ -1,9 +1,9 @@
-using SharpCAT2.Common.Radio.Models.Testing;
-using SharpCAT2.Common.Serial;
+using SharpCAT2.ServerLibrary.Radio.Models.Testing;
+using SharpCAT2.ServerLibrary.Serial;
 using SharpCAT2.Core.Radio;
 using SharpCAT2.Core.Services;
 using SharpCAT2.Core.Configuration;
-using SharpCAT2.Common;
+using SharpCAT2.ServerLibrary;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

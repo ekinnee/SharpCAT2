@@ -1,6 +1,6 @@
 using Xunit;
-using SharpCAT2.Common;
-using SharpCAT2.Common.Radio;
+using SharpCAT2.ServerLibrary;
+using SharpCAT2.ServerLibrary.Radio;
 
 namespace SharpCAT2.Tests.Services;
 

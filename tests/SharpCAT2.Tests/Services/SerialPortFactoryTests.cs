@@ -1,5 +1,5 @@
 using Xunit;
-using SharpCAT2.Common.Serial;
+using SharpCAT2.ServerLibrary.Serial;
 
 namespace SharpCAT2.Tests.Services;
 

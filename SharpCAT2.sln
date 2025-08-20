@@ -6,7 +6,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.ClientLibrary", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.ClientConsole", "src\SharpCAT2.ClientConsole\SharpCAT2.ClientConsole.csproj", "{8B3D8F7E-3456-4567-8901-23456789ABCD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Common", "src\SharpCAT2.Common\SharpCAT2.Common.csproj", "{8B3D8F7E-5678-4567-8901-23456789ABCD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.ServerLibrary", "src\SharpCAT2.ServerLibrary\SharpCAT2.ServerLibrary.csproj", "{8B3D8F7E-5678-4567-8901-23456789ABCD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCAT2.Tests", "tests\SharpCAT2.Tests\SharpCAT2.Tests.csproj", "{D43E4AA7-5812-43A0-9AA0-D19833340DBA}"
 EndProject
