@@ -423,8 +423,8 @@ public class ServerApplication
                         return true;
                     }
                     
-                case "get-current-radio":
                 case "current-radio":
+                case "cr":
                     await SendCurrentRadioResponseAsync(networkStream);
                     return true;
 
@@ -525,7 +525,7 @@ public class ServerApplication
     }
 
     /// <summary>
-    /// Sends the current radio information as a response
+    /// Sends the current radio information as a response using universal status format
     /// </summary>
     private async Task SendCurrentRadioResponseAsync(System.Net.Sockets.NetworkStream networkStream)
     {
@@ -533,14 +533,12 @@ public class ServerApplication
         {
             if (_radioService.IsRadioConnected && _radioService.ConnectedRadio != null)
             {
-                var radio = _radioService.ConnectedRadio;
-                var portName = _radioService.ConnectedPortName ?? "Unknown";
-                var response = $"CURRENT_RADIO:{radio.Manufacturer} {radio.ModelName}|{portName}|{(radio.IsConnected ? "CONNECTED" : "DISCONNECTED")}";
-                await SendTcpResponseAsync(networkStream, response);
+                var statusString = await _radioService.ConnectedRadio.GetUniversalStatusStringAsync();
+                await SendTcpResponseAsync(networkStream, statusString);
             }
             else
             {
-                await SendTcpResponseAsync(networkStream, "CURRENT_RADIO:NONE");
+                await SendTcpResponseAsync(networkStream, "ERROR: No radio connected");
             }
         }
         catch (Exception ex)

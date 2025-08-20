@@ -30,7 +30,6 @@ public class ClientConstantsTests
         // Assert
         Assert.Equal("current-radio", ClientConstants.CurrentRadioCommand);
         Assert.Equal("cr", ClientConstants.CurrentRadioShortCommand);
-        Assert.Equal("get-current-radio", ClientConstants.GetCurrentRadioCommand);
     }
 
     [Fact]
