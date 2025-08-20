@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using SharpCAT2.Common.Serial;
+using SharpCAT2.ServerLibrary.Serial;
 using SharpCAT2.Core.Utils;
 using Xunit;
 using System.IO.Ports;

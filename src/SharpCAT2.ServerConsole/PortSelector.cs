@@ -1,7 +1,7 @@
 using System.IO.Ports;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
-using SharpCAT2.Common.Serial;
+using SharpCAT2.ServerLibrary.Serial;
 
 namespace SharpCAT2.ServerConsole;
 

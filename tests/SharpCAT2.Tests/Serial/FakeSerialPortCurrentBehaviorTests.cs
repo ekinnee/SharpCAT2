@@ -1,4 +1,4 @@
-using SharpCAT2.Common.Serial;
+using SharpCAT2.ServerLibrary.Serial;
 using Xunit;
 using System.Threading.Tasks;
 

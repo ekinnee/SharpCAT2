@@ -1,6 +1,6 @@
-using SharpCAT2.Common.Radio.Models.Testing;
-using SharpCAT2.Common.Serial;
-using SharpCAT2.Common.Radio;
+using SharpCAT2.ServerLibrary.Radio.Models.Testing;
+using SharpCAT2.ServerLibrary.Serial;
+using SharpCAT2.ServerLibrary.Radio;
 using SharpCAT2.Core.Radio;
 using Xunit;
 using System.Threading.Tasks;

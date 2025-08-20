@@ -1,5 +1,5 @@
-using SharpCAT2.Common.Radio;
-using SharpCAT2.Common.Radio.Models.Testing;
+using SharpCAT2.ServerLibrary.Radio;
+using SharpCAT2.ServerLibrary.Radio.Models.Testing;
 
 namespace SharpCAT2.Tests;
 

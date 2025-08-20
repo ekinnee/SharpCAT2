@@ -37,7 +37,7 @@ SharpCAT2 is a cross-platform .NET 8 serial port communication server applicatio
 
 ### Code Organization
 - Follow existing namespace structure: `SharpCAT2.{Component}.{Feature}`
-- Place radio models in brand-organized folders under `SharpCAT2.Common.Radio.Models`
+- Place radio models in brand-organized folders under `SharpCAT2.ServerLibrary.Radio.Models`
 - Use dependency injection for all services
 - Implement proper interfaces for testability
 
@@ -90,7 +90,7 @@ SharpCAT2 is a cross-platform .NET 8 serial port communication server applicatio
 
 ### Adding a New Radio Model
 ```csharp
-namespace SharpCAT2.Common.Radio.Models.{Brand}
+namespace SharpCAT2.ServerLibrary.Radio.Models.{Brand}
 {
     public class {ModelName} : BaseRadio
     {
