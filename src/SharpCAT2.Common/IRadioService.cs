@@ -1,6 +1,7 @@
 using SharpCAT2.Core.Radio;
 using SharpCAT2.Core.Serial;
 using SharpCAT2.Core.Configuration;
+using SharpCAT2.Common.Radio;
 
 namespace SharpCAT2.Common;
 
@@ -40,10 +41,10 @@ public interface IRadioService
     Task<bool> TryProcessRadioCommandAsync(string input);
 
     /// <summary>
-    /// Displays comprehensive status information for the connected radio
+    /// Gets comprehensive status information for the connected radio
     /// </summary>
     /// <returns>Radio status information or null if no radio connected</returns>
-    Task<string?> GetRadioStatusAsync();
+    Task<RadioStatusInfo?> GetRadioStatusAsync();
 
     /// <summary>
     /// Changes the active radio to the specified model
@@ -63,8 +64,8 @@ public interface IRadioService
     /// Gets detailed information about a specific radio model
     /// </summary>
     /// <param name="radioName">Name of the radio model</param>
-    /// <returns>Radio information or null if not found</returns>
-    string? GetRadioInfo(string radioName);
+    /// <returns>Radio information structure or null if not found</returns>
+    RadioModelInfo? GetRadioInfo(string radioName);
 
     /// <summary>
     /// Disconnects the current radio

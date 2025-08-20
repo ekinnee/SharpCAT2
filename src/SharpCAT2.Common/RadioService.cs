@@ -141,36 +141,35 @@ public class RadioService : IRadioService, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task<string?> GetRadioStatusAsync()
+    public async Task<RadioStatusInfo?> GetRadioStatusAsync()
     {
         if (_connectedRadio == null)
         {
-            return "No radio connected.";
+            return null;
         }
 
         try
         {
             var status = await _connectedRadio.GetStatusAsync();
-            var sb = new StringBuilder();
-            sb.AppendLine("Radio Status:");
-            sb.AppendLine($"  Model: {_connectedRadio.Manufacturer} {_connectedRadio.ModelName}");
-            sb.AppendLine($"  Frequency: {status.Frequency:N0} Hz");
-            sb.AppendLine($"  Mode: {status.Mode}");
-            sb.AppendLine($"  VFO: {status.CurrentVfo}");
-            sb.AppendLine($"  Transmitting: {status.IsTransmitting}");
-            sb.AppendLine($"  Power: {status.IsPoweredOn}");
-            sb.AppendLine($"  Timestamp: {status.Timestamp:HH:mm:ss}");
-            sb.AppendLine();
-            sb.AppendLine("Supported Features:");
-            sb.AppendLine($"  Feature Count: {_connectedRadio.SupportedFeatures.GetFeatureCount()}");
-            sb.AppendLine($"  Features: {_connectedRadio.SupportedFeatures.GetDescription()}");
-            
-            return sb.ToString();
+            return new RadioStatusInfo
+            {
+                Manufacturer = _connectedRadio.Manufacturer,
+                ModelName = _connectedRadio.ModelName,
+                Frequency = status.Frequency,
+                Mode = status.Mode,
+                CurrentVfo = status.CurrentVfo,
+                IsTransmitting = status.IsTransmitting,
+                IsPoweredOn = status.IsPoweredOn,
+                Timestamp = status.Timestamp,
+                FeatureCount = _connectedRadio.SupportedFeatures.GetFeatureCount(),
+                FeaturesDescription = _connectedRadio.SupportedFeatures.GetDescription(),
+                IsConnected = _connectedRadio.IsConnected
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting radio status");
-            return $"Error getting radio status: {ex.Message}";
+            return null;
         }
     }
 
@@ -238,7 +237,7 @@ public class RadioService : IRadioService, IDisposable
     }
 
     /// <inheritdoc />
-    public string? GetRadioInfo(string radioName)
+    public RadioModelInfo? GetRadioInfo(string radioName)
     {
         var radio = RadioFactory.CreateRadio(radioName);
         if (radio == null)
@@ -248,21 +247,13 @@ public class RadioService : IRadioService, IDisposable
 
         try
         {
-            var sb = new StringBuilder();
-            sb.AppendLine($"Radio Information: {radioName}");
-            sb.AppendLine("====================================");
-            sb.AppendLine($"Manufacturer: {radio.Manufacturer}");
-            sb.AppendLine($"Model: {radio.ModelName}");
-            sb.AppendLine($"Feature Count: {radio.SupportedFeatures.GetFeatureCount()}");
-            sb.AppendLine();
-            sb.AppendLine("Supported Features:");
-            sb.AppendLine("==================");
-            
             var features = radio.SupportedFeatures;
+            var supportedFeatureNames = new List<string>();
             
             if (features == SupportedFeatures.FullFeatureSet)
             {
-                sb.AppendLine("  All features supported (Full Feature Set)");
+                // For full feature set, we can list all available features
+                supportedFeatureNames.Add("All features supported (Full Feature Set)");
             }
             else
             {
@@ -274,22 +265,21 @@ public class RadioService : IRadioService, IDisposable
                                f != SupportedFeatures.VHFUHFOperation &&
                                f != SupportedFeatures.AdvancedOperation &&
                                features.HasFeature(f))
+                    .Select(f => f.ToString())
                     .ToList();
 
-                if (featureNames.Count == 0)
-                {
-                    sb.AppendLine("  Basic operation only");
-                }
-                else
-                {
-                    foreach (var feature in featureNames.OrderBy(f => f.ToString()))
-                    {
-                        sb.AppendLine($"  ✓ {feature}");
-                    }
-                }
+                supportedFeatureNames.AddRange(featureNames);
             }
 
-            return sb.ToString();
+            return new RadioModelInfo
+            {
+                RadioName = radioName,
+                Manufacturer = radio.Manufacturer,
+                ModelName = radio.ModelName,
+                FeatureCount = radio.SupportedFeatures.GetFeatureCount(),
+                SupportedFeatures = supportedFeatureNames,
+                IsFullFeatureSet = features == SupportedFeatures.FullFeatureSet
+            };
         }
         finally
         {

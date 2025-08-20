@@ -64,8 +64,8 @@ public class RadioServiceTests
 
         // Assert
         Assert.NotNull(info);
-        Assert.Contains("DummyRadio", info);
-        Assert.Contains("Radio Information", info);
+        Assert.Equal("DummyRadio", info.RadioName);
+        Assert.Equal("SharpCAT2", info.Manufacturer);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class RadioServiceTests
         var status = await _radioService.GetRadioStatusAsync();
 
         // Assert
-        Assert.Equal("No radio connected.", status);
+        Assert.Null(status);
     }
 
     [Fact]

@@ -94,11 +94,17 @@ class Program
             })
             .ConfigureServices((context, services) =>
             {
-                // Register services
+                // Register core services
                 services.AddSingleton<IConfigurationService, ConfigurationService>();
                 services.AddSingleton<ISecurityService, SecurityService>();
                 services.AddSingleton<INetworkService, NetworkService>();
                 services.AddSingleton<IRadioService, RadioService>();
+                
+                // Register new SoC services
+                services.AddSingleton<IUserInterfaceService, ConsoleUserInterfaceService>();
+                services.AddSingleton<IPortSelectionService, PortSelectionService>();
+                services.AddSingleton<ICommandDisplayService, CommandDisplayService>();
+                services.AddSingleton<IServerCommandHandler, ServerCommandHandler>();
                 
                 // Register the main application
                 services.AddSingleton<ServerApplication>();
