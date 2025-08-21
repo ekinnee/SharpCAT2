@@ -22,7 +22,12 @@ public static class ProtocolListFilter
         /// <summary>
         /// Serial port list (SERIALPORT_LIST_START/END)
         /// </summary>
-        SerialPorts
+        SerialPorts,
+        
+        /// <summary>
+        /// Radio info (RADIO_INFO_START/END)
+        /// </summary>
+        RadioInfo
     }
 
     /// <summary>
@@ -36,7 +41,8 @@ public static class ProtocolListFilter
     private static readonly Dictionary<ListType, ListMarkerConfig> MarkerConfigs = new()
     {
         [ListType.Radios] = new("RADIO_LIST_START", "RADIO_LIST_END"),
-        [ListType.SerialPorts] = new("SERIALPORT_LIST_START", "SERIALPORT_LIST_END")
+        [ListType.SerialPorts] = new("SERIALPORT_LIST_START", "SERIALPORT_LIST_END"),
+        [ListType.RadioInfo] = new("RADIO_INFO_START", "RADIO_INFO_END")
     };
 
     /// <summary>
@@ -81,6 +87,17 @@ public static class ProtocolListFilter
     public static string? FilterSerialPortList(string? protocolResponse)
     {
         return FilterList(protocolResponse, ListType.SerialPorts);
+    }
+
+    /// <summary>
+    /// Filters a radio info response, returning only the key=value entries without protocol markers.
+    /// Each line contains radio information in the format: "Key=Value"
+    /// </summary>
+    /// <param name="protocolResponse">Raw protocol response containing radio info</param>
+    /// <returns>Clean radio info without markers, or empty string if no valid info found</returns>
+    public static string? FilterRadioInfo(string? protocolResponse)
+    {
+        return FilterList(protocolResponse, ListType.RadioInfo);
     }
 
     /// <summary>
@@ -226,5 +243,38 @@ public static class ProtocolListFilter
     public static ListType[] GetSupportedListTypes()
     {
         return MarkerConfigs.Keys.ToArray();
+    }
+
+    /// <summary>
+    /// Parses a filtered radio info response into key-value pairs.
+    /// Useful for programmatic access to radio information.
+    /// </summary>
+    /// <param name="filteredRadioInfo">Filtered radio info (output from FilterRadioInfo)</param>
+    /// <returns>Dictionary of key-value pairs from the radio info</returns>
+    public static Dictionary<string, string> ParseRadioInfo(string? filteredRadioInfo)
+    {
+        var result = new Dictionary<string, string>();
+        
+        if (string.IsNullOrWhiteSpace(filteredRadioInfo))
+            return result;
+
+        var lines = filteredRadioInfo.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        
+        foreach (var line in lines)
+        {
+            var trimmedLine = line.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedLine))
+                continue;
+                
+            var equalIndex = trimmedLine.IndexOf('=');
+            if (equalIndex > 0 && equalIndex < trimmedLine.Length - 1)
+            {
+                var key = trimmedLine.Substring(0, equalIndex).Trim();
+                var value = trimmedLine.Substring(equalIndex + 1).Trim();
+                result[key] = value;
+            }
+        }
+        
+        return result;
     }
 }

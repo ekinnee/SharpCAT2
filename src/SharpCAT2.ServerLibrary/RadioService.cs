@@ -237,7 +237,7 @@ public class RadioService : IRadioService, IDisposable
     }
 
     /// <inheritdoc />
-    public RadioModelInfo? GetRadioInfo(string radioName)
+    public Core.Radio.RadioModelInfo? GetRadioInfo(string radioName)
     {
         var radio = RadioFactory.CreateRadio(radioName);
         if (radio == null)
@@ -271,7 +271,7 @@ public class RadioService : IRadioService, IDisposable
                 supportedFeatureNames.AddRange(featureNames);
             }
 
-            return new RadioModelInfo
+            return new Core.Radio.RadioModelInfo
             {
                 RadioName = radioName,
                 Manufacturer = radio.Manufacturer,

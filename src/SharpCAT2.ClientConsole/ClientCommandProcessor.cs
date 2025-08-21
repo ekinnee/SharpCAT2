@@ -39,6 +39,8 @@ public class ClientCommandProcessor
             ClientConstants.CurrentRadioCommand or ClientConstants.CurrentRadioShortCommand => await HandleCurrentRadioCommandAsync(),
             _ when normalizedInput.StartsWith(ClientConstants.SetRadioCommand + " ") => await HandleSetRadioCommandAsync(input),
             _ when normalizedInput.StartsWith(ClientConstants.SetRadioShortCommand + " ") => await HandleSetRadioCommandAsync(input),
+            _ when normalizedInput.StartsWith(ClientConstants.RadioInfoCommand + " ") => await HandleRadioInfoCommandAsync(input),
+            _ when normalizedInput.StartsWith(ClientConstants.RadioInfoShortCommand + " ") => await HandleRadioInfoCommandAsync(input),
             _ => new CommandProcessingResult(false, false) // Not handled, send to server
         };
     }
@@ -134,6 +136,40 @@ public class ClientCommandProcessor
         }
     }
 
+    /// <summary>
+    /// Handles radio info command
+    /// </summary>
+    private async Task<CommandProcessingResult> HandleRadioInfoCommandAsync(string input)
+    {
+        string radioName = ExtractRadioNameFromInfoCommand(input);
+        if (!string.IsNullOrWhiteSpace(radioName))
+        {
+            try
+            {
+                var radioInfo = await _client.GetRadioInfoAsync(radioName);
+                if (radioInfo != null)
+                {
+                    Console.WriteLine(radioInfo.ToString());
+                }
+                else
+                {
+                    Console.WriteLine($"Radio not found: {radioName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to get radio info: {ex.Message}");
+            }
+            return new CommandProcessingResult(true, false);
+        }
+        else
+        {
+            Console.WriteLine("Usage: radio-info <manufacturer> <model>");
+            Console.WriteLine("Example: radio-info Kenwood TS-2000");
+            return new CommandProcessingResult(true, false);
+        }
+    }
+
     #endregion
 
     #region Helper Methods
@@ -186,6 +222,29 @@ public class ClientCommandProcessor
     }
 
     /// <summary>
+    /// Extracts radio name from radio-info command (supports both full and short form)
+    /// </summary>
+    /// <param name="input">Full command input</param>
+    /// <returns>Radio name or empty string if invalid</returns>
+    private static string ExtractRadioNameFromInfoCommand(string input)
+    {
+        const string fullPrefix = "radio-info ";
+        const string shortPrefix = "ri ";
+        
+        if (input.StartsWith(fullPrefix, StringComparison.OrdinalIgnoreCase) && input.Length > fullPrefix.Length)
+        {
+            return input[fullPrefix.Length..].Trim();
+        }
+        
+        if (input.StartsWith(shortPrefix, StringComparison.OrdinalIgnoreCase) && input.Length > shortPrefix.Length)
+        {
+            return input[shortPrefix.Length..].Trim();
+        }
+        
+        return string.Empty;
+    }
+
+    /// <summary>
     /// Shows command help information
     /// </summary>
     private static void ShowCommandHelp()
@@ -199,6 +258,7 @@ public class ClientCommandProcessor
         Console.WriteLine("  list-serialports, ls        - List available serial ports");
         Console.WriteLine("  current-radio, cr           - Show current active radio");
         Console.WriteLine("  set-radio, sr <name>        - Change active radio (e.g., set-radio Kenwood TS-2000)");
+        Console.WriteLine("  radio-info, ri <name>       - Get detailed radio model information (e.g., radio-info Kenwood TS-2000)");
         Console.WriteLine("  quit, exit                  - Disconnect and exit");
         Console.WriteLine();
         Console.WriteLine("All other commands are sent directly to the remote serial port/radio.");

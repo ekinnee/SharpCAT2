@@ -65,7 +65,7 @@ public interface IRadioService
     /// </summary>
     /// <param name="radioName">Name of the radio model</param>
     /// <returns>Radio information structure or null if not found</returns>
-    RadioModelInfo? GetRadioInfo(string radioName);
+    Core.Radio.RadioModelInfo? GetRadioInfo(string radioName);
 
     /// <summary>
     /// Disconnects the current radio

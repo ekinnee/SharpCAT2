@@ -312,6 +312,53 @@ public class SharpCAT2Client : IDisposable
     }
 
     /// <summary>
+    /// Gets detailed information about a specific radio model from the server
+    /// </summary>
+    /// <param name="radioName">Name of the radio to get information for (e.g., "Kenwood TS-2000")</param>
+    /// <returns>RadioModelInfo object containing detailed radio information, or null if radio not found</returns>
+    public async Task<SharpCAT2.Core.Radio.RadioModelInfo?> GetRadioInfoAsync(string radioName)
+    {
+        if (string.IsNullOrWhiteSpace(radioName))
+        {
+            return null;
+        }
+        
+        try
+        {
+            var protocolResponse = await SendCommandAsync($"radio-info {radioName}");
+            
+            if (protocolResponse == null)
+            {
+                return null;
+            }
+            
+            // Check for error response
+            if (protocolResponse.StartsWith("ERROR:", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+            
+            // Filter the protocol response to get clean key=value pairs
+            var filteredInfo = ProtocolListFilter.FilterRadioInfo(protocolResponse);
+            if (string.IsNullOrWhiteSpace(filteredInfo))
+            {
+                return null;
+            }
+            
+            // Parse the key=value pairs
+            var infoPairs = ProtocolListFilter.ParseRadioInfo(filteredInfo);
+            
+            // Build RadioModelInfo from parsed data
+            return BuildRadioModelInfo(infoPairs);
+        }
+        catch (Exception)
+        {
+            // Return null on any parsing errors
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Disconnects from the server
     /// </summary>
     public void Disconnect()
@@ -470,6 +517,56 @@ public class SharpCAT2Client : IDisposable
         {
             _reconnectionTimer.Change(Timeout.InfiniteTimeSpan, ReconnectionInterval);
         }
+    }
+
+    #endregion
+
+    #region Radio Info Helper Methods
+
+    /// <summary>
+    /// Builds a RadioModelInfo object from parsed key-value pairs
+    /// </summary>
+    /// <param name="infoPairs">Dictionary of key-value pairs from server response</param>
+    /// <returns>RadioModelInfo object</returns>
+    private static SharpCAT2.Core.Radio.RadioModelInfo BuildRadioModelInfo(Dictionary<string, string> infoPairs)
+    {
+        // Extract basic information with defaults
+        infoPairs.TryGetValue("RadioName", out var radioName);
+        infoPairs.TryGetValue("Manufacturer", out var manufacturer);
+        infoPairs.TryGetValue("ModelName", out var modelName);
+        
+        // Parse numeric values
+        int.TryParse(infoPairs.TryGetValue("FeatureCount", out var featureCountStr) ? featureCountStr : "0", out var featureCount);
+        bool.TryParse(infoPairs.TryGetValue("IsFullFeatureSet", out var isFullFeatureSetStr) ? isFullFeatureSetStr : "false", out var isFullFeatureSet);
+        
+        // Parse supported features
+        var supportedFeatures = new List<string>();
+        if (infoPairs.TryGetValue("SupportedFeatures", out var featuresString) && !string.IsNullOrWhiteSpace(featuresString))
+        {
+            supportedFeatures.AddRange(featuresString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(f => f.Trim())
+                .Where(f => !string.IsNullOrWhiteSpace(f)));
+        }
+        
+        // Extract additional properties (excluding known properties)
+        var knownKeys = new HashSet<string> { "RadioName", "Manufacturer", "ModelName", "FeatureCount", "IsFullFeatureSet", "SupportedFeatures" };
+        var additionalProperties = new Dictionary<string, object>();
+        
+        foreach (var kvp in infoPairs.Where(kvp => !knownKeys.Contains(kvp.Key)))
+        {
+            additionalProperties[kvp.Key] = kvp.Value;
+        }
+        
+        return new SharpCAT2.Core.Radio.RadioModelInfo
+        {
+            RadioName = radioName ?? string.Empty,
+            Manufacturer = manufacturer ?? string.Empty,
+            ModelName = modelName ?? string.Empty,
+            FeatureCount = featureCount,
+            SupportedFeatures = supportedFeatures,
+            IsFullFeatureSet = isFullFeatureSet,
+            AdditionalProperties = additionalProperties
+        };
     }
 
     #endregion
