@@ -316,7 +316,7 @@ public class SharpCAT2Client : IDisposable
     /// </summary>
     /// <param name="radioName">Name of the radio to get information for (e.g., "Kenwood TS-2000")</param>
     /// <returns>RadioModelInfo object containing detailed radio information, or null if radio not found</returns>
-    public async Task<SharpCAT2.ServerLibrary.Radio.RadioModelInfo?> GetRadioInfoAsync(string radioName)
+    public async Task<SharpCAT2.Core.Radio.RadioModelInfo?> GetRadioInfoAsync(string radioName)
     {
         if (string.IsNullOrWhiteSpace(radioName))
         {
@@ -528,7 +528,7 @@ public class SharpCAT2Client : IDisposable
     /// </summary>
     /// <param name="infoPairs">Dictionary of key-value pairs from server response</param>
     /// <returns>RadioModelInfo object</returns>
-    private static SharpCAT2.ServerLibrary.Radio.RadioModelInfo BuildRadioModelInfo(Dictionary<string, string> infoPairs)
+    private static SharpCAT2.Core.Radio.RadioModelInfo BuildRadioModelInfo(Dictionary<string, string> infoPairs)
     {
         // Extract basic information with defaults
         infoPairs.TryGetValue("RadioName", out var radioName);
@@ -557,7 +557,7 @@ public class SharpCAT2Client : IDisposable
             additionalProperties[kvp.Key] = kvp.Value;
         }
         
-        return new SharpCAT2.ServerLibrary.Radio.RadioModelInfo
+        return new SharpCAT2.Core.Radio.RadioModelInfo
         {
             RadioName = radioName ?? string.Empty,
             Manufacturer = manufacturer ?? string.Empty,

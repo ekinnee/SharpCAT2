@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace SharpCAT2.ServerLibrary.Radio;
+namespace SharpCAT2.Core.Radio;
 
 /// <summary>
 /// Structured radio model information for separation of concerns.
