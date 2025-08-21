@@ -159,6 +159,26 @@ dotnet run -- --radio-info "Elecraft K3"
 dotnet run -- --radio-info "FlexRadio FLEX-6600"
 ```
 
+The `--radio-info` command displays comprehensive information about a specific radio model in a user-friendly format:
+
+```
+Radio Model Information:
+------------------------
+Name: Elecraft K3
+Manufacturer: Elecraft
+Model Name: K3
+Feature Count: 26
+Supported Features:
+  - FrequencyControl
+  - ModeControl
+  - DualVFO
+  - VFOSwap
+  - SplitOperation
+  - IFBandwidth
+  [... additional features ...]
+Is Full Feature Set: False
+```
+
 ### Connect to a Specific Radio
 ```bash
 dotnet run -- --port COM1 --radio "Kenwood TS-2000"
