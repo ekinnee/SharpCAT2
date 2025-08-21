@@ -89,6 +89,32 @@ SupportedFeatures=FrequencyControl,ModeControl,DualVFO";
         Assert.Null(radioInfo);
     }
 
+    [Fact]
+    public void RadioService_GetRadioInfo_SupportsCaseInsensitiveMatching()
+    {
+        // Test that case-insensitive matching works
+        var testCases = new[]
+        {
+            "kenwood ts-2000",
+            "KENWOOD TS-2000", 
+            "KenWood Ts-2000"
+        };
+        
+        foreach (var testCase in testCases)
+        {
+            // Act
+            var radioInfo = RadioFactory.CreateRadio(testCase);
+            
+            // Assert
+            Assert.NotNull(radioInfo);
+            Assert.Equal("Kenwood", radioInfo.Manufacturer);
+            Assert.Equal("TS-2000", radioInfo.ModelName);
+            
+            // Clean up
+            radioInfo.Dispose();
+        }
+    }
+
     private static IRadioService CreateMockRadioService()
     {
         // Note: This would require complex mocking for full integration tests

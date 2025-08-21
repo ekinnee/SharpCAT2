@@ -154,18 +154,26 @@ public class ClientCommandProcessor
                 else
                 {
                     Console.WriteLine($"Radio not found: {radioName}");
+                    Console.WriteLine("Use 'list-radios' or 'lr' to see available radio models.");
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to get radio info: {ex.Message}");
+                Console.WriteLine("Check your connection to the server and try again.");
             }
             return new CommandProcessingResult(true, false);
         }
         else
         {
             Console.WriteLine("Usage: radio-info <manufacturer> <model>");
-            Console.WriteLine("Example: radio-info Kenwood TS-2000");
+            Console.WriteLine("       ri <manufacturer> <model>");
+            Console.WriteLine("Examples:");
+            Console.WriteLine("  radio-info Kenwood TS-2000");
+            Console.WriteLine("  ri \"Kenwood TS-2000\"");
+            Console.WriteLine("  radio-info 'Yaesu FT-991A'");
+            Console.WriteLine();
+            Console.WriteLine("Use 'list-radios' or 'lr' to see available radio models.");
             return new CommandProcessingResult(true, false);
         }
     }
@@ -223,6 +231,7 @@ public class ClientCommandProcessor
 
     /// <summary>
     /// Extracts radio name from radio-info command (supports both full and short form)
+    /// Properly handles quoted radio names and strips surrounding quotes.
     /// </summary>
     /// <param name="input">Full command input</param>
     /// <returns>Radio name or empty string if invalid</returns>
@@ -231,17 +240,33 @@ public class ClientCommandProcessor
         const string fullPrefix = "radio-info ";
         const string shortPrefix = "ri ";
         
+        string radioName = string.Empty;
+        
         if (input.StartsWith(fullPrefix, StringComparison.OrdinalIgnoreCase) && input.Length > fullPrefix.Length)
         {
-            return input[fullPrefix.Length..].Trim();
+            radioName = input[fullPrefix.Length..].Trim();
         }
-        
-        if (input.StartsWith(shortPrefix, StringComparison.OrdinalIgnoreCase) && input.Length > shortPrefix.Length)
+        else if (input.StartsWith(shortPrefix, StringComparison.OrdinalIgnoreCase) && input.Length > shortPrefix.Length)
         {
-            return input[shortPrefix.Length..].Trim();
+            radioName = input[shortPrefix.Length..].Trim();
         }
         
-        return string.Empty;
+        if (string.IsNullOrEmpty(radioName))
+        {
+            return string.Empty;
+        }
+        
+        // Strip surrounding quotes if present (handles both single and double quotes)
+        if ((radioName.StartsWith('"') && radioName.EndsWith('"')) ||
+            (radioName.StartsWith('\'') && radioName.EndsWith('\'')))
+        {
+            if (radioName.Length >= 2)
+            {
+                radioName = radioName[1..^1];
+            }
+        }
+        
+        return radioName.Trim();
     }
 
     /// <summary>
@@ -258,8 +283,14 @@ public class ClientCommandProcessor
         Console.WriteLine("  list-serialports, ls        - List available serial ports");
         Console.WriteLine("  current-radio, cr           - Show current active radio");
         Console.WriteLine("  set-radio, sr <name>        - Change active radio (e.g., set-radio Kenwood TS-2000)");
-        Console.WriteLine("  radio-info, ri <name>       - Get detailed radio model information (e.g., radio-info Kenwood TS-2000)");
+        Console.WriteLine("  radio-info, ri <name>       - Get detailed radio model information");
         Console.WriteLine("  quit, exit                  - Disconnect and exit");
+        Console.WriteLine();
+        Console.WriteLine("Radio-info command examples:");
+        Console.WriteLine("  radio-info Kenwood TS-2000  - Get info for Kenwood TS-2000");
+        Console.WriteLine("  ri \"Kenwood TS-2000\"        - Get info using quotes (handles spaces)");
+        Console.WriteLine("  radio-info 'Yaesu FT-991A'  - Get info using single quotes");
+        Console.WriteLine("  ri kenwood ts-2000          - Case-insensitive matching supported");
         Console.WriteLine();
         Console.WriteLine("All other commands are sent directly to the remote serial port/radio.");
         Console.WriteLine("Note: Only 'FAKE' is supported as a fake/test serial port.");
