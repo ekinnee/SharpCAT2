@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../SharpCAT2.Core/SharpCAT2.Core.csproj" />
+    <ProjectReference Include="../SharpCAT2.ServerLibrary/SharpCAT2.ServerLibrary.csproj" />
   </ItemGroup>
 
 

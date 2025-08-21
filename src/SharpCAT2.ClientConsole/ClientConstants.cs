@@ -120,6 +120,16 @@ public static class ClientConstants
     /// </summary>
     public const string SetRadioShortCommand = "sr";
 
+    /// <summary>
+    /// Command to get radio model information
+    /// </summary>
+    public const string RadioInfoCommand = "radio-info";
+
+    /// <summary>
+    /// Short form of radio info command
+    /// </summary>
+    public const string RadioInfoShortCommand = "ri";
+
     #endregion
 
     #region Connection

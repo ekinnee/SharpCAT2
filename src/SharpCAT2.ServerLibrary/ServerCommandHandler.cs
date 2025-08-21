@@ -71,6 +71,20 @@ public class ServerCommandHandler : IServerCommandHandler
                 case "rs":
                     await SendRadioStatusResponseAsync(networkStream);
                     return true;
+
+                case "radio-info":
+                case "ri":
+                    if (parts.Length >= 2)
+                    {
+                        string radioName = string.Join(" ", parts.Skip(1));
+                        await SendRadioInfoResponseAsync(radioName, networkStream);
+                        return true;
+                    }
+                    else
+                    {
+                        await SendTcpResponseAsync(networkStream, "ERROR: radio-info command requires radio name");
+                        return true;
+                    }
                     
                 default:
                     return false; // Not a radio management command
@@ -241,6 +255,52 @@ public class ServerCommandHandler : IServerCommandHandler
         {
             _logger.LogError(ex, "Error getting radio status");
             await SendTcpResponseAsync(networkStream, $"ERROR: Failed to get radio status - {ex.Message}");
+        }
+    }
+
+    private async Task SendRadioInfoResponseAsync(string radioName, NetworkStream networkStream)
+    {
+        try
+        {
+            var radioInfo = _radioService.GetRadioInfo(radioName);
+            if (radioInfo == null)
+            {
+                await SendTcpResponseAsync(networkStream, $"ERROR: Unknown radio: {radioName}");
+                return;
+            }
+
+            var response = new StringBuilder();
+            response.AppendLine("RADIO_INFO_START");
+            response.AppendLine($"RadioName={radioInfo.RadioName}");
+            response.AppendLine($"Manufacturer={radioInfo.Manufacturer}");
+            response.AppendLine($"ModelName={radioInfo.ModelName}");
+            response.AppendLine($"FeatureCount={radioInfo.FeatureCount}");
+            response.AppendLine($"IsFullFeatureSet={radioInfo.IsFullFeatureSet}");
+            
+            // Add supported features as comma-separated list
+            if (radioInfo.SupportedFeatures.Count > 0)
+            {
+                response.AppendLine($"SupportedFeatures={string.Join(",", radioInfo.SupportedFeatures)}");
+            }
+            else
+            {
+                response.AppendLine("SupportedFeatures=");
+            }
+            
+            // Add additional properties if any
+            foreach (var kvp in radioInfo.AdditionalProperties)
+            {
+                response.AppendLine($"{kvp.Key}={kvp.Value}");
+            }
+            
+            response.AppendLine("RADIO_INFO_END");
+            
+            await SendTcpResponseAsync(networkStream, response.ToString());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting radio info for {RadioName}", radioName);
+            await SendTcpResponseAsync(networkStream, $"ERROR: Failed to get radio info - {ex.Message}");
         }
     }
 
