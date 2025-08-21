@@ -77,11 +77,13 @@ public class ServerCommandHandler : IServerCommandHandler
                     if (parts.Length >= 2)
                     {
                         string radioName = string.Join(" ", parts.Skip(1));
+                        _logger.LogDebug("Received radio-info command for: {RadioName}", radioName);
                         await SendRadioInfoResponseAsync(radioName, networkStream);
                         return true;
                     }
                     else
                     {
+                        _logger.LogWarning("radio-info command called without radio name");
                         await SendTcpResponseAsync(networkStream, "ERROR: radio-info command requires radio name");
                         return true;
                     }
@@ -262,12 +264,36 @@ public class ServerCommandHandler : IServerCommandHandler
     {
         try
         {
-            var radioInfo = _radioService.GetRadioInfo(radioName);
-            if (radioInfo == null)
+            _logger.LogInformation("Processing radio-info request for: {RadioName}", radioName);
+            
+            // Trim and clean the radio name (remove quotes if present)
+            var cleanRadioName = radioName.Trim();
+            if ((cleanRadioName.StartsWith('"') && cleanRadioName.EndsWith('"')) ||
+                (cleanRadioName.StartsWith('\'') && cleanRadioName.EndsWith('\'')))
             {
-                await SendTcpResponseAsync(networkStream, $"ERROR: Unknown radio: {radioName}");
+                if (cleanRadioName.Length >= 2)
+                {
+                    cleanRadioName = cleanRadioName[1..^1].Trim();
+                }
+            }
+            
+            if (string.IsNullOrWhiteSpace(cleanRadioName))
+            {
+                _logger.LogWarning("Empty radio name provided for radio-info command");
+                await SendTcpResponseAsync(networkStream, "ERROR: Radio name cannot be empty");
                 return;
             }
+
+            var radioInfo = _radioService.GetRadioInfo(cleanRadioName);
+            if (radioInfo == null)
+            {
+                _logger.LogInformation("Radio not found for radio-info request: {RadioName}", cleanRadioName);
+                await SendTcpResponseAsync(networkStream, $"ERROR: Unknown radio: {cleanRadioName}");
+                return;
+            }
+
+            _logger.LogDebug("Successfully found radio info for: {RadioName} (Manufacturer: {Manufacturer}, Model: {Model})", 
+                cleanRadioName, radioInfo.Manufacturer, radioInfo.ModelName);
 
             var response = new StringBuilder();
             response.AppendLine("RADIO_INFO_START");
@@ -296,10 +322,11 @@ public class ServerCommandHandler : IServerCommandHandler
             response.AppendLine("RADIO_INFO_END");
             
             await SendTcpResponseAsync(networkStream, response.ToString());
+            _logger.LogDebug("Radio-info response sent successfully for: {RadioName}", cleanRadioName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting radio info for {RadioName}", radioName);
+            _logger.LogError(ex, "Error processing radio-info request for {RadioName}", radioName);
             await SendTcpResponseAsync(networkStream, $"ERROR: Failed to get radio info - {ex.Message}");
         }
     }

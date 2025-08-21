@@ -119,6 +119,7 @@ public static class RadioFactory
 
     /// <summary>
     /// Creates a radio instance by manufacturer and model
+    /// Supports case-insensitive matching for better user experience.
     /// </summary>
     /// <param name="manufacturer">Radio manufacturer</param>
     /// <param name="model">Radio model</param>
@@ -147,11 +148,38 @@ public static class RadioFactory
             }
         }
 
+        // If exact match fails, try case-insensitive fuzzy matching
+        foreach (var kvp in _radioTypes)
+        {
+            try
+            {
+                var instance = (IRadio?)Activator.CreateInstance(kvp.Value);
+                if (instance != null)
+                {
+                    if (instance.Manufacturer.Equals(manufacturer, StringComparison.OrdinalIgnoreCase) &&
+                        instance.ModelName.Equals(model, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (useResilientWrapper)
+                        {
+                            return new ResilientRadio(instance, logger);
+                        }
+                        return instance;
+                    }
+                    instance.Dispose();
+                }
+            }
+            catch
+            {
+                // Continue searching
+            }
+        }
+
         return null;
     }
 
     /// <summary>
     /// Creates a radio instance by combined name (e.g., "Kenwood TS-2000")
+    /// Supports case-insensitive matching for better user experience.
     /// </summary>
     /// <param name="radioName">Combined radio name</param>
     /// <param name="useResilientWrapper">Use resilient wrapper for error recovery (default: false for compatibility)</param>
@@ -162,19 +190,20 @@ public static class RadioFactory
         if (string.IsNullOrWhiteSpace(radioName))
             return null;
 
-        var parts = radioName.Trim().Split(' ', 2);
+        var cleanRadioName = radioName.Trim();
+        var parts = cleanRadioName.Split(' ', 2);
         if (parts.Length >= 2)
         {
             return CreateRadio(parts[0], parts[1], useResilientWrapper, logger);
         }
 
-        // Try to find by model name only
+        // Try to find by model name only (case-insensitive)
         foreach (var kvp in _radioTypes)
         {
             try
             {
                 var instance = (IRadio?)Activator.CreateInstance(kvp.Value);
-                if (instance?.ModelName.Equals(radioName, StringComparison.OrdinalIgnoreCase) == true)
+                if (instance?.ModelName.Equals(cleanRadioName, StringComparison.OrdinalIgnoreCase) == true)
                 {
                     if (useResilientWrapper)
                     {
@@ -183,6 +212,32 @@ public static class RadioFactory
                     return instance;
                 }
                 instance?.Dispose();
+            }
+            catch
+            {
+                // Continue searching
+            }
+        }
+
+        // Try fuzzy matching on combined manufacturer + model name (case-insensitive)
+        foreach (var kvp in _radioTypes)
+        {
+            try
+            {
+                var instance = (IRadio?)Activator.CreateInstance(kvp.Value);
+                if (instance != null)
+                {
+                    var fullName = $"{instance.Manufacturer} {instance.ModelName}";
+                    if (fullName.Equals(cleanRadioName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (useResilientWrapper)
+                        {
+                            return new ResilientRadio(instance, logger);
+                        }
+                        return instance;
+                    }
+                    instance.Dispose();
+                }
             }
             catch
             {

@@ -332,10 +332,11 @@ public class SharpCAT2Client : IDisposable
                 return null;
             }
             
-            // Check for error response
+            // Check for error response and throw specific exceptions to surface server errors
             if (protocolResponse.StartsWith("ERROR:", StringComparison.OrdinalIgnoreCase))
             {
-                return null;
+                string errorMessage = protocolResponse.Length > 6 ? protocolResponse[6..].Trim() : "Unknown error";
+                throw new InvalidOperationException($"Server error: {errorMessage}");
             }
             
             // Filter the protocol response to get clean key=value pairs
@@ -351,9 +352,14 @@ public class SharpCAT2Client : IDisposable
             // Build RadioModelInfo from parsed data
             return BuildRadioModelInfo(infoPairs);
         }
+        catch (InvalidOperationException)
+        {
+            // Re-throw server errors as-is to preserve the error message
+            throw;
+        }
         catch (Exception)
         {
-            // Return null on any parsing errors
+            // Return null on any other parsing errors
             return null;
         }
     }
