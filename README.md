@@ -200,6 +200,8 @@ current-radio         # Show currently connected radio
 cr                    # Short form of current-radio command
 set-radio <name>      # Change active radio (e.g., set-radio "Kenwood TS-2000")
 sr <name>             # Short form of set-radio command
+radio-info <name>     # Get detailed radio model information
+ri <name>             # Short form of radio-info command
 
 # Connection Commands  
 status                # Show client connection status
@@ -210,6 +212,30 @@ quit / exit           # Disconnect and exit
 # All other commands are sent directly to the radio/serial port
 FA;                   # Get frequency (radio-specific)
 PS1;                  # Power on (radio-specific)
+```
+
+**Radio Information Command Examples:**
+
+The `radio-info` command provides detailed information about radio models and supports flexible input formats:
+
+```bash
+# Basic usage
+radio-info Kenwood TS-2000    # Get info for Kenwood TS-2000
+ri Yaesu FT-991A              # Short form with Yaesu FT-991A
+
+# Quoted names (handles spaces properly)
+radio-info "Kenwood TS-2000"  # Double quotes
+ri 'Yaesu FT-991A'            # Single quotes
+radio-info "Ten-Tec OMNI VII" # Multi-word manufacturer names
+
+# Case-insensitive matching
+radio-info kenwood ts-2000    # Lowercase works
+ri YAESU FT-991A              # Uppercase works
+radio-info KenWood Ts-2000    # Mixed case works
+
+# Error handling
+radio-info NonExistent Radio  # Clear error message with suggestions
+ri ""                         # Usage examples displayed
 ```
 
 **Universal Radio Status Output Example:**
