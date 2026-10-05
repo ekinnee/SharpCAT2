@@ -4,7 +4,7 @@
 
 Deliver a maintainable native .NET radio-control library and TCP server that can be developed, demonstrated, and tested without owning a radio. The first release target is a clearly labeled preview with reliable transport and a small FT-991A operation set verified against documentation and simulation. Physical compatibility remains unverified until a contributor supplies hardware evidence.
 
-The user authorized Phase 0 implementation and permits issues/PRs and merges after gates pass. Later implementation phases remain proposed. This document does not establish hardware compatibility or authorize a product release. Proposed names below describe responsibilities; choose final names when implementing the owning phase.
+The user authorized Phase 0 and Phase 1 implementation and permits issues/PRs and merges after gates pass. Later implementation phases remain proposed. This document does not establish hardware compatibility or authorize a product release. Proposed names below describe responsibilities; choose final names when implementing the owning phase.
 
 Planning baseline, checked October 5, 2026:
 
@@ -79,14 +79,14 @@ Use asynchronous awaited handlers for requests. Events are appropriate for notif
 
 Introduce a byte-oriented transport seam so encoding belongs to the protocol profile. This prepares a clean boundary for future CI-V without implementing it now. Use cancellable asynchronous adapter operations where reliable; if platform SerialPort reads cannot be cancelled, use one bounded read worker, finite timeouts and close-to-unblock. Prove shutdown on each claimed platform. Do not launch an unbounded Task.Run per poll/read.
 
-Phase 1 replaces the active string-only `ISerialPort` command path with a byte transport contract whose writes preserve the supplied bytes exactly. Profiles do not accept ports and cannot open, close, read, or dispose them. The session owns the transport lifetime, including disposal on failed startup and shutdown. Remove `BaseRadio` transport ownership in Phase 2, not only its reader. `IRadio.ConnectAsync(ISerialPort)` is a documented source-breaking removal from the new supported API. If a legacy adapter is retained, it is restricted to documented ASCII CAT use and delegates through the same session; it does not represent a lossless binary bridge. A caller must explicitly transfer transport ownership when constructing a session, and a disposed session cannot reuse that transport.
+Phase 1 defines a byte transport contract whose writes preserve the supplied bytes exactly; Phase 2 replaces the active string-only `ISerialPort` command path with that owner. Profiles do not accept ports and cannot open, close, read, or dispose them. The session owns the transport lifetime, including disposal on failed startup and shutdown. Remove `BaseRadio` transport ownership in Phase 2, not only its reader. Prefer automatically adapting supported `IRadio.ConnectAsync(ISerialPort)` calls into the session rather than forcing source changes. The legacy bridge is restricted to documented ASCII CAT use and delegates through the same session; it does not represent a lossless binary bridge. Unsupported legacy signatures or protocols require explicit errors and migration notes. A caller must explicitly transfer transport ownership when constructing a session, and a disposed session cannot reuse that transport.
 
 Each command specification contains payload bytes, response policy, expected reply matcher/parser, deadline, and replay classification. Response policies are `WriteOnly`, `ReplyRequired`, and `WriteThenReadBack`. A write and its verification query run as one queue item so another client's mutation cannot interleave.
 
 Return separate fields for outcome and evidence:
 
 - Outcome: `Succeeded`, `InvalidArgument`, `NotSupported`, `NotConnected`, `Busy`, `TimedOut`, `Cancelled`, `ProtocolError`, `TransportError`, or `OutcomeUnknown`.
-- Evidence: `NotSent`, `Written`, `ReplyReceived`, or `ReadBackVerified`.
+- Evidence: `NotSent`, `WriteAttempted`, `Written`, `ReplyReceived`, or `ReadBackVerified`.
 - Optional parsed value, observed timestamp, connection generation and diagnostic detail.
 
 A write-only command can succeed with `Written`; it does not prove radio acceptance. Frequency/mode setters in the preview use read-back verification by default. VFO swap is never automatically replayed; verify resulting state where possible, and retain uncertainty if the reply is lost. Properties and status must distinguish requested values from observed values. Failed reads never silently become a valid zero frequency or USB mode.
@@ -130,7 +130,7 @@ A list is one response object containing an array, not START/END text markers. N
 
 Use the current configurable server port, but explicitly document the breaking wire change. Old plain-text clients receive a bounded incompatibility error and disconnect; new clients fail hello against old servers without falling back to raw commands. Do not maintain two simultaneously active protocols in the first preview. Retain a tagged old release as the migration/rollback path. Decide the actual release version from existing published versions during release preparation; use a breaking prerelease version, not an accidental patch release.
 
-Typed library operations become the supported API. Keep old bool/string methods as deprecated adapters where semantics can be honest: bool true means the declared completion policy succeeded, and write-only string success remains empty rather than invented `OK`. Document source-breaking signatures/removals in the migration guide. Do not preserve an API by retaining a second command owner. Raw SendCommand compatibility requires an explicit completion policy and the same session queue; unknown raw commands are not enabled through the default remote API.
+Typed library operations become the supported API. Automatically route supported old bool/string methods through deprecated adapters where semantics can be honest: bool true means the declared completion policy succeeded, and write-only string success remains empty rather than invented `OK`. Document source-breaking signatures/removals in the migration guide. Do not preserve an API by retaining a second command owner. Raw SendCommand compatibility requires an explicit completion policy and the same session queue; unknown raw commands are not enabled through the default remote API.
 
 ## FT-991A profile and independent proof
 
@@ -150,7 +150,7 @@ Use .NET 10 for all preview projects and CI, with a checked-in SDK policy. .NET 
 
 Run the server through Generic Host startup, cancellation and shutdown. Default unattended mode never prompts and requires a valid port/profile or explicit simulation option. `--interactive` attaches a console reader; EOF detaches that reader while the host keeps running. SIGTERM/Ctrl+C stop accepting commands, resolve pending operations, stop readers/recovery, close sockets/port and finish within the shutdown budget. Startup failure returns a nonzero exit code; do not silently fall back to fake hardware. Provide a Linux systemd example; Windows service installation is deferred, while foreground/headless process operation is tested on Windows.
 
-Configuration order is explicit CLI value > config file > default. Track whether an option was supplied rather than comparing it to its default. Validate profile, serial settings and network limits before opening resources. Do not overwrite configuration automatically on shutdown. Preserve serial baud/parity/stop/flow-control settings as explicit configuration and record them in diagnostics.
+Configuration order is explicit CLI value > config file > default. Track whether an option was supplied rather than comparing it to its default. Validate profile, serial settings and network limits before opening resources. Automatically migrate recognized older configuration on startup: validate the full replacement first, preserve values, write a backup and atomically replace the file, record its schema version, and make repeated startup idempotent. Failed backup/validation/replacement must leave the original file intact and fail with an actionable message. Do not overwrite configuration automatically on shutdown. Preserve serial baud/parity/stop/flow-control settings as explicit configuration and record them in diagnostics.
 
 Default network bind is loopback; LAN listening requires explicit bind configuration and the existing allowlist checks. This preview is for local/trusted-network control, not an authenticated Internet service. Do not describe IP filtering as authentication. Keep rate/resource limits at admission boundaries and test them. No TLS/auth project is required to ship this scoped preview.
 
@@ -244,7 +244,7 @@ Maintenance policy: prioritize reproducible command/transport failures, keep the
 - A small semaphore patch would prevent some overlaps but leave competing readers, raw writes, recovery timers and framing unresolved. Reject it as the complete repair.
 - Merely changing the DataReceived sender would enable another reader. Replace the ownership path, not just the cast.
 - Reusing production protocol code inside the emulator would produce circular validation. Keep implementations independent and review fixtures separately.
-- Keeping all legacy wire/API behavior indefinitely would create a second product surface. Prefer a documented breaking preview; retain honest compatibility adapters only where they do not duplicate ownership.
+- Keep supported legacy API calls as automatic adapters into the new owner, and migrate known configuration schemas with backup. Old compiled TCP clients require software upgrades; avoid a second legacy command execution stack. Clearly document unsupported operations and wire incompatibility.
 - A generic plugin framework, comprehensive binary protocol engine, or full radio registry is unnecessary for one verified profile. Defer it.
 - Hardware timing, electrical/driver behavior, firmware quirks, and arbitrarily delayed untagged replies remain limits. State them precisely; do not substitute 267 passing tests for hardware proof.
 
@@ -261,6 +261,12 @@ At the initial review this was plan evidence only; no new implementation or nati
 ## Phase 0 candidate evidence
 
 The Phase 0 candidate retargets all six projects to .NET 10, pins the SDK feature band, adds six NuGet lockfiles and Linux/Windows CI, and replaces the four obsolete skipped tests with transport-contract checks. Direct package versions are unchanged. Local locked restore succeeded; the native .NET 10 Release build reported zero warnings/errors, and all 271 tests passed with zero skips. Independent review of the actual candidate found no consequential issues; workflow lint and whitespace checks passed. Hosted CI must pass on the final PR commit before the authorized merge. Local evidence is retained under `/tmp/sharpcat-phase0`; future phases must generate their own candidate proof.
+
+## Automatic migration contract
+
+The user prefers migration to the new implementation without unnecessary manual conversion. Phase 1 specifies the bridge; Phase 2 will route supported legacy radio APIs through one session owner, Phase 4 will route supported old client-library methods through the new wire protocol, and Phase 5 will migrate recognized configuration files with backup and atomic replacement. No adapter sends a command through the old transport path as a fallback. Legacy bool/string returns preserve their documented local completion meaning; callers needing uncertainty or read-back evidence use the typed API. Tests must cover old-call/new-owner routing, upgrade idempotence, backup failure and unsupported input, in the owning phase.
+
+Versioned wire negotiation does not remotely upgrade an already compiled client; those binaries need an updated library/application. Unsupported schemas, protocols, or method semantics fail explicitly rather than guess or silently drop settings. Additive Phase 1 contracts do not switch running code yet.
 
 ## Final acceptance checklist
 
