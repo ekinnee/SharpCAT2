@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Record SDK and runtime
+        run: |
+          New-Item -ItemType Directory -Force TestResults | Out-Null
+          dotnet --info 2>&1 | Tee-Object -FilePath TestResults/dotnet-info.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Restore locked dependencies
+        run: |
+          dotnet restore SharpCAT2.sln --locked-mode 2>&1 | Tee-Object -FilePath TestResults/restore.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build Release
+        run: |
+          dotnet build SharpCAT2.sln --configuration Release --no-restore 2>&1 | Tee-Object -FilePath TestResults/build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run tests
+        run: |
+          dotnet test SharpCAT2.sln --configuration Release --no-build --no-restore --logger "trx;LogFileName=tests.trx" --results-directory TestResults --diag TestResults/vstest.log 2>&1 | Tee-Object -FilePath TestResults/test.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Require executed tests without skips
+        run: |
+          $results = @(Get-ChildItem TestResults -Filter *.trx -Recurse)
+          if ($results.Count -eq 0) { throw "No TRX test results were produced." }
+          foreach ($result in $results) {
+            [xml]$trx = Get-Content -Raw $result.FullName
+            $counters = $trx.TestRun.ResultSummary.Counters
+            if ($null -eq $counters -or [int]$counters.total -le 0) {
+              throw "No tests were reported in $($result.Name)."
+            }
+            if ([int]$counters.executed -ne [int]$counters.total -or [int]$counters.passed -ne [int]$counters.total) {
+              throw "Every reported test must execute and pass: $($result.Name)."
+            }
+          }
+
+      - name: Upload test results and command logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results-${{ matrix.os }}
+          path: TestResults/
+          if-no-files-found: warn
+          retention-days: 14

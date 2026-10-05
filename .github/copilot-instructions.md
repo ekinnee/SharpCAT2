@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-SharpCAT2 is a cross-platform .NET 8 serial port communication server application designed for amateur radio CAT (Computer Aided Transceiver) control. The project provides robust error handling, platform-specific guidance, and support for 29+ radio models across 7 major manufacturers.
+SharpCAT2 is a cross-platform .NET 10 serial port communication server application designed for amateur radio CAT (Computer Aided Transceiver) control. The project provides robust error handling, platform-specific guidance, and support for 29+ radio models across 7 major manufacturers.
 
 ## Architecture
 
@@ -26,7 +26,7 @@ SharpCAT2 is a cross-platform .NET 8 serial port communication server applicatio
 
 ## Technology Stack
 
-- **.NET 8.0**: Primary runtime and framework
+- **.NET 10.0**: Primary runtime and framework
 - **System.IO.Ports**: Cross-platform serial communication
 - **Newtonsoft.Json**: Configuration parsing with comment support
 - **Microsoft.Extensions.DependencyInjection**: Service container

@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using SharpCAT2.ServerLibrary.Serial;
 using SharpCAT2.Core.Utils;
+using SharpCAT2.Core.Serial;
+using Moq;
 using Xunit;
 using System.IO.Ports;
 
@@ -58,70 +60,58 @@ public class ResilientSerialPortTests
         Assert.False(fakePort.IsOpen);
     }
 
-    [Fact(Skip = "Test expects old FakeSerialPort protocol behavior - updated architecture uses protocol-agnostic FakeSerialPort")]
+    [Fact]
     public void ResilientSerialPort_Write_CallsInnerPortWrite()
     {
-        // NOTE: This test was written for the old architecture where FakeSerialPort processed CAT commands.
-        // In the new protocol-agnostic architecture, FakeSerialPort only handles transport,
-        // while DummyRadio handles protocol logic. This test is skipped to avoid false failures.
-        // For actual protocol testing, see DummyRadioRefactoredTests.
-        
         // Arrange
-        var fakePort = new FakeSerialPort("TEST", 9600);
-        using var resilientPort = new ResilientSerialPort(fakePort);
-        resilientPort.Open();
+        var innerPort = new Mock<ISerialPort>();
+        innerPort.SetupGet(port => port.PortName).Returns("TEST");
+        innerPort.SetupGet(port => port.BaudRate).Returns(9600);
+        innerPort.SetupGet(port => port.IsOpen).Returns(true);
+        using var resilientPort = new ResilientSerialPort(innerPort.Object);
 
         // Act
         resilientPort.Write("FA;");
 
-        // Assert - Check that the command was processed by verifying response
-        Thread.Sleep(100); // Allow time for async processing
-        var response = fakePort.ReadExisting();
-        Assert.Contains("FA", response); // Should contain frequency response
+        // Assert
+        innerPort.Verify(port => port.Write("FA;"), Times.Once);
     }
 
-    [Fact(Skip = "Test expects old FakeSerialPort protocol behavior - updated architecture uses protocol-agnostic FakeSerialPort")]
+    [Fact]
     public void ResilientSerialPort_WriteLine_CallsInnerPortWriteLine()
     {
-        // NOTE: This test was written for the old architecture where FakeSerialPort processed CAT commands.
-        // In the new protocol-agnostic architecture, FakeSerialPort only handles transport,
-        // while DummyRadio handles protocol logic. This test is skipped to avoid false failures.
-        
         // Arrange
-        var fakePort = new FakeSerialPort("TEST", 9600);
-        using var resilientPort = new ResilientSerialPort(fakePort);
-        resilientPort.Open();
+        var innerPort = new Mock<ISerialPort>();
+        innerPort.SetupGet(port => port.PortName).Returns("TEST");
+        innerPort.SetupGet(port => port.BaudRate).Returns(9600);
+        innerPort.SetupGet(port => port.IsOpen).Returns(true);
+        using var resilientPort = new ResilientSerialPort(innerPort.Object);
 
         // Act
         resilientPort.WriteLine("ID;");
 
-        // Assert - Check that the command was processed by verifying response
-        Thread.Sleep(100); // Allow time for async processing
-        var response = fakePort.ReadExisting();
-        Assert.Contains("ID999", response); // Should contain ID response
+        // Assert
+        innerPort.Verify(port => port.WriteLine("ID;"), Times.Once);
     }
 
-    [Fact(Skip = "Test expects old FakeSerialPort protocol behavior - updated architecture uses protocol-agnostic FakeSerialPort")]
+    [Fact]
     public void ResilientSerialPort_ReadExisting_ReturnsDataFromInnerPort()
     {
-        // NOTE: This test was written for the old architecture where FakeSerialPort processed CAT commands.
-        // In the new protocol-agnostic architecture, FakeSerialPort only handles transport,
-        // while DummyRadio handles protocol logic. This test is skipped to avoid false failures.
-        
         // Arrange
-        var fakePort = new FakeSerialPort("TEST", 9600);
-        using var resilientPort = new ResilientSerialPort(fakePort);
-        resilientPort.Open();
-        
-        // Send a command to generate a response
-        fakePort.Write("ID;");
-        Thread.Sleep(100); // Allow time for async processing
+        const string expectedData = "ID999;\r\n";
+        var innerPort = new Mock<ISerialPort>();
+        innerPort.SetupGet(port => port.PortName).Returns("TEST");
+        innerPort.SetupGet(port => port.BaudRate).Returns(9600);
+        innerPort.SetupGet(port => port.IsOpen).Returns(true);
+        innerPort.Setup(port => port.ReadExisting()).Returns(expectedData);
+        using var resilientPort = new ResilientSerialPort(innerPort.Object);
 
         // Act
         var data = resilientPort.ReadExisting();
 
         // Assert
-        Assert.Contains("ID999", data);
+        Assert.Equal(expectedData, data);
+        innerPort.Verify(port => port.ReadExisting(), Times.Once);
     }
 
     [Fact]
@@ -173,27 +163,36 @@ public class ResilientSerialPortTests
         Assert.Equal(TimeSpan.FromSeconds(10), resilientPort.ReconnectionInterval);
     }
 
-    [Fact(Skip = "Test expects old FakeSerialPort protocol behavior - updated architecture uses protocol-agnostic FakeSerialPort")]
+    [Fact]
     public void ResilientSerialPort_DataReceivedEvent_ForwardsFromInnerPort()
     {
-        // NOTE: This test was written for the old architecture where FakeSerialPort processed CAT commands.
-        // In the new protocol-agnostic architecture, FakeSerialPort only handles transport,
-        // while DummyRadio handles protocol logic. This test is skipped to avoid false failures.
-        
+        // Verify transport event forwarding only; this does not model a radio response.
         // Arrange
-        var fakePort = new FakeSerialPort("TEST", 9600);
-        using var resilientPort = new ResilientSerialPort(fakePort);
-        bool eventRaised = false;
-        
-        resilientPort.DataReceived += (sender, e) => eventRaised = true;
-        resilientPort.Open();
+        var innerPort = new Mock<ISerialPort>();
+        innerPort.SetupGet(port => port.PortName).Returns("TEST");
+        innerPort.SetupGet(port => port.BaudRate).Returns(9600);
+        innerPort.SetupGet(port => port.IsOpen).Returns(true);
+        using var resilientPort = new ResilientSerialPort(innerPort.Object);
+        var expectedSender = new object();
+        var eventInvocationCount = 0;
+        object? forwardedSender = null;
+        SerialDataReceivedEventArgs? forwardedArgs = null;
+        resilientPort.DataReceived += (sender, args) =>
+        {
+            eventInvocationCount++;
+            forwardedSender = sender;
+            forwardedArgs = args;
+        };
 
-        // Act
-        fakePort.Write("ID;"); // This will trigger the data received event
-        Thread.Sleep(100); // Allow time for async processing
+        // SerialDataReceivedEventArgs has no public constructor. The mocked transport
+        // can raise its event with null args to test that the wrapper forwards the event
+        // sender unchanged without depending on platform serial-port internals.
+        innerPort.Raise(port => port.DataReceived += null!, expectedSender, null!);
 
         // Assert
-        Assert.True(eventRaised);
+        Assert.Equal(1, eventInvocationCount);
+        Assert.Same(expectedSender, forwardedSender);
+        Assert.Null(forwardedArgs);
     }
 
     [Fact]
