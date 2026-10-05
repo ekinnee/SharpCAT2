@@ -8,6 +8,8 @@ internal sealed class ControlledByteTransport : IByteTransport
 {
     private Channel<byte[]> _input = Channel.CreateUnbounded<byte[]>();
     private readonly Channel<byte[]> _writes = Channel.CreateUnbounded<byte[]>();
+    private readonly Channel<int> _readProgress = Channel.CreateUnbounded<int>();
+    private int _readBytes;
     private readonly object _gate = new();
     private readonly List<string> _written = [];
     private byte[]? _tail;
@@ -66,6 +68,7 @@ internal sealed class ControlledByteTransport : IByteTransport
             _tail.AsMemory(_tailOffset, count).CopyTo(buffer);
             _tailOffset += count;
             if (_tailOffset == _tail.Length) _tail = null;
+            _readProgress.Writer.TryWrite(Interlocked.Add(ref _readBytes, count));
             return count;
         }
         finally { Interlocked.Decrement(ref _readers); }
@@ -84,6 +87,11 @@ internal sealed class ControlledByteTransport : IByteTransport
 
     public void Send(string text) => _input.Writer.TryWrite(Encoding.ASCII.GetBytes(text));
     public void End() => _input.Writer.TryComplete();
+    public async Task WaitForReadBytesAsync(int minimum)
+    {
+        while (Volatile.Read(ref _readBytes) < minimum)
+            await _readProgress.Reader.ReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(3));
+    }
     public async Task<string> NextWriteAsync() => Encoding.ASCII.GetString(
         await _writes.Reader.ReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(3)));
 

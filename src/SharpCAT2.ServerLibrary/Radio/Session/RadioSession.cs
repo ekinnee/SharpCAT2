@@ -40,12 +40,36 @@ public sealed class RadioSession : IAsyncDisposable
     public long ConnectionGeneration { get { lock (_gate) return _generation; } }
     public event Action<ReadOnlyMemory<byte>>? UnsolicitedFrame;
 
-    public async Task<bool> ConnectAsync(CommandSpecification synchronization,
+    public Task<bool> ConnectAsync(CommandSpecification synchronization,
         Func<ReadOnlyMemory<byte>, ReplyParseResult> matcher, CancellationToken token = default)
     {
         ArgumentNullException.ThrowIfNull(synchronization);
+        return ConnectCoreAsync(synchronization, matcher, Budget(synchronization), null, null, token);
+    }
+
+    /// <summary>Runs the complete startup transaction before publishing Ready. Quiet drainage
+    /// is a bounded profile policy, not proof that an untagged device abandoned every old reply.</summary>
+    public Task<bool> ConnectAsync(IReadOnlyList<SessionTransactionStep> steps, TimeSpan timeout,
+        Func<IReadOnlyList<object?>, SessionTransactionConclusion>? conclude = null,
+        CancellationToken token = default)
+    {
+        var snapshot = PrepareTransaction(steps, timeout);
+        if (snapshot[^1].Command.ResponsePolicy == ResponsePolicy.WriteOnly)
+            throw new ArgumentException("Startup must finish with a validated reply.", nameof(steps));
+        if (TransactionBytes(snapshot) > _options.MaxQueuedBytes)
+            throw new ArgumentException("Startup transaction exceeds the configured byte bound.", nameof(steps));
+        return ConnectCoreAsync(snapshot[0].Command, snapshot[0].Matcher, TransactionBudget(timeout),
+            snapshot, conclude, token);
+    }
+
+    private async Task<bool> ConnectCoreAsync(CommandSpecification synchronization,
+        Func<ReadOnlyMemory<byte>, ReplyParseResult> matcher, TimeSpan startupBudget,
+        SessionTransactionStep[]? steps, Func<IReadOnlyList<object?>, SessionTransactionConclusion>? conclude,
+        CancellationToken token)
+    {
+        ArgumentNullException.ThrowIfNull(synchronization);
         ArgumentNullException.ThrowIfNull(matcher);
-        if (synchronization.ResponsePolicy != ResponsePolicy.ReplyRequired)
+        if (steps is null && synchronization.ResponsePolicy != ResponsePolicy.ReplyRequired)
             throw new ArgumentException("Startup synchronization must require a reply.", nameof(synchronization));
         if (synchronization.Payload.Length > _options.MaxQueuedBytes)
             throw new ArgumentException("Startup synchronization exceeds the configured byte bound.", nameof(synchronization));
@@ -87,7 +111,7 @@ public sealed class RadioSession : IAsyncDisposable
                 _state = SessionState.Connecting;
             }
             var started = _options.TimeProvider.GetTimestamp();
-            using var deadline = new CancellationTokenSource(Budget(synchronization), _options.TimeProvider);
+            using var deadline = new CancellationTokenSource(startupBudget, _options.TimeProvider);
             using var openToken = CancellationTokenSource.CreateLinkedTokenSource(token,
                 deadline.Token, connection.Cancellation.Token);
             try
@@ -103,7 +127,7 @@ public sealed class RadioSession : IAsyncDisposable
                 return false;
             }
 
-            var remaining = Budget(synchronization) - _options.TimeProvider.GetElapsedTime(started);
+            var remaining = startupBudget - _options.TimeProvider.GetElapsedTime(started);
             if (remaining <= TimeSpan.Zero)
             {
                 Fault(connection, RadioOutcome.TimedOut, "Startup deadline expired before synchronization.");
@@ -114,7 +138,14 @@ public sealed class RadioSession : IAsyncDisposable
             {
                 if (connection.Failure is not null || _state != SessionState.Connecting) return false;
                 operation = Enqueue(connection, synchronization, matcher, false, null, token,
-                    remaining);
+                    remaining, steps, conclude);
+                if (steps is not null && steps[0].QuietPeriodAfter > TimeSpan.Zero &&
+                    steps[0].Command.ResponsePolicy == ResponsePolicy.WriteOnly)
+                {
+                    connection.Draining = true;
+                    connection.LastReadTimestamp = _options.TimeProvider.GetTimestamp();
+                    connection.BufferEpoch++;
+                }
                 // One worker of each kind per connection, never one Task.Run per read or command.
                 connection.Reader = Task.Run(() => ReadLoopAsync(connection));
                 connection.Worker = Task.Run(() => WorkLoopAsync(connection));
@@ -176,6 +207,54 @@ public sealed class RadioSession : IAsyncDisposable
         }
     }
 
+    /// <summary>Admits all fixed steps as one queue item with one admission deadline. The
+    /// conclusion is pure; it must not perform I/O or synchronously call the session.</summary>
+    public Task<RadioOperationResult<object>> ExecuteTransactionAsync(IReadOnlyList<SessionTransactionStep> steps,
+        TimeSpan timeout, Func<IReadOnlyList<object?>, SessionTransactionConclusion>? conclude = null,
+        CancellationToken cancellationToken = default)
+    {
+        SessionTransactionStep[] snapshot;
+        try { snapshot = PrepareTransaction(steps, timeout); }
+        catch (ArgumentException exception)
+        {
+            return Task.FromResult(Result(RadioOutcome.InvalidArgument, CompletionEvidence.NotSent, exception.Message));
+        }
+        lock (_gate)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromResult(Result(RadioOutcome.Cancelled, CompletionEvidence.NotSent));
+            if (_disposeRequested || _state != SessionState.Ready || _connection is null)
+                return Task.FromResult(Result(RadioOutcome.NotConnected, CompletionEvidence.NotSent));
+            if (_queue.Count >= _options.MaxQueuedOperations || TransactionBytes(snapshot) > _options.MaxQueuedBytes - _queuedBytes)
+                return Task.FromResult(Result(RadioOutcome.Busy, CompletionEvidence.NotSent,
+                    "Session queue count or byte limit reached."));
+            return Enqueue(_connection, snapshot[0].Command, snapshot[0].Matcher, false, null,
+                cancellationToken, TransactionBudget(timeout), snapshot, conclude).Completion.Task;
+        }
+    }
+
+    private SessionTransactionStep[] PrepareTransaction(IReadOnlyList<SessionTransactionStep> steps, TimeSpan timeout)
+    {
+        ArgumentNullException.ThrowIfNull(steps);
+        if (steps.Count == 0 || steps.Count > _options.MaxTransactionSteps)
+            throw new ArgumentException("Transaction step count is outside the configured bound.", nameof(steps));
+        if (timeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(timeout));
+        var snapshot = steps.ToArray();
+        foreach (var step in snapshot)
+        {
+            ArgumentNullException.ThrowIfNull(step);
+            ArgumentNullException.ThrowIfNull(step.Command);
+            ArgumentNullException.ThrowIfNull(step.Matcher);
+            if (step.QuietPeriodAfter < TimeSpan.Zero || step.QuietPeriodAfter > _options.MaxOperationTimeout)
+                throw new ArgumentOutOfRangeException(nameof(steps), "Quiet interval exceeds the operation bound.");
+        }
+        return snapshot;
+    }
+
+    private TimeSpan TransactionBudget(TimeSpan timeout) => timeout < _options.MaxOperationTimeout ? timeout : _options.MaxOperationTimeout;
+    private static long TransactionBytes(IEnumerable<SessionTransactionStep> steps) => steps.Sum(step =>
+        (long)step.Command.Payload.Length + (step.Command.VerificationPayload?.Length ?? 0));
+
     public Task StopAsync(CancellationToken cancellationToken = default)
     {
         Task stopping;
@@ -228,10 +307,11 @@ public sealed class RadioSession : IAsyncDisposable
 
     private Operation Enqueue(Connection connection, CommandSpecification command,
         Func<ReadOnlyMemory<byte>, ReplyParseResult> matcher, bool mutation, Func<object?, bool>? verify,
-        CancellationToken token, TimeSpan budget)
+        CancellationToken token, TimeSpan budget, SessionTransactionStep[]? steps = null,
+        Func<IReadOnlyList<object?>, SessionTransactionConclusion>? conclude = null)
     {
         var operation = new Operation(command, matcher, mutation, verify, token,
-            new CancellationTokenSource(budget, _options.TimeProvider));
+            new CancellationTokenSource(budget, _options.TimeProvider)) { Steps = steps, Conclude = conclude };
         operation.Node = _queue.AddLast(operation);
         _queuedBytes += operation.ByteCount;
         operation.UserRegistration = token.Register(() => Interrupt(connection, operation, RadioOutcome.Cancelled));
@@ -308,6 +388,11 @@ public sealed class RadioSession : IAsyncDisposable
 
     private async Task RunOperationAsync(Connection connection, Operation operation)
     {
+        if (operation.Steps is not null)
+        {
+            await RunTransactionAsync(connection, operation).ConfigureAwait(false);
+            return;
+        }
         try
         {
             if (!await WritePayloadAsync(connection, operation, false).ConfigureAwait(false)) return;
@@ -328,7 +413,7 @@ public sealed class RadioSession : IAsyncDisposable
                         operation.Completion.TrySetResult(Result(RadioOutcome.Succeeded, CompletionEvidence.Written));
                 return;
             }
-            var reply = await operation.Reply.Task.WaitAsync(connection.Cancellation.Token).ConfigureAwait(false);
+            var reply = await operation.CurrentReply!.Completion.Task.WaitAsync(connection.Cancellation.Token).ConfigureAwait(false);
             bool verified = false;
             if (operation.Command.ResponsePolicy == ResponsePolicy.WriteThenReadBack)
             {
@@ -358,29 +443,150 @@ public sealed class RadioSession : IAsyncDisposable
         }
     }
 
+    private async Task RunTransactionAsync(Connection connection, Operation operation)
+    {
+        var values = new object?[operation.Steps!.Length];
+        try
+        {
+            for (var index = 0; index < operation.Steps.Length; index++)
+            {
+                var step = operation.Steps[index];
+                if (!await WriteStepAsync(connection, operation, step.Command.Payload, step.Matcher,
+                    step.Command.ResponsePolicy == ResponsePolicy.ReplyRequired,
+                    step.IsMutation || step.Command.ResponsePolicy is ResponsePolicy.WriteOnly or ResponsePolicy.WriteThenReadBack,
+                    step.QuietPeriodAfter > TimeSpan.Zero && step.Command.ResponsePolicy == ResponsePolicy.WriteOnly)
+                    .ConfigureAwait(false)) return;
+                if (step.Command.ResponsePolicy == ResponsePolicy.WriteThenReadBack)
+                {
+                    if (!await WriteStepAsync(connection, operation, step.Command.VerificationPayload!.Value,
+                        step.Matcher, true, false).ConfigureAwait(false)) return;
+                }
+                if (step.Command.ResponsePolicy != ResponsePolicy.WriteOnly)
+                {
+                    var reply = await operation.CurrentReply!.Completion.Task.WaitAsync(connection.Cancellation.Token).ConfigureAwait(false);
+                    values[index] = reply.Value;
+                }
+                if (step.QuietPeriodAfter > TimeSpan.Zero)
+                    await DrainUntilQuietAsync(connection, operation, step.QuietPeriodAfter).ConfigureAwait(false);
+            }
+            // A profile can distinguish a failed observed postcondition from an indeterminate
+            // equal-frequency swap. It cannot fabricate completion evidence or a generation.
+            var conclusion = operation.Conclude?.Invoke(Array.AsReadOnly(values));
+            if (conclusion is not null && conclusion.Outcome is not
+                (RadioOutcome.Succeeded or RadioOutcome.ProtocolError or RadioOutcome.OutcomeUnknown))
+                throw new ArgumentException("Transaction conclusion must be success, protocol failure, or uncertainty.");
+            lock (_gate)
+            {
+                if (connection.Failure is not null || operation.Completion.Task.IsCompleted) return;
+                var observation = operation.Observation;
+                if (conclusion?.Value is { } value)
+                {
+                    if (observation is null) throw new ArgumentException("A conclusion value requires an observed reply.");
+                    observation = new RadioObservation<object>(value, observation.ObservedAt, connection.Generation);
+                }
+                var evidence = observation is not null && operation.MutationStarted && conclusion?.Outcome == RadioOutcome.Succeeded
+                    ? CompletionEvidence.ReadBackVerified : operation.Evidence;
+                operation.Completion.TrySetResult(new RadioOperationResult<object>(
+                    conclusion?.Outcome ?? RadioOutcome.Succeeded, evidence, observation, conclusion?.Diagnostic));
+            }
+        }
+        catch (OperationCanceledException) when (connection.Cancellation.IsCancellationRequested) { }
+        catch (Exception exception)
+        {
+            Fault(connection, RadioOutcome.ProtocolError, "Composite transaction failed: " + exception.Message);
+        }
+    }
+
+    private async Task DrainUntilQuietAsync(Connection connection, Operation operation, TimeSpan quietPeriod)
+    {
+        await connection.FrameBatch.WaitAsync(connection.Cancellation.Token).ConfigureAwait(false);
+        try
+        {
+            lock (_gate)
+            {
+                operation.CurrentReply = null;
+                connection.Draining = true;
+                connection.LastReadTimestamp = _options.TimeProvider.GetTimestamp();
+                connection.BufferEpoch++;
+            }
+        }
+        finally { connection.FrameBatch.Release(); }
+        while (true)
+        {
+            TimeSpan remaining;
+            lock (_gate) remaining = quietPeriod - _options.TimeProvider.GetElapsedTime(connection.LastReadTimestamp);
+            if (remaining > TimeSpan.Zero)
+                await Task.Delay(remaining, _options.TimeProvider, connection.Cancellation.Token).ConfigureAwait(false);
+            await connection.FrameBatch.WaitAsync(connection.Cancellation.Token).ConfigureAwait(false);
+            try
+            {
+                lock (_gate)
+                {
+                    if (_options.TimeProvider.GetElapsedTime(connection.LastReadTimestamp) < quietPeriod) continue;
+                    connection.Draining = false;
+                    connection.BufferEpoch++; // Discard a partial frame before the next expectation.
+                    return;
+                }
+            }
+            finally { connection.FrameBatch.Release(); }
+        }
+    }
+
     private async Task<bool> WritePayloadAsync(Connection connection, Operation operation, bool verification)
+        => await WriteStepAsync(connection, operation,
+            verification ? operation.Verification!.Value : operation.Payload, operation.Matcher,
+            verification || operation.Command.ResponsePolicy == ResponsePolicy.ReplyRequired,
+            !verification && operation.Mutation).ConfigureAwait(false);
+
+    private async Task<bool> WriteStepAsync(Connection connection, Operation operation, ReadOnlyMemory<byte> payload,
+        Func<ReadOnlyMemory<byte>, ReplyParseResult> matcher, bool expectsReply, bool mutation, bool drainAfterWrite = false)
     {
         await connection.FrameBatch.WaitAsync(connection.Cancellation.Token).ConfigureAwait(false);
         ValueTask writing;
         try
         {
+            RadioOutcome? interrupted = null;
             lock (_gate)
             {
                 if (operation.Completion.Task.IsCompleted || connection.Failure is not null) return false;
-                if (!verification && (operation.UserToken.IsCancellationRequested || operation.Deadline.IsCancellationRequested))
+                if (operation.UserToken.IsCancellationRequested || operation.Deadline.IsCancellationRequested)
+                    interrupted = operation.UserToken.IsCancellationRequested ? RadioOutcome.Cancelled : RadioOutcome.TimedOut;
+                else
                 {
-                    operation.Completion.TrySetResult(Result(operation.UserToken.IsCancellationRequested
-                        ? RadioOutcome.Cancelled : RadioOutcome.TimedOut, CompletionEvidence.NotSent));
-                    return false;
+                    if (mutation) operation.MutationStarted = true;
+                    // A later read-back attempt cannot erase a confirmed mutation write.
+                    operation.Evidence = operation.MutationWritten
+                        ? CompletionEvidence.Written : CompletionEvidence.WriteAttempted;
+                    operation.Observation = null;
+                    operation.CurrentReply = expectsReply ? new ReplyExpectation(operation, matcher) : null;
+                    if (drainAfterWrite)
+                    {
+                        connection.Draining = true;
+                        connection.LastReadTimestamp = _options.TimeProvider.GetTimestamp();
+                        connection.BufferEpoch++;
+                    }
                 }
-                if (!verification) operation.Evidence = CompletionEvidence.WriteAttempted;
-                operation.AcceptReply = verification || operation.Command.ResponsePolicy == ResponsePolicy.ReplyRequired;
             }
-            writing = _transport.WriteAsync(verification ? operation.Verification!.Value : operation.Payload,
-                connection.Cancellation.Token);
+            if (interrupted is { } outcome) { Interrupt(connection, operation, outcome); return false; }
+            writing = _transport.WriteAsync(payload, connection.Cancellation.Token);
+        }
+        catch (Exception exception)
+        {
+            Fault(connection, RadioOutcome.TransportError, "Write failed: " + exception.Message);
+            return false;
         }
         finally { connection.FrameBatch.Release(); }
-        await writing.ConfigureAwait(false);
+        try { await writing.ConfigureAwait(false); }
+        catch (Exception exception)
+        {
+            Fault(connection, RadioOutcome.TransportError, "Write failed: " + exception.Message);
+            return false;
+        }
+        lock (_gate)
+        {
+            if (mutation) operation.MutationWritten = true;
+            if (operation.Evidence == CompletionEvidence.WriteAttempted) operation.Evidence = CompletionEvidence.Written;
+        }
         return true;
     }
 
@@ -388,12 +594,13 @@ public sealed class RadioSession : IAsyncDisposable
     {
         var buffer = new byte[_options.MaxFrameBytes];
         var buffered = 0;
-        Operation? tailOperation = null;
+        ReplyExpectation? tailReply = null;
+        long bufferEpoch = 0;
         try
         {
             while (!connection.Cancellation.IsCancellationRequested)
             {
-                var hadTail = buffered != 0;
+                var readOffset = buffered;
                 int read;
                 try
                 {
@@ -412,18 +619,47 @@ public sealed class RadioSession : IAsyncDisposable
                     return;
                 }
                 buffered += read;
-                Operation? batchOperation;
-                lock (_gate) batchOperation = connection.Active is { AcceptReply: true } active ? active : null;
+                ReplyExpectation? batchReply;
+                lock (_gate)
+                {
+                    if (connection.Draining)
+                    {
+                        connection.LastReadTimestamp = _options.TimeProvider.GetTimestamp();
+                        buffered = 0;
+                        tailReply = null;
+                        bufferEpoch = connection.BufferEpoch;
+                        continue;
+                    }
+                    if (bufferEpoch != connection.BufferEpoch)
+                    {
+                        buffer.AsSpan(readOffset, read).CopyTo(buffer);
+                        buffered = read;
+                        readOffset = 0;
+                        tailReply = null;
+                        bufferEpoch = connection.BufferEpoch;
+                    }
+                    batchReply = connection.Active?.CurrentReply is { Accept: true } current ? current : null;
+                }
                 await connection.FrameBatch.WaitAsync(connection.Cancellation.Token).ConfigureAwait(false);
                 try
                 {
-                    var frameOperation = hadTail ? tailOperation : batchOperation;
+                    lock (_gate)
+                    {
+                        if (connection.Draining || bufferEpoch != connection.BufferEpoch)
+                        {
+                            buffered = 0;
+                            tailReply = null;
+                            bufferEpoch = connection.BufferEpoch;
+                            continue;
+                        }
+                    }
+                    var frameReply = readOffset != 0 ? tailReply : batchReply;
                     while (buffered != 0)
                     {
                         var parsed = _frameParser(buffer.AsMemory(0, buffered));
                         if (parsed.Status == FrameParseStatus.Incomplete)
                         {
-                            tailOperation = frameOperation;
+                            tailReply = frameReply;
                             if (buffered == buffer.Length)
                                 Fault(connection, RadioOutcome.ProtocolError, "Serial frame exceeds the configured limit.");
                             break;
@@ -433,11 +669,11 @@ public sealed class RadioSession : IAsyncDisposable
                             Fault(connection, RadioOutcome.ProtocolError, "Invalid serial frame or parser prefix.");
                             return;
                         }
-                        Dispatch(connection, parsed.Frame, frameOperation);
+                        Dispatch(connection, parsed.Frame, frameReply);
                         if (connection.Cancellation.IsCancellationRequested) return;
                         buffered -= parsed.ConsumedBytes;
                         buffer.AsSpan(parsed.ConsumedBytes, buffered).CopyTo(buffer);
-                        frameOperation = batchOperation;
+                        frameReply = batchReply;
                     }
                 }
                 finally { connection.FrameBatch.Release(); }
@@ -449,18 +685,18 @@ public sealed class RadioSession : IAsyncDisposable
         }
     }
 
-    private void Dispatch(Connection connection, ReadOnlyMemory<byte> frame, Operation? batchOperation)
+    private void Dispatch(Connection connection, ReadOnlyMemory<byte> frame, ReplyExpectation? batchReply)
     {
         Operation? operation;
         lock (_gate)
         {
             if (connection.Failure is not null) return;
-            operation = batchOperation is { AcceptReply: true } && connection.Active == batchOperation
-                ? batchOperation : null;
+            operation = batchReply is { Accept: true } && connection.Active == batchReply.Operation &&
+                batchReply.Operation.CurrentReply == batchReply ? batchReply.Operation : null;
         }
         if (operation is not null)
         {
-            var reply = operation.Matcher(frame);
+            var reply = batchReply!.Matcher(frame);
             if (reply.Status == ReplyParseStatus.Invalid)
             {
                 lock (_gate) operation.Evidence = CompletionEvidence.ReplyReceived;
@@ -471,13 +707,14 @@ public sealed class RadioSession : IAsyncDisposable
             {
                 lock (_gate)
                 {
-                    if (connection.Failure is not null || connection.Active != operation || !operation.AcceptReply) return;
-                    operation.AcceptReply = false;
+                    if (connection.Failure is not null || connection.Active != operation ||
+                        operation.CurrentReply != batchReply || !batchReply.Accept) return;
+                    batchReply.Accept = false;
                     operation.Evidence = CompletionEvidence.ReplyReceived;
                     if (reply.Value is not null)
                         operation.Observation = new RadioObservation<object>(reply.Value,
                             _options.TimeProvider.GetUtcNow(), connection.Generation);
-                    operation.Reply.TrySetResult(reply);
+                    batchReply.Completion.TrySetResult(reply);
                 }
                 return;
             }
@@ -518,7 +755,7 @@ public sealed class RadioSession : IAsyncDisposable
 
     private static RadioOperationResult<object> FailureResult(Operation operation, Failure failure)
     {
-        var outcome = operation.Mutation && operation.Evidence != CompletionEvidence.NotSent
+        var outcome = operation.MutationStarted
             ? RadioOutcome.OutcomeUnknown : failure.Outcome;
         return new RadioOperationResult<object>(outcome, operation.Evidence,
             operation.Observation, failure.Diagnostic);
@@ -612,6 +849,9 @@ public sealed class RadioSession : IAsyncDisposable
         public Task Worker { get; set; } = Task.CompletedTask;
         public Task CloseTask { get; set; } = Task.CompletedTask;
         public int ResourcesDisposed;
+        public bool Draining;
+        public long LastReadTimestamp;
+        public long BufferEpoch;
     }
 
     private sealed class Operation(CommandSpecification command,
@@ -621,7 +861,9 @@ public sealed class RadioSession : IAsyncDisposable
         public CommandSpecification Command { get; } = command;
         public ReadOnlyMemory<byte> Payload { get; } = command.Payload;
         public ReadOnlyMemory<byte>? Verification { get; } = command.VerificationPayload;
-        public long ByteCount => (long)Payload.Length + (Verification?.Length ?? 0);
+        public SessionTransactionStep[]? Steps { get; init; }
+        public Func<IReadOnlyList<object?>, SessionTransactionConclusion>? Conclude { get; init; }
+        public long ByteCount => Steps is null ? (long)Payload.Length + (Verification?.Length ?? 0) : TransactionBytes(Steps);
         public Func<ReadOnlyMemory<byte>, ReplyParseResult> Matcher { get; } = matcher;
         public bool Mutation { get; } = mutation;
         public Func<object?, bool>? Verify { get; } = verify;
@@ -631,9 +873,20 @@ public sealed class RadioSession : IAsyncDisposable
         public CancellationTokenRegistration DeadlineRegistration { get; set; }
         public LinkedListNode<Operation>? Node { get; set; }
         public CompletionEvidence Evidence { get; set; } = CompletionEvidence.NotSent;
-        public bool AcceptReply { get; set; }
+        public bool MutationStarted { get; set; }
+        public bool MutationWritten { get; set; }
+        public ReplyExpectation? CurrentReply { get; set; }
         public RadioObservation<object>? Observation { get; set; }
-        public TaskCompletionSource<ReplyParseResult> Reply { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource<RadioOperationResult<object>> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    // Identity belongs to one reply step, rather than the entire composite operation.
+    // A captured batch or fragmented tail can never acquire a later step's identity.
+    private sealed class ReplyExpectation(Operation operation, Func<ReadOnlyMemory<byte>, ReplyParseResult> matcher)
+    {
+        public Operation Operation { get; } = operation;
+        public Func<ReadOnlyMemory<byte>, ReplyParseResult> Matcher { get; } = matcher;
+        public bool Accept { get; set; } = true;
+        public TaskCompletionSource<ReplyParseResult> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 }

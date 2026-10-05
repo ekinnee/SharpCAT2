@@ -4,10 +4,22 @@ internal sealed class ManualTimeProvider : TimeProvider
 {
     private readonly object _gate = new();
     private readonly List<Timer> _timers = [];
+    private readonly List<(TimeSpan Interval, TaskCompletionSource Completion)> _scheduled = [];
     private long _ticks;
     public override long TimestampFrequency => TimeSpan.TicksPerSecond;
     public override long GetTimestamp() { lock (_gate) return _ticks; }
     public override DateTimeOffset GetUtcNow() { lock (_gate) return DateTimeOffset.UnixEpoch.AddTicks(_ticks); }
+
+    public Task WaitForTimerAsync(TimeSpan interval)
+    {
+        lock (_gate)
+        {
+            if (_timers.Any(timer => timer.Due - _ticks == interval.Ticks)) return Task.CompletedTask;
+            var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _scheduled.Add((interval, completion));
+            return completion.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        }
+    }
 
     public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
     {
@@ -50,6 +62,11 @@ internal sealed class ManualTimeProvider : TimeProvider
                 if (!owner._timers.Contains(this)) return false;
                 Due = dueTime == Timeout.InfiniteTimeSpan ? long.MaxValue : owner._ticks + dueTime.Ticks;
                 Period = period;
+                foreach (var scheduled in owner._scheduled.Where(item => item.Interval == dueTime).ToArray())
+                {
+                    owner._scheduled.Remove(scheduled);
+                    scheduled.Completion.TrySetResult();
+                }
                 return true;
             }
         }

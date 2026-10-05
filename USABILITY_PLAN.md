@@ -4,7 +4,7 @@
 
 Deliver a maintainable native .NET radio-control library and TCP server that can be developed, demonstrated, and tested without owning a radio. The first release target is a clearly labeled preview with reliable transport and a small FT-991A operation set verified against documentation and simulation. Physical compatibility remains unverified until a contributor supplies hardware evidence.
 
-The user authorized Phases 0, 1 and 2 implementation and permits issues/PRs and merges after gates pass. Later implementation phases remain proposed. This document does not establish hardware compatibility or authorize a product release. Proposed names below describe responsibilities; choose final names when implementing the owning phase.
+The user authorized Phases 0, 1, 2 and 3 implementation and permits issues/PRs and merges after gates pass. Later implementation phases remain proposed. This document does not establish hardware compatibility or authorize a product release. Proposed names below describe responsibilities; choose final names when implementing the owning phase.
 
 Planning baseline, checked October 5, 2026:
 
@@ -285,3 +285,7 @@ Versioned wire negotiation does not remotely upgrade an already compiled client;
 - [ ] Support labels distinguish simulation, protocol proof and physical hardware evidence.
 - [ ] Release artifacts pass package-consumer and clean-install demo checks.
 - [ ] No physical-radio compatibility is claimed without named evidence.
+
+## Phase 3 candidate evidence
+
+Phase 3 implements the manufacturer-backed FT-991A preview profile and a separate Core-only emulator. Supported legacy setters automatically use read-back, and swap/startup use atomic session transactions with step-specific reply ownership and one total deadline. Unsupported FT-991A calls fail before I/O; catalog evidence distinguishes protocol-tested, experimental and unavailable operations. Status preserves observation validity and displays unobserved power/transmit state as unknown. Local locked restore succeeds, Release builds with zero warnings/errors, and all 458 tests pass without skips. Independent integration findings are resolved. Structured P0–P2 autoreview identified one completion-evidence downgrade; the correction preserves confirmed mutation writes and adds setter/swap regressions. Focused correction review and hosted Linux/Windows CI remain publication/merge gates. No physical radio or driver was tested. See [Phase 3 subset and limits](docs/PHASE3_FT991A.md).

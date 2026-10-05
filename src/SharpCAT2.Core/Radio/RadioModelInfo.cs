@@ -38,6 +38,8 @@ public record RadioModelInfo
     /// </summary>
     public bool IsFullFeatureSet { get; init; }
 
+    public IReadOnlyList<Contracts.RadioCapability> Capabilities { get; init; } = Array.Empty<Contracts.RadioCapability>();
+
     /// <summary>
     /// Additional properties for future extension
     /// </summary>

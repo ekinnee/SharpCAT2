@@ -9,11 +9,23 @@ namespace SharpCAT2.ServerLibrary.Radio;
 /// <summary>
 /// Passive compatibility wrapper. The underlying radio session owns recovery and never replays operations.
 /// </summary>
-public class ResilientRadio : IRadio
+public class ResilientRadio : IRadio, SharpCAT2.Core.Radio.Contracts.IRadioOperations
 {
     private readonly IRadio _innerRadio;
     public IRadio InnerRadio => _innerRadio;
     private bool _disposed;
+    public IReadOnlyList<SharpCAT2.Core.Radio.Contracts.RadioCapability> Capabilities =>
+        (_innerRadio as SharpCAT2.Core.Radio.Contracts.IRadioOperations)?.Capabilities ??
+        Array.Empty<SharpCAT2.Core.Radio.Contracts.RadioCapability>();
+    public Task<SharpCAT2.Core.Radio.Contracts.RadioOperationResult<object>> ExecuteAsync(
+        SharpCAT2.Core.Radio.Contracts.RadioOperationRequest request, CancellationToken cancellationToken = default) =>
+        _innerRadio is SharpCAT2.Core.Radio.Contracts.IRadioOperations operations
+            ? operations.ExecuteAsync(request, cancellationToken)
+            : Task.FromResult(new SharpCAT2.Core.Radio.Contracts.RadioOperationResult<object>(
+                SharpCAT2.Core.Radio.Contracts.RadioOutcome.NotSupported,
+                SharpCAT2.Core.Radio.Contracts.CompletionEvidence.NotSent,
+                diagnostic: "No implemented profile operation exists for this model."));
+
 
     /// <summary>
     /// Legacy retry policy setting; retained but inert

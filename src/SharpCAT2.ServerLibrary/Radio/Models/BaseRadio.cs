@@ -24,6 +24,7 @@ public abstract class BaseRadio : IRadio
     private string? _portName;
     private ISerialPort? _transferredPort;
     public bool HasAcceptedTransport { get; private set; }
+    public bool HasTransportMapping => Manufacturer is "Yaesu" or "Kenwood" or "Elecraft" or "SharpCAT2";
     public RadioSession? Session => _session;
     public event Action<ReadOnlyMemory<byte>>? UnsolicitedFrame;
     public RadioOperationResult<object>? LastOperationResult { get; protected set; }
@@ -76,20 +77,21 @@ public abstract class BaseRadio : IRadio
                 // Existing session retains the transport for explicit reconnect; no second owner.
                 if (!ReferenceEquals(_transferredPort, port)) throw new InvalidOperationException("Disconnect and dispose before transferring a different port.");
                 if (IsConnected) return true;
-                return await _session.ConnectAsync(SynchronizationCommand(), CreateReplyMatcher("ID"));
+                return await SynchronizeSessionAsync(_session);
             }
-            if (Manufacturer is not ("Yaesu" or "Kenwood" or "Elecraft" or "SharpCAT2"))
+            if (!HasTransportMapping)
                 throw new NotSupportedException("This model has no supported ASCII transport mapping; select an implemented profile.");
             _portName = port.PortName;
-            _session = new RadioSession(CreateTransport(port), ParseAsciiFrame);
+            _session = new RadioSession(CreateTransport(port), ParseSessionFrame);
             _transferredPort = port;
             HasAcceptedTransport = true;
             _session.UnsolicitedFrame += frame => UnsolicitedFrame?.Invoke(frame);
-            var connected = await _session.ConnectAsync(SynchronizationCommand(), CreateReplyMatcher("ID"));
+            var connected = await SynchronizeSessionAsync(_session);
             if (!connected)
             {
                 await _session.DisposeAsync();
                 _session = null;
+                _transferredPort = null;
             }
             return connected;
         }
@@ -97,6 +99,51 @@ public abstract class BaseRadio : IRadio
     }
 
     protected virtual IByteTransport CreateTransport(ISerialPort port) => new LegacySerialByteTransport(port);
+
+    protected virtual FrameParseResult ParseSessionFrame(ReadOnlyMemory<byte> buffer) => ParseAsciiFrame(buffer);
+
+    protected virtual Task<bool> SynchronizeSessionAsync(RadioSession session) =>
+        session.ConnectAsync(SynchronizationCommand(), CreateReplyMatcher("ID"));
+
+    /// <summary>Transfers a byte transport to the same session owner used by serial adapters.</summary>
+    public async Task<bool> ConnectAsync(IByteTransport transport, string transportName = "Byte transport")
+    {
+        ArgumentNullException.ThrowIfNull(transport);
+        await _lifetime.WaitAsync();
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_session is not null)
+                throw new InvalidOperationException("Use ReconnectAsync for the already transferred transport.");
+            if (!HasTransportMapping)
+                throw new NotSupportedException("This model has no supported byte transport mapping.");
+            _transferredPort = null;
+            _portName = transportName;
+            _session = new RadioSession(transport, ParseSessionFrame);
+            HasAcceptedTransport = true;
+            _session.UnsolicitedFrame += frame => UnsolicitedFrame?.Invoke(frame);
+            var connected = await SynchronizeSessionAsync(_session);
+            if (!connected)
+            {
+                await _session.DisposeAsync();
+                _session = null;
+                _transferredPort = null;
+            }
+            return connected;
+        }
+        finally { _lifetime.Release(); }
+    }
+
+    public async Task<bool> ReconnectAsync()
+    {
+        await _lifetime.WaitAsync();
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            return _session is not null && await SynchronizeSessionAsync(_session);
+        }
+        finally { _lifetime.Release(); }
+    }
 
     private static CommandSpecification SynchronizationCommand() => new(
         Encoding.ASCII.GetBytes("ID;"), ResponsePolicy.ReplyRequired, TimeSpan.FromSeconds(2), "ID");

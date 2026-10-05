@@ -4,6 +4,7 @@ public sealed record RadioSessionOptions
 {
     /// <summary>Waiting operations, excluding the one active transaction.</summary>
     public int MaxQueuedOperations { get; init; } = 64;
+    public int MaxTransactionSteps { get; init; } = 32;
     public long MaxQueuedBytes { get; init; } = 256 * 1024;
     public int MaxFrameBytes { get; init; } = 4096;
     public TimeSpan MaxOperationTimeout { get; init; } = TimeSpan.FromSeconds(5);
@@ -13,6 +14,7 @@ public sealed record RadioSessionOptions
     internal void Validate()
     {
         if (MaxQueuedOperations <= 0) throw new ArgumentOutOfRangeException(nameof(MaxQueuedOperations));
+        if (MaxTransactionSteps <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTransactionSteps));
         if (MaxQueuedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxQueuedBytes));
         if (MaxFrameBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxFrameBytes));
         // CancellationTokenSource timers have a finite supported interval.

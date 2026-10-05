@@ -181,6 +181,19 @@ public class LegacySessionRoutingTests
         Assert.Equal("FA00014250000;", await read);
     }
 
+    [Fact]
+    public async Task FailedSerialAssociationCannotClaimLaterByteOwnedSession()
+    {
+        using var radio = new TestRadio();
+        var failedPort = new ScriptPort { FailWrites = true };
+        Assert.False(await radio.ConnectAsync(failedPort));
+        Assert.Equal(1, failedPort.Disposals);
+        Assert.True(await radio.ConnectAsync(new SharpCAT2.Emulator.FT991AEmulator()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => radio.ConnectAsync(failedPort));
+        Assert.True(radio.IsConnected);
+        Assert.Equal(1, failedPort.Disposals);
+    }
+
     private sealed class TestRadio : BaseRadio
     {
         public override string ModelName => "Session test";

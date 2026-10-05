@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\SharpCAT2.ServerLibrary\SharpCAT2.ServerLibrary.csproj" />
     <ProjectReference Include="..\..\src\SharpCAT2.Core\SharpCAT2.Core.csproj" />
+    <ProjectReference Include="..\..\src\SharpCAT2.Emulator\SharpCAT2.Emulator.csproj" />
     <ProjectReference Include="..\..\src\SharpCAT2.ClientLibrary\SharpCAT2.ClientLibrary.csproj" />
     <ProjectReference Include="..\..\src\SharpCAT2.ClientConsole\SharpCAT2.ClientConsole.csproj" />
   </ItemGroup>
