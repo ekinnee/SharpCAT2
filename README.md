@@ -22,7 +22,8 @@ A cross-platform .NET serial port communication server application that provides
 
 ## Requirements
 
-- .NET 8.0 or later
+- .NET 10 SDK for building and testing (the SDK policy is in `global.json`)
+- .NET 10 runtime for framework-dependent applications
 - Appropriate permissions for serial port access (see Platform-Specific Setup below)
 
 ## Quick Start
@@ -63,6 +64,20 @@ dotnet run -- --host 192.168.1.100 --port 8080
 
 
 ## Building and Running
+
+### Reproducible development checks
+
+Run these commands from the repository root with the .NET 10 SDK selected by `global.json`:
+
+```bash
+dotnet restore SharpCAT2.sln --locked-mode
+dotnet build SharpCAT2.sln -c Release --no-restore
+dotnet test SharpCAT2.sln -c Release --no-build --no-restore
+```
+
+NuGet dependency lockfiles are checked in for every project. When intentionally changing a package reference, run `dotnet restore SharpCAT2.sln --force-evaluate`, review the lockfile changes, and include them with the package change. Normal development and CI use locked restore.
+
+CI runs these checks on Linux and Windows and rejects skipped tests. Test results and diagnostic logs are retained as workflow artifacts. The .NET 10 baseline is a framework-target change for library consumers; .NET 8 applications need to upgrade before referencing these builds.
 
 ### Build Entire Solution
 
@@ -597,7 +612,7 @@ SharpCAT2/
 ### Dependencies
 
 - **System.IO.Ports**: Cross-platform serial port communication
-- **.NET 8.0**: Runtime platform
+- **.NET 10**: Runtime platform
 - **Newtonsoft.Json**: JSON configuration file parsing with comment support
 - **SharpCAT2.ServerLibrary**: Server-side library containing radio control and serial abstraction
 - **Microsoft.Extensions.DependencyInjection**: Dependency injection framework
