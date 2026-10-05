@@ -138,20 +138,7 @@ public class RadioService : IRadioService, IDisposable
         try
         {
             var status = await _connectedRadio.GetStatusAsync();
-            return new RadioStatusInfo
-            {
-                Manufacturer = _connectedRadio.Manufacturer,
-                ModelName = _connectedRadio.ModelName,
-                Frequency = status.Frequency,
-                Mode = status.Mode,
-                CurrentVfo = status.CurrentVfo,
-                IsTransmitting = status.IsTransmitting,
-                IsPoweredOn = status.IsPoweredOn,
-                Timestamp = status.Timestamp,
-                FeatureCount = _connectedRadio.SupportedFeatures.GetFeatureCount(),
-                FeaturesDescription = _connectedRadio.SupportedFeatures.GetDescription(),
-                IsConnected = _connectedRadio.IsConnected
-            };
+            return RadioStatusInfo.FromRadioStatus(_connectedRadio, status);
         }
         catch (Exception ex)
         {
@@ -215,7 +202,11 @@ public class RadioService : IRadioService, IDisposable
                 ModelName = radio.ModelName,
                 FeatureCount = radio.SupportedFeatures.GetFeatureCount(),
                 SupportedFeatures = supportedFeatureNames,
-                IsFullFeatureSet = features == SupportedFeatures.FullFeatureSet
+                IsFullFeatureSet = features == SupportedFeatures.FullFeatureSet,
+                Capabilities = radio is Core.Radio.Contracts.IRadioOperations operations ? operations.Capabilities
+                    : Enum.GetValues<Core.Radio.Contracts.RadioOperation>().Select(operation => new Core.Radio.Contracts.RadioCapability(
+                        operation, radio is Radio.Models.BaseRadio owner && owner.HasTransportMapping
+                            ? Core.Radio.Contracts.CapabilityEvidence.Experimental : Core.Radio.Contracts.CapabilityEvidence.Unavailable, "No manufacturer-backed preview proof for this model.")).ToArray()
             };
         }
         finally

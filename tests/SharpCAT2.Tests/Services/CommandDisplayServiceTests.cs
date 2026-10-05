@@ -29,6 +29,8 @@ public class CommandDisplayServiceTests
             CurrentVfo = "A",
             IsTransmitting = false,
             IsPoweredOn = true,
+            IsPowerStateObserved = true,
+            IsTransmitStateObserved = true,
             FeatureCount = 5,
             FeaturesDescription = "Test features",
             IsConnected = true

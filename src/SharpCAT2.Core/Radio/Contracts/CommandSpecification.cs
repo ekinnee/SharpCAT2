@@ -54,7 +54,7 @@ public sealed class CommandSpecification
     // Each access returns an independent snapshot, including for callers that expose its backing array.
     public ReadOnlyMemory<byte> Payload => _payload.ToArray();
     public ReadOnlyMemory<byte>? VerificationPayload => _verificationPayload is null
-        ? null
+        ? (ReadOnlyMemory<byte>?)null
         : new ReadOnlyMemory<byte>(_verificationPayload.ToArray());
     public ResponsePolicy ResponsePolicy { get; }
     public TimeSpan Timeout { get; }

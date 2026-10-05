@@ -1,3 +1,5 @@
+> Implementation status: the FT-991A preview supports only ID, frequency A/B read/write, MAIN RX mode read/write and VFO frequency swap. Evidence is `ProtocolTested`, not `HardwareVerified`. The feature tables below describe historical catalog/device capabilities, not proven library support. All other models are experimental; unsupported placeholder protocols cannot connect. See [preview limits](docs/PHASE3_FT991A.md) and per-operation `RadioModelInfo.Capabilities`.
+
 # Supported Radio Models
 
 SharpCAT2 supports a wide variety of amateur radio transceivers from major manufacturers. Each radio model implements the `IRadio` interface and provides a `SupportedFeatures` property that enumerates the specific capabilities available.

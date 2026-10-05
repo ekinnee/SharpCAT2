@@ -17,8 +17,8 @@ public class CommandDisplayService : ICommandDisplayService
         sb.AppendLine($"  Frequency: {statusInfo.Frequency:N0} Hz");
         sb.AppendLine($"  Mode: {statusInfo.Mode}");
         sb.AppendLine($"  VFO: {statusInfo.CurrentVfo}");
-        sb.AppendLine($"  Transmitting: {statusInfo.IsTransmitting}");
-        sb.AppendLine($"  Power: {statusInfo.IsPoweredOn}");
+        sb.AppendLine($"  Transmitting: {(statusInfo.IsTransmitStateObserved ? statusInfo.IsTransmitting.ToString() : "Unknown")}");
+        sb.AppendLine($"  Power: {(statusInfo.IsPowerStateObserved ? statusInfo.IsPoweredOn.ToString() : "Unknown")}");
         sb.AppendLine($"  Timestamp: {statusInfo.Timestamp:HH:mm:ss}");
         sb.AppendLine();
         sb.AppendLine("Supported Features:");

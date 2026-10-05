@@ -1,3 +1,5 @@
+> Preview status: FT-991A identification, frequency A/B, MAIN RX mode and VFO frequency swap have protocol-fixture and independent emulator evidence. No physical radio has been verified. Other catalog models remain experimental. See [implemented subset and limits](docs/PHASE3_FT991A.md).
+
 # SharpCAT2
 
 A cross-platform .NET serial port communication server application that provides robust error handling and platform-specific guidance.

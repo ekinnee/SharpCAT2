@@ -6,6 +6,17 @@ namespace SharpCAT2.ServerLibrary.Radio;
 /// </summary>
 public record RadioStatusInfo
 {
+    public static RadioStatusInfo FromRadioStatus(SharpCAT2.Core.Radio.IRadio radio, SharpCAT2.Core.Radio.RadioStatus status) => new()
+    {
+        Manufacturer = radio.Manufacturer, ModelName = radio.ModelName,
+        Frequency = status.Frequency, Mode = status.Mode, CurrentVfo = status.CurrentVfo,
+        IsTransmitting = status.IsTransmitting, IsPoweredOn = status.IsPoweredOn,
+        IsPowerStateObserved = status.IsPowerStateObserved, IsTransmitStateObserved = status.IsTransmitStateObserved,
+        Timestamp = status.Timestamp, FeatureCount = SharpCAT2.Core.Radio.SupportedFeaturesExtensions.GetFeatureCount(radio.SupportedFeatures),
+        FeaturesDescription = SharpCAT2.Core.Radio.SupportedFeaturesExtensions.GetDescription(radio.SupportedFeatures),
+        IsConnected = radio.IsConnected, AdditionalProperties = new(status.AdditionalInfo)
+    };
+
     /// <summary>
     /// Radio manufacturer name
     /// </summary>
@@ -40,6 +51,8 @@ public record RadioStatusInfo
     /// Whether radio is powered on
     /// </summary>
     public bool IsPoweredOn { get; init; }
+    public bool IsPowerStateObserved { get; init; }
+    public bool IsTransmitStateObserved { get; init; }
 
     /// <summary>
     /// Timestamp of status reading

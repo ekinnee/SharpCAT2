@@ -35,6 +35,10 @@ public class RadioStatus
     /// </summary>
     public bool IsPoweredOn { get; set; }
 
+    /// <summary>Legacy bool values require these validity flags before they represent observed state.</summary>
+    public bool IsPowerStateObserved { get; set; }
+    public bool IsTransmitStateObserved { get; set; }
+
     /// <summary>
     /// Gets or sets the VFO (Variable Frequency Oscillator) currently in use
     /// </summary>
@@ -102,6 +106,6 @@ public class RadioStatus
 
     public override string ToString()
     {
-        return $"Freq: {Frequency:N0} Hz, Mode: {Mode}, VFO: {CurrentVfo}, TX: {IsTransmitting}, Power: {IsPoweredOn}";
+        return $"Freq: {Frequency:N0} Hz, Mode: {Mode}, VFO: {CurrentVfo}, TX: {(IsTransmitStateObserved ? IsTransmitting.ToString() : "Unknown")}, Power: {(IsPowerStateObserved ? IsPoweredOn.ToString() : "Unknown")}";
     }
 }
