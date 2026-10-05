@@ -4,7 +4,7 @@
 
 Deliver a maintainable native .NET radio-control library and TCP server that can be developed, demonstrated, and tested without owning a radio. The first release target is a clearly labeled preview with reliable transport and a small FT-991A operation set verified against documentation and simulation. Physical compatibility remains unverified until a contributor supplies hardware evidence.
 
-The user authorized Phase 0 and Phase 1 implementation and permits issues/PRs and merges after gates pass. Later implementation phases remain proposed. This document does not establish hardware compatibility or authorize a product release. Proposed names below describe responsibilities; choose final names when implementing the owning phase.
+The user authorized Phases 0, 1 and 2 implementation and permits issues/PRs and merges after gates pass. Later implementation phases remain proposed. This document does not establish hardware compatibility or authorize a product release. Proposed names below describe responsibilities; choose final names when implementing the owning phase.
 
 Planning baseline, checked October 5, 2026:
 
@@ -261,6 +261,10 @@ At the initial review this was plan evidence only; no new implementation or nati
 ## Phase 0 candidate evidence
 
 The Phase 0 candidate retargets all six projects to .NET 10, pins the SDK feature band, adds six NuGet lockfiles and Linux/Windows CI, and replaces the four obsolete skipped tests with transport-contract checks. Direct package versions are unchanged. Local locked restore succeeded; the native .NET 10 Release build reported zero warnings/errors, and all 271 tests passed with zero skips. Independent review of the actual candidate found no consequential issues; workflow lint and whitespace checks passed. Hosted CI must pass on the final PR commit before the authorized merge. Local evidence is retained under `/tmp/sharpcat-phase0`; future phases must generate their own candidate proof.
+
+## Phase 2 candidate evidence
+
+Phase 2 replaces the active serial ownership path with a bounded session and byte adapter. BaseRadio and supported legacy ASCII calls automatically use it; the dummy engine uses the same transaction queue. Resilience wrappers are passive, console raw writes/event reads are removed, and unsupported auto-detection/live switching/placeholder mappings fail explicitly. Startup open, synchronization and shutdown races, buffered replies, queue limits, cancellation and mutation uncertainty have controlled-transport regressions. The local native .NET 10 Release build reports zero warnings/errors and 359 tests pass without skips. Independent candidate review findings are resolved. Hosted Linux/Windows gates must pass before merge; physical hardware and the complete FT-991A profile remain unverified. See [Phase 2 migration details](docs/PHASE2_SESSION.md).
 
 ## Automatic migration contract
 

@@ -49,7 +49,7 @@ public class UniversalRadioStatusTests
     }
 
     [Fact]
-    public async Task GetUniversalStatusStringAsync_WithDisconnectedRadio_ReturnsDefaultStatus()
+    public async Task GetUniversalStatusStringAsync_WithDisconnectedRadio_ReportsMissingObservation()
     {
         // Arrange
         var dummyRadio = new DummyRadio();
@@ -61,8 +61,9 @@ public class UniversalRadioStatusTests
         Assert.NotNull(statusString);
         Assert.Contains("MODEL=SharpCAT2 DummyRadio", statusString);
         Assert.Contains("PORT=Unknown", statusString);
-        Assert.Contains("FREQ=0", statusString);
-        Assert.Contains("POWER=False", statusString);
+        Assert.Contains("ERROR=Status retrieval failed", statusString);
+        Assert.DoesNotContain("FREQ=0", statusString);
+        Assert.DoesNotContain("MODE=USB", statusString);
         
         // Clean up
         dummyRadio.Dispose();

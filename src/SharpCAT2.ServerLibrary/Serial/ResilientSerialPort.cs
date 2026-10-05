@@ -1,380 +1,128 @@
 using System.IO.Ports;
 using Microsoft.Extensions.Logging;
-using SharpCAT2.Core.Utils;
 using SharpCAT2.Core.Serial;
+using SharpCAT2.Core.Utils;
 
 namespace SharpCAT2.ServerLibrary.Serial;
 
 /// <summary>
-/// Resilient serial port wrapper that adds retry logic and automatic recovery capabilities
+/// Source-compatible passive wrapper for the legacy serial-port abstraction.
+/// It forwards each operation once; it does not retry, reconnect, or monitor health.
 /// </summary>
+/// <remarks>
+/// The supplied port is owned and disposed by this wrapper. The compatibility
+/// settings remain readable and writable but are inert. Connection lifecycle and
+/// recovery belong to the single session owner. Connection state events are kept
+/// for source compatibility and are not raised by this passive wrapper.
+/// </remarks>
 public class ResilientSerialPort : ISerialPort
 {
     private readonly ISerialPort _innerPort;
-    private readonly ILogger? _logger;
-    private readonly ConnectionHealthMonitor _healthMonitor;
-    private readonly Timer _reconnectionTimer;
-    private readonly object _lockObject = new();
-    private readonly string _portName;
-    private readonly int _baudRate;
-    private bool _disposed = false;
-    private bool _isReconnecting = false;
+    private bool _disposed;
+    private RetryPolicy _retryPolicy = RetryPolicy.Serial;
+    private bool _autoReconnectEnabled = true;
+    private TimeSpan _reconnectionInterval = TimeSpan.FromSeconds(5);
+    private EventHandler<ConnectionLostEventArgs>? _connectionLost;
+    private EventHandler<ConnectionRestoredEventArgs>? _connectionRestored;
 
-    /// <summary>
-    /// Retry policy for serial operations
-    /// </summary>
-    public RetryPolicy RetryPolicy { get; set; } = RetryPolicy.Serial;
+    /// <summary>Legacy compatibility setting. Retries are disabled regardless of this value.</summary>
+    public RetryPolicy RetryPolicy
+    {
+        get => _retryPolicy;
+        set => _retryPolicy = value ?? throw new ArgumentNullException(nameof(value));
+    }
 
-    /// <summary>
-    /// Whether automatic reconnection is enabled
-    /// </summary>
-    public bool AutoReconnectEnabled { get; set; } = true;
+    /// <summary>Legacy compatibility setting. Automatic reconnect is disabled regardless of this value.</summary>
+    public bool AutoReconnectEnabled
+    {
+        get => _autoReconnectEnabled;
+        set => _autoReconnectEnabled = value;
+    }
 
-    /// <summary>
-    /// Interval for automatic reconnection attempts
-    /// </summary>
-    public TimeSpan ReconnectionInterval { get; set; } = TimeSpan.FromSeconds(5);
+    /// <summary>Legacy compatibility setting. No reconnection timer uses this value.</summary>
+    public TimeSpan ReconnectionInterval
+    {
+        get => _reconnectionInterval;
+        set => _reconnectionInterval = value;
+    }
 
-    /// <summary>
-    /// Event raised when connection is lost
-    /// </summary>
-    public event EventHandler<ConnectionLostEventArgs>? ConnectionLost;
+    /// <summary>Retained for source compatibility; this passive wrapper never raises it.</summary>
+    public event EventHandler<ConnectionLostEventArgs>? ConnectionLost
+    {
+        add => _connectionLost += value;
+        remove => _connectionLost -= value;
+    }
 
-    /// <summary>
-    /// Event raised when connection is restored
-    /// </summary>
-    public event EventHandler<ConnectionRestoredEventArgs>? ConnectionRestored;
+    /// <summary>Retained for source compatibility; this passive wrapper never raises it.</summary>
+    public event EventHandler<ConnectionRestoredEventArgs>? ConnectionRestored
+    {
+        add => _connectionRestored += value;
+        remove => _connectionRestored -= value;
+    }
 
     public ResilientSerialPort(ISerialPort innerPort, ILogger? logger = null)
     {
         _innerPort = innerPort ?? throw new ArgumentNullException(nameof(innerPort));
-        _logger = logger;
-        _portName = innerPort.PortName;
-        _baudRate = innerPort.BaudRate;
-
-        _healthMonitor = new ConnectionHealthMonitor(
-            healthCheckInterval: TimeSpan.FromSeconds(30),
-            maxConsecutiveFailures: 2,
-            logger: logger);
-
-        _healthMonitor.StateChanged += OnConnectionStateChanged;
-
-        _reconnectionTimer = new Timer(ReconnectionTimerCallback, null, Timeout.InfiniteTimeSpan, ReconnectionInterval);
-
-        // Forward the data received event
+        _ = logger; // Kept in the signature for source compatibility.
         _innerPort.DataReceived += OnInnerPortDataReceived;
     }
 
-    #region ISerialPort Implementation
-
-    public bool IsOpen 
-    { 
-        get 
-        { 
-            try 
-            { 
-                return _innerPort.IsOpen; 
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogWarning(ex, "Error checking if serial port is open");
-                return false;
-            }
-        } 
-    }
-
+    public bool IsOpen => _innerPort.IsOpen;
+    /// <summary>Gets the wrapped legacy port for compatibility inspection.</summary>
+    public ISerialPort InnerPort => _innerPort;
     public string PortName => _innerPort.PortName;
     public int BaudRate => _innerPort.BaudRate;
+    public int BytesToRead => _innerPort.BytesToRead;
 
-    public int BytesToRead 
-    { 
-        get 
-        { 
-            try 
-            { 
-                return _innerPort.BytesToRead; 
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogWarning(ex, "Error getting bytes to read from serial port");
-                return 0;
-            }
-        } 
+    public int ReadTimeout
+    {
+        get => _innerPort.ReadTimeout;
+        set => _innerPort.ReadTimeout = value;
     }
 
-    public int ReadTimeout 
-    { 
-        get => _innerPort.ReadTimeout; 
-        set => _innerPort.ReadTimeout = value; 
-    }
-
-    public int WriteTimeout 
-    { 
-        get => _innerPort.WriteTimeout; 
-        set => _innerPort.WriteTimeout = value; 
+    public int WriteTimeout
+    {
+        get => _innerPort.WriteTimeout;
+        set => _innerPort.WriteTimeout = value;
     }
 
     public event SerialDataReceivedEventHandler? DataReceived;
 
-    public void Open()
-    {
-        try
-        {
-            if (!_innerPort.IsOpen)
-            {
-                _innerPort.Open();
-                _healthMonitor.UpdateState(ConnectionState.Connected);
-                _healthMonitor.Start();
-                _logger?.LogInformation("Serial port {PortName} opened successfully", _portName);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Failed to open serial port {PortName}", _portName);
-            _healthMonitor.UpdateState(ConnectionState.Failed);
-            throw;
-        }
-    }
-
-    public void Close()
-    {
-        try
-        {
-            _healthMonitor.Stop();
-            _healthMonitor.UpdateState(ConnectionState.Disconnected);
-            
-            if (_innerPort.IsOpen)
-            {
-                _innerPort.Close();
-                _logger?.LogInformation("Serial port {PortName} closed", _portName);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogWarning(ex, "Error closing serial port {PortName}", _portName);
-        }
-    }
-
-    public void Write(string data)
-    {
-        ExecuteWithRetry(() => _innerPort.Write(data), "Write", data);
-    }
-
-    public void WriteLine(string data)
-    {
-        ExecuteWithRetry(() => _innerPort.WriteLine(data), "WriteLine", data);
-    }
-
-    public string ReadExisting()
-    {
-        return ExecuteWithRetry(() => _innerPort.ReadExisting(), "ReadExisting");
-    }
-
-    public string ReadLine()
-    {
-        return ExecuteWithRetry(() => _innerPort.ReadLine(), "ReadLine");
-    }
-
-    public int Read(byte[] buffer, int offset, int count)
-    {
-        return ExecuteWithRetry(() => _innerPort.Read(buffer, offset, count), "Read");
-    }
-
-    public void DiscardInBuffer()
-    {
-        ExecuteWithRetry(() => _innerPort.DiscardInBuffer(), "DiscardInBuffer");
-    }
-
-    public void DiscardOutBuffer()
-    {
-        ExecuteWithRetry(() => _innerPort.DiscardOutBuffer(), "DiscardOutBuffer");
-    }
+    public void Open() => _innerPort.Open();
+    public void Close() => _innerPort.Close();
+    public void Write(string data) => _innerPort.Write(data);
+    public void WriteLine(string data) => _innerPort.WriteLine(data);
+    public string ReadExisting() => _innerPort.ReadExisting();
+    public string ReadLine() => _innerPort.ReadLine();
+    public int Read(byte[] buffer, int offset, int count) => _innerPort.Read(buffer, offset, count);
+    public void DiscardInBuffer() => _innerPort.DiscardInBuffer();
+    public void DiscardOutBuffer() => _innerPort.DiscardOutBuffer();
 
     public void Dispose()
     {
-        if (!_disposed)
+        if (_disposed)
         {
-            _healthMonitor?.Stop();
-            _reconnectionTimer?.Dispose();
-            _healthMonitor?.Dispose();
-            _innerPort?.Dispose();
-            _disposed = true;
-        }
-        GC.SuppressFinalize(this);
-    }
-
-    #endregion
-
-    #region Resilience Methods
-
-    /// <summary>
-    /// Executes an operation with retry logic and connection recovery
-    /// </summary>
-    private T ExecuteWithRetry<T>(Func<T> operation, string operationName, object? context = null)
-    {
-        return RetryHelper.ExecuteWithRetryAsync(
-            () => Task.FromResult(operation()),
-            RetryPolicy,
-            _logger,
-            $"Serial {operationName}",
-            ShouldRetrySerialOperation,
-            CancellationToken.None
-        ).GetAwaiter().GetResult();
-    }
-
-    /// <summary>
-    /// Executes a void operation with retry logic and connection recovery
-    /// </summary>
-    private void ExecuteWithRetry(Action operation, string operationName, object? context = null)
-    {
-        ExecuteWithRetry(() => { operation(); return true; }, operationName, context);
-    }
-
-    /// <summary>
-    /// Determines if a serial operation should be retried based on the exception
-    /// </summary>
-    private bool ShouldRetrySerialOperation(Exception ex)
-    {
-        var shouldRetry = ex switch
-        {
-            InvalidOperationException when ex.Message.Contains("port is closed") => true,
-            InvalidOperationException when ex.Message.Contains("port is not open") => true,
-            System.IO.IOException => true,
-            TimeoutException => true,
-            UnauthorizedAccessException => false, // Don't retry permission errors
-            _ => false
-        };
-
-        if (shouldRetry)
-        {
-            // Attempt reconnection if the port appears to be disconnected
-            if (!IsOpen && AutoReconnectEnabled)
-            {
-                _logger?.LogWarning("Serial port appears disconnected, attempting reconnection");
-                TryReconnect();
-            }
+            return;
         }
 
-        return shouldRetry;
-    }
-
-    /// <summary>
-    /// Attempts to reconnect the serial port
-    /// </summary>
-    private bool TryReconnect()
-    {
-        lock (_lockObject)
-        {
-            if (_isReconnecting || _disposed)
-                return false;
-
-            _isReconnecting = true;
-        }
-
+        _disposed = true;
         try
         {
-            _logger?.LogInformation("Attempting to reconnect serial port {PortName}", _portName);
-            _healthMonitor.UpdateState(ConnectionState.Reconnecting);
-
-            // Close existing connection if it's still open
-            try
-            {
-                if (_innerPort.IsOpen)
-                {
-                    _innerPort.Close();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogWarning(ex, "Error closing serial port during reconnection");
-            }
-
-            // Wait a moment before attempting to reopen
-            Thread.Sleep(1000);
-
-            // Attempt to reopen
-            _innerPort.Open();
-            
-            _healthMonitor.UpdateState(ConnectionState.Connected);
-            _healthMonitor.RecordSuccess();
-            
-            _logger?.LogInformation("Successfully reconnected serial port {PortName}", _portName);
-            ConnectionRestored?.Invoke(this, new ConnectionRestoredEventArgs(_portName));
-            
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogWarning(ex, "Failed to reconnect serial port {PortName}", _portName);
-            _healthMonitor.UpdateState(ConnectionState.Failed);
-            _healthMonitor.RecordFailure();
-            return false;
+            _innerPort.DataReceived -= OnInnerPortDataReceived;
         }
         finally
         {
-            lock (_lockObject)
-            {
-                _isReconnecting = false;
-            }
+            _innerPort.Dispose();
         }
+
+        GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Timer callback for automatic reconnection attempts
-    /// </summary>
-    private void ReconnectionTimerCallback(object? state)
-    {
-        if (_disposed || !AutoReconnectEnabled)
-            return;
-
-        if (_healthMonitor.CurrentState == ConnectionState.Failed && !IsOpen)
-        {
-            TryReconnect();
-        }
-    }
-
-    /// <summary>
-    /// Handles connection state changes from the health monitor
-    /// </summary>
-    private void OnConnectionStateChanged(object? sender, ConnectionStateChangedEventArgs e)
-    {
-        if (e.NewState == ConnectionState.Failed && e.OldState == ConnectionState.Connected)
-        {
-            ConnectionLost?.Invoke(this, new ConnectionLostEventArgs(_portName, "Connection health check failed"));
-            
-            if (AutoReconnectEnabled)
-            {
-                _reconnectionTimer.Change(ReconnectionInterval, ReconnectionInterval);
-            }
-        }
-        else if (e.NewState == ConnectionState.Connected && e.OldState != ConnectionState.Connected)
-        {
-            _reconnectionTimer.Change(Timeout.InfiniteTimeSpan, ReconnectionInterval);
-        }
-    }
-
-    /// <summary>
-    /// Forwards data received events from the inner port
-    /// </summary>
-    private void OnInnerPortDataReceived(object sender, SerialDataReceivedEventArgs e)
-    {
-        try
-        {
-            _healthMonitor.RecordSuccess();
-            DataReceived?.Invoke(sender, e);
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Error in data received event handler");
-        }
-    }
-
-    #endregion
+    private void OnInnerPortDataReceived(object sender, SerialDataReceivedEventArgs e) =>
+        DataReceived?.Invoke(sender, e);
 }
 
-/// <summary>
-/// Event arguments for connection lost events
-/// </summary>
+/// <summary>Arguments retained for legacy connection state event subscribers.</summary>
 public class ConnectionLostEventArgs : EventArgs
 {
     public string PortName { get; }
@@ -389,9 +137,7 @@ public class ConnectionLostEventArgs : EventArgs
     }
 }
 
-/// <summary>
-/// Event arguments for connection restored events
-/// </summary>
+/// <summary>Arguments retained for legacy connection state event subscribers.</summary>
 public class ConnectionRestoredEventArgs : EventArgs
 {
     public string PortName { get; }

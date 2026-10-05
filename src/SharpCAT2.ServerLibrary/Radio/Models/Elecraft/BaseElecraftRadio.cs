@@ -49,7 +49,7 @@ public abstract class BaseElecraftRadio : BaseRadio
             return false;
 
         var response = await SendCommandAsync(_protocol.SetVfoCommand(vfo));
-        return !string.IsNullOrEmpty(response);
+        return response is not null;
     }
 
     public override async Task<bool> SwapVfoAsync()

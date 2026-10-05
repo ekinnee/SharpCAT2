@@ -51,7 +51,7 @@ public abstract class BaseYaesuRadio : BaseRadio
             12 => "DATA-USB",
             13 => "AM-N",
             14 => "C4FM",
-            _ => "USB"
+            _ => throw new FormatException("Unknown device mode.")
         };
     }
 
@@ -71,7 +71,7 @@ public abstract class BaseYaesuRadio : BaseRadio
             return false;
 
         var response = await SendCommandAsync(_protocol.SetVfoCommand(vfo));
-        return !string.IsNullOrEmpty(response);
+        return response is not null;
     }
 
     public override async Task<bool> SwapVfoAsync()
@@ -80,7 +80,7 @@ public abstract class BaseYaesuRadio : BaseRadio
             return false;
 
         var response = await SendCommandAsync(_protocol.SwapVfoCommand());
-        return !string.IsNullOrEmpty(response);
+        return response is not null;
     }
 
     // Split Operation
@@ -90,7 +90,7 @@ public abstract class BaseYaesuRadio : BaseRadio
             return false;
 
         var response = await SendCommandAsync(_protocol.SetSplitCommand(enabled));
-        return !string.IsNullOrEmpty(response);
+        return response is not null;
     }
 
     public override async Task<bool> GetSplitAsync()
@@ -118,7 +118,7 @@ public abstract class BaseYaesuRadio : BaseRadio
             return false;
 
         var response = await SendCommandAsync(_protocol.SetRitCommand(offsetHz));
-        return !string.IsNullOrEmpty(response);
+        return response is not null;
     }
 
     public override async Task<int> GetXitAsync()
@@ -136,7 +136,7 @@ public abstract class BaseYaesuRadio : BaseRadio
             return false;
 
         var response = await SendCommandAsync(_protocol.SetXitCommand(offsetHz));
-        return !string.IsNullOrEmpty(response);
+        return response is not null;
     }
 
     // Power Control
@@ -163,7 +163,7 @@ public abstract class BaseYaesuRadio : BaseRadio
             return false;
 
         var response = await SendCommandAsync(_protocol.SetPowerOutputCommand(Math.Clamp(powerPercent, 0, 100)));
-        return !string.IsNullOrEmpty(response);
+        return response is not null;
     }
 
     // Meter Readings
@@ -201,7 +201,7 @@ public abstract class BaseYaesuRadio : BaseRadio
             return false;
 
         var response = await SendCommandAsync(_protocol.SetMemoryChannelCommand(channel));
-        return !string.IsNullOrEmpty(response);
+        return response is not null;
     }
 
     // CW Operations
@@ -228,7 +228,7 @@ public abstract class BaseYaesuRadio : BaseRadio
             return false;
 
         var response = await SendCommandAsync(_protocol.SetCwSpeedCommand(Math.Clamp(wpm, 4, 60)));
-        return !string.IsNullOrEmpty(response);
+        return response is not null;
     }
 
     // Noise Reduction
@@ -255,7 +255,7 @@ public abstract class BaseYaesuRadio : BaseRadio
             return false;
 
         var response = await SendCommandAsync(_protocol.SetNoiseReductionCommand(Math.Clamp(level, 0, 9)));
-        return !string.IsNullOrEmpty(response);
+        return response is not null;
     }
 
     // Power Control
@@ -266,7 +266,7 @@ public abstract class BaseYaesuRadio : BaseRadio
 
         var command = powerOn ? _protocol.PowerOnCommand() : _protocol.PowerOffCommand();
         var response = await SendCommandAsync(command);
-        return !string.IsNullOrEmpty(response);
+        return response is not null;
     }
 
     public override async Task<bool> GetPowerAsync()

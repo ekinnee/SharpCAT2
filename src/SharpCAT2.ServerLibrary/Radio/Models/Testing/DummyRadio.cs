@@ -1,3 +1,5 @@
+using SharpCAT2.Core.Radio.Contracts;
+using SharpCAT2.ServerLibrary.Radio.Protocols;
 using SharpCAT2.Core.Radio;
 using SharpCAT2.Core.Serial;
 using SharpCAT2.ServerLibrary.Serial;
@@ -84,7 +86,7 @@ public class DummyRadio : BaseRadio
 {
     #region Private Fields
     
-    private bool _isConnected = false;
+
     
     // Simulated radio state - moved from FakeSerialPort
     private long _currentFrequency = 14074000; // Default to 20m FT8 frequency
@@ -152,7 +154,7 @@ public class DummyRadio : BaseRadio
     /// <summary>
     /// Gets whether the radio is currently connected (simulated)
     /// </summary>
-    public new bool IsConnected => _isConnected;
+
 
     #endregion
 
@@ -163,39 +165,29 @@ public class DummyRadio : BaseRadio
     /// </summary>
     /// <param name="port">Serial port (can be fake or real for DummyRadio)</param>
     /// <returns>True (always successful for demonstration)</returns>
-    public override async Task<bool> ConnectAsync(ISerialPort port)
+    public override Task<bool> ConnectAsync(ISerialPort port)
     {
-        // Simulate connection delay
-        await Task.Delay(100);
-        
-        // If no port is provided or it's a real port, create a fake port for simulation
-        if (port == null || port is RealSerialPort)
-        {
-            _serialPort = SerialPortFactory.CreateFakeSerialPort("DUMMY", 9600);
-        }
-        else
-        {
-            _serialPort = port;
-        }
-        
-        if (!_serialPort.IsOpen)
-        {
-            _serialPort.Open();
-        }
-        
-        _isConnected = true;
-        
-        return true;
+        var source = port;
+        while (source is ResilientSerialPort wrapper) source = wrapper.InnerPort;
+        if (source is not null && source is not FakeSerialPort)
+            throw new NotSupportedException("DummyRadio requires an explicit simulated port; it never substitutes for physical hardware.");
+        return base.ConnectAsync(port ?? SerialPortFactory.CreateFakeSerialPort("DUMMY", 9600));
     }
 
-    /// <summary>
-    /// Simulates disconnecting from the radio
-    /// </summary>
-    public override void Disconnect()
+    public override async Task<RadioOperationResult<object>> ExecuteCommandAsync(RadioCommand command, CancellationToken cancellationToken = default)
     {
-        _isConnected = false;
-        base.Disconnect();
+        // The legacy dummy engine always echoes. Consume its known reply within the
+        // same queue transaction even for a caller requesting write-only presentation.
+        var adapted = command.ExpectsResponse ? command : new RadioCommand(command.Command,
+            command.Description, expectsResponse: true, timeoutMs: command.TimeoutMs);
+        var result = await base.ExecuteCommandAsync(adapted, cancellationToken);
+        if (!command.ExpectsResponse && result.Outcome == RadioOutcome.Succeeded)
+            result = new(result.Outcome, result.Evidence, diagnostic: "Dummy echo consumed; caller requested no response value.");
+        LastOperationResult = result;
+        return result;
     }
+
+    protected override IByteTransport CreateTransport(ISerialPort port) => new DummyCommandTransport(port, ProcessCommand);
 
     #endregion
 
@@ -208,43 +200,12 @@ public class DummyRadio : BaseRadio
     /// </summary>
     /// <param name="command">Command to process</param>
     /// <returns>Response from the simulated radio</returns>
-    public override async Task<string?> SendCommandAsync(RadioCommand command)
+    public override Task<string?> SendCommandAsync(RadioCommand command)
     {
-        if (!_isConnected || _serialPort == null)
-        {
-            // Debug: Connection state check
-            return null;
-        }
-
-        try
-        {
-            // For FakeSerialPort, we handle the simulation at the radio level
-            if (_serialPort is FakeSerialPort fakePort)
-            {
-                // Debug: Command processing start
-                // Process the command and generate response directly
-                var response = ProcessCommand(command.Command);
-                
-                // Debug: Command processing result - Note: No actual logging to maintain logging-free architecture
-                // The service layer will handle logging based on return values
-                
-                // Simulate command processing delay
-                await Task.Delay(25);
-                
-                return response;
-            }
-            else
-            {
-                // For real serial ports, use the base implementation
-                return await base.SendCommandAsync(command);
-            }
-        }
-        catch (Exception)
-        {
-            // Command errors are communicated via null return value
-            // Service layer will log these errors based on the null response
-            return null;
-        }
+        // Preserve the dummy's permissive demonstration syntax, through the session.
+        if (!command.Command.EndsWith(';'))
+            command = new RadioCommand(command.Command + ";", command.Description, command.ExpectsResponse, command.TimeoutMs);
+        return base.SendCommandAsync(command);
     }
 
     #endregion
@@ -556,6 +517,12 @@ public class DummyRadio : BaseRadio
             var swrReading = (int)((_swr - 1.0) * 100);
             return $"RM3{swrReading:D3};";
         }
+        // Legacy dummy SW selector mutation executes only inside its session transport.
+        else if (cmd == "SW;")
+        {
+            _currentVfo = _currentVfo == "A" ? "B" : "A";
+            return cmd;
+        }
         // VFO swap command (SV)
         else if (cmd == "SV;")
         {
@@ -651,9 +618,6 @@ public class DummyRadio : BaseRadio
     {
         var command = new RadioCommand("SW;", "Swap VFO");
         var response = await SendCommandAsync(command);
-        
-        // Simulate the swap by toggling VFO
-        _currentVfo = _currentVfo == "A" ? "B" : "A";
         
         return !string.IsNullOrEmpty(response);
     }
@@ -953,15 +917,7 @@ public class DummyRadio : BaseRadio
     /// <summary>
     /// Disposes the DummyRadio instance
     /// </summary>
-    public override void Dispose()
-    {
-        if (!_disposed)
-        {
-            Disconnect();
-            _disposed = true;
-        }
-        GC.SuppressFinalize(this);
-    }
+    public override void Dispose() => base.Dispose();
 
     #endregion
 }
