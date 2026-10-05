@@ -1,3 +1,4 @@
+using System.IO.Ports;
 using Microsoft.Extensions.Logging;
 using SharpCAT2.Core.Services;
 using SharpCAT2.Core.Configuration;
@@ -7,7 +8,6 @@ using SharpCAT2.ServerLibrary.Serial;
 using SharpCAT2.ServerLibrary.Radio;
 using SharpCAT2.Core.Utils;
 using SharpCAT2.ServerLibrary;
-using System.IO.Ports;
 using System.Runtime.InteropServices;
 
 namespace SharpCAT2.ServerConsole;
@@ -99,7 +99,7 @@ public class ServerApplication
             // Open and configure serial port with resilient wrapper
             _serialPort = CreateResilientSerialPort(portName, options.BaudRate);
             
-            _logger.LogInformation("Successfully opened serial port: {PortName}", portName);
+            _logger.LogInformation("Selected serial port: {PortName}", portName);
             _logger.LogInformation("Baud rate: {BaudRate}", options.BaudRate);
 
             // Initialize radio if specified
@@ -120,19 +120,6 @@ public class ServerApplication
             else
             {
                 global::System.Console.WriteLine("Press 'q' to quit, or type messages to send to serial port...");
-            }
-            
-            // Set up serial port event handlers
-            if (_serialPort != null)
-            {
-                _serialPort.DataReceived += OnSerialDataReceived;
-                
-                // Set up resilient serial port event handlers if available
-                if (_serialPort is ResilientSerialPort resilientPort)
-                {
-                    resilientPort.ConnectionLost += OnSerialConnectionLost;
-                    resilientPort.ConnectionRestored += OnSerialConnectionRestored;
-                }
             }
             
             // Set up graceful shutdown handler
@@ -194,7 +181,7 @@ public class ServerApplication
                     }
 
                     // Fall back to direct serial port communication for non-radio commands
-                    await SendCommandToSerialPortWithRetryAsync(input);
+                    await SendLegacyCommandAsync(input);
                     global::System.Console.WriteLine($"Sent: {input}");
                 }
                 catch (OperationCanceledException)
@@ -237,7 +224,6 @@ public class ServerApplication
             _cancellationTokenSource?.Cancel();
             await _networkService.StopAsync();
             await _radioService.DisconnectRadioAsync();
-            _serialPort?.Close();
             
             // Save configuration on normal shutdown
             if (_config != null)
@@ -275,7 +261,7 @@ public class ServerApplication
             }
             
             // Send command to serial port for regular radio/serial commands
-            await SendCommandToSerialPortWithRetryAsync(e.Data);
+            await SendLegacyCommandAsync(e.Data);
         }
         catch (Exception ex)
         {
@@ -303,84 +289,29 @@ public class ServerApplication
         _logger.LogInformation("Client disconnected: {ClientId}", e.ClientId);
     }
 
-    /// <summary>
-    /// Handles data received from the serial port
-    /// </summary>
-    /// <param name="sender">Event sender</param>
-    /// <param name="e">Event arguments</param>
-    private async void OnSerialDataReceived(object sender, SerialDataReceivedEventArgs e)
-    {
-        try
-        {
-            if (sender is ISerialPort port && port.IsOpen)
-            {
-                string data = port.ReadExisting();
-                if (!string.IsNullOrEmpty(data))
-                {
-                    global::System.Console.Write($"Received: {data}");
-                    
-                    // Send data to all connected TCP clients
-                    await _networkService.BroadcastToClientsAsync(data);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error handling serial data");
-        }
-    }
-
     #endregion
 
     #region Helper Methods
 
     /// <summary>
-    /// Sends a command to the serial port with comprehensive error handling and retry logic.
-    /// This method implements retry patterns to handle temporary communication failures
-    /// with radio hardware, which is common in amateur radio environments.
+    /// Sends one legacy command through the radio session without replay.
     /// </summary>
     /// <param name="command">Command string to send to the serial port</param>
     /// <returns>Task representing the async send operation</returns>
-    private async Task SendCommandToSerialPortWithRetryAsync(string command)
+    private async Task SendLegacyCommandAsync(string command)
     {
-        if (_serialPort?.IsOpen == true)
+        // Legacy presentation only; every operation executes once through the radio session.
+        var radio = _radioService.ConnectedRadio;
+        if (radio is null || !command.Trim().EndsWith(';'))
         {
-            try
-            {
-                await RetryHelper.ExecuteWithRetryAsync(
-                    async () => await Task.Run(() => _serialPort.WriteLine(command)),
-                    RetryPolicy.Serial,
-                    _logger,
-                    "SerialPort.WriteLine"
-                );
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send command to serial port after retries: {Command}", command);
-            }
+            _logger.LogWarning("A connected radio and an explicit terminated CAT command are required.");
+            return;
         }
-        else
-        {
-            _logger.LogWarning("Serial port is not open, cannot send command: {Command}", command);
-        }
-    }
-
-    /// <summary>
-    /// Handles serial connection lost events
-    /// </summary>
-    private void OnSerialConnectionLost(object? sender, ConnectionLostEventArgs e)
-    {
-        _logger.LogWarning("Serial connection lost: {PortName} - {Reason}", e.PortName, e.Reason);
-        global::System.Console.WriteLine($"Warning: Serial connection lost ({e.Reason}). Attempting automatic recovery...");
-    }
-
-    /// <summary>
-    /// Handles serial connection restored events
-    /// </summary>
-    private void OnSerialConnectionRestored(object? sender, ConnectionRestoredEventArgs e)
-    {
-        _logger.LogInformation("Serial connection restored: {PortName}", e.PortName);
-        global::System.Console.WriteLine($"Serial connection restored: {e.PortName}");
+        var response = await radio.SendCommandAsync(new RadioCommand(command.Trim(), "Legacy console/network request"));
+        if (response is null)
+            _logger.LogWarning("Command failed or its effect is uncertain; it will not be replayed.");
+        else if (response.Length > 0)
+            await _networkService.BroadcastToClientsAsync(response);
     }
 
     /// <summary>
@@ -742,12 +673,7 @@ public class ServerApplication
             var serialPort = SerialPortFactory.CreateSerialPort(portName, baudRate, 
                 useFakeForTesting: false, useResilientWrapper: true, logger: _logger);
             
-            // Open the port
-            if (!serialPort.IsOpen)
-            {
-                serialPort.Open();
-            }
-            
+            // Transfer the unopened port; only the radio session may open/read/close it.
             return serialPort;
         }
         catch (UnauthorizedAccessException)

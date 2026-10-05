@@ -1,4 +1,5 @@
 using System.IO.Ports;
+using System.Runtime.InteropServices;
 using SharpCAT2.Core.Serial;
 
 namespace SharpCAT2.ServerLibrary.Serial;
@@ -166,6 +167,25 @@ public class RealSerialPort : ISerialPort
     public int Read(byte[] buffer, int offset, int count)
     {
         return _serialPort.Read(buffer, offset, count);
+    }
+
+    /// <summary>Writes bytes directly through SerialPort without text encoding.</summary>
+    internal void WriteBytes(ReadOnlyMemory<byte> bytes)
+    {
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(RealSerialPort));
+        }
+
+        if (MemoryMarshal.TryGetArray(bytes, out ArraySegment<byte> segment))
+        {
+            _serialPort.Write(segment.Array!, segment.Offset, segment.Count);
+        }
+        else
+        {
+            var copy = bytes.ToArray();
+            _serialPort.Write(copy, 0, copy.Length);
+        }
     }
 
     #endregion

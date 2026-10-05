@@ -16,6 +16,8 @@ public class RadioService : IRadioService, IDisposable
     private readonly ILogger<RadioService> _logger;
     private IRadio? _connectedRadio;
     private string? _connectedPortName;
+    private readonly SemaphoreSlim _lifetime = new(1, 1);
+    private bool _disposed;
 
     public RadioService(ILogger<RadioService> logger)
     {
@@ -34,56 +36,39 @@ public class RadioService : IRadioService, IDisposable
     /// <inheritdoc />
     public async Task InitializeRadioAsync(CommandLineOptions options, ISerialPort serialPort)
     {
+        await _lifetime.WaitAsync();
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            await InitializeCoreAsync(options, serialPort);
+        }
+        finally { _lifetime.Release(); }
+    }
+
+    private async Task InitializeCoreAsync(CommandLineOptions options, ISerialPort serialPort)
+    {
+        if (_connectedRadio is not null)
+            throw new InvalidOperationException("A session already owns the radio; disconnect before initializing.");
         try
         {
             if (options.AutoDetectRadio)
-            {
-                _logger.LogInformation("Auto-detecting radio...");
-                var baseRadio = await RadioFactory.AutoDetectRadioAsync(serialPort);
-                
-                if (baseRadio == null)
-                {
-                    _logger.LogWarning("No radio detected. Continuing with basic serial communication.");
-                    return;
-                }
-                
-                // Wrap with resilient wrapper
-                _connectedRadio = new ResilientRadio(baseRadio, _logger);
-                await _connectedRadio.ConnectAsync(serialPort);
-                _connectedPortName = serialPort.PortName;
-            }
-            else if (!string.IsNullOrWhiteSpace(options.RadioModel))
-            {
-                _logger.LogInformation("Connecting to radio: {RadioModel}", options.RadioModel);
-                _connectedRadio = RadioFactory.CreateResilientRadio(options.RadioModel, _logger);
-                
-                if (_connectedRadio == null)
-                {
-                    _logger.LogWarning("Unknown radio model: {RadioModel}", options.RadioModel);
-                    return;
-                }
-                
-                // Connect the radio to the serial port
-                bool connected = await _connectedRadio.ConnectAsync(serialPort);
-                if (!connected)
-                {
-                    _logger.LogWarning("Failed to connect to radio. Continuing with basic serial communication.");
-                    _connectedRadio.Dispose();
-                    _connectedRadio = null;
-                    _connectedPortName = null;
-                }
-                else
-                {
-                    _connectedPortName = serialPort.PortName;
-                }
-            }
+                throw new NotSupportedException("Select a radio explicitly; auto-detection is unavailable during session migration.");
+            if (string.IsNullOrWhiteSpace(options.RadioModel))
+                throw new InvalidOperationException("A radio model is required; raw serial fallback is no longer supported.");
+            _connectedRadio = RadioFactory.CreateResilientRadio(options.RadioModel, _logger)
+                ?? throw new ArgumentException("Unknown radio model.", nameof(options));
+            if (!await _connectedRadio.ConnectAsync(serialPort))
+                throw new IOException("Radio synchronization failed; no raw serial fallback is allowed.");
+            _connectedPortName = serialPort.PortName;
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error initializing radio");
+            var accepted = (_connectedRadio as ResilientRadio)?.InnerRadio is Radio.Models.BaseRadio owner && owner.HasAcceptedTransport;
             _connectedRadio?.Dispose();
             _connectedRadio = null;
             _connectedPortName = null;
+            if (!accepted) serialPort.Dispose();
+            throw;
         }
 
         // Set up resilient radio event handlers if available
@@ -113,6 +98,8 @@ public class RadioService : IRadioService, IDisposable
                     _logger.LogDebug("Radio command response: {Response}", response);
                     return true;
                 }
+                _logger.LogWarning("CAT command failed; it will not be resent: {Input}", input);
+                return true; // Recognized but failed, not an invitation to raw fallback/replay.
             }
 
             // Try common command shortcuts
@@ -136,7 +123,7 @@ public class RadioService : IRadioService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing radio command: {Input}", input);
-            return false;
+            return input.EndsWith(';'); // Recognized failures remain terminal; never replay via fallback.
         }
     }
 
@@ -174,60 +161,10 @@ public class RadioService : IRadioService, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task<bool> ChangeRadioAsync(string radioName, ISerialPort serialPort)
+    public Task<bool> ChangeRadioAsync(string radioName, ISerialPort serialPort)
     {
-        try
-        {
-            // Check if radio exists
-            var newRadio = RadioFactory.CreateResilientRadio(radioName, _logger);
-            if (newRadio == null)
-            {
-                _logger.LogWarning("Unknown radio model: {RadioName}", radioName);
-                return false;
-            }
-            
-            // Disconnect current radio if any
-            if (_connectedRadio != null)
-            {
-                _logger.LogInformation("Disconnecting current radio: {Manufacturer} {ModelName}", 
-                    _connectedRadio.Manufacturer, _connectedRadio.ModelName);
-                _connectedRadio.Disconnect();
-                _connectedRadio.Dispose();
-                _connectedRadio = null;
-                _connectedPortName = null;
-            }
-            
-            // Connect new radio
-            if (serialPort?.IsOpen == true)
-            {
-                bool connected = await newRadio.ConnectAsync(serialPort);
-                if (connected)
-                {
-                    _connectedRadio = newRadio;
-                    _connectedPortName = serialPort.PortName;
-                    _logger.LogInformation("Successfully changed radio to: {Manufacturer} {ModelName}", 
-                        _connectedRadio.Manufacturer, _connectedRadio.ModelName);
-                    return true;
-                }
-                else
-                {
-                    newRadio.Dispose();
-                    _logger.LogWarning("Failed to connect to radio: {RadioName}", radioName);
-                    return false;
-                }
-            }
-            else
-            {
-                newRadio.Dispose();
-                _logger.LogWarning("No serial port available for radio connection");
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to change radio to {RadioName}", radioName);
-            return false;
-        }
+        _logger.LogWarning("Live model switching is unavailable. Restart with the selected profile and a new owned transport.");
+        return Task.FromResult(false); // Do not dispose the active owner or reuse its transferred port.
     }
 
     /// <inheritdoc />
@@ -290,6 +227,13 @@ public class RadioService : IRadioService, IDisposable
     /// <inheritdoc />
     public async Task DisconnectRadioAsync()
     {
+        await _lifetime.WaitAsync();
+        try { await DisconnectCoreAsync(); }
+        finally { _lifetime.Release(); }
+    }
+
+    private async Task DisconnectCoreAsync()
+    {
         if (_connectedRadio != null)
         {
             _logger.LogInformation("Disconnecting radio: {Manufacturer} {ModelName}", 
@@ -304,9 +248,16 @@ public class RadioService : IRadioService, IDisposable
 
     public void Dispose()
     {
-        _connectedRadio?.Dispose();
-        _connectedRadio = null;
-        _connectedPortName = null;
+        _lifetime.Wait();
+        try
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _connectedRadio?.Dispose();
+            _connectedRadio = null;
+            _connectedPortName = null;
+        }
+        finally { _lifetime.Release(); }
         GC.SuppressFinalize(this);
     }
 

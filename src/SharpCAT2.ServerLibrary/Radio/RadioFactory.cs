@@ -334,51 +334,8 @@ public static class RadioFactory
     /// </summary>
     /// <param name="serialPort">Serial port connected to radio</param>
     /// <returns>Auto-detected radio instance or null</returns>
-    public static async Task<IRadio?> AutoDetectRadioAsync(ISerialPort serialPort)
-    {
-        if (serialPort?.IsOpen != true)
-            return null;
-
-        // Try common identification commands
-        var idCommands = new[]
-        {
-            "ID;",      // Kenwood/Elecraft
-            "RM5;",     // Yaesu
-            "*IDN?",    // SCPI standard
-            "AI;"       // Auto information
-        };
-
-        foreach (var command in idCommands)
-        {
-            try
-            {
-                serialPort.DiscardInBuffer();
-                serialPort.DiscardOutBuffer();
-                serialPort.Write(command);
-
-                await Task.Delay(500); // Wait for response
-
-                if (serialPort.BytesToRead > 0)
-                {
-                    var buffer = new byte[256];
-                    int bytesRead = serialPort.Read(buffer, 0, Math.Min(buffer.Length, serialPort.BytesToRead));
-                    string response = System.Text.Encoding.ASCII.GetString(buffer, 0, bytesRead).Trim();
-
-                    var radio = IdentifyRadioFromResponse(response);
-                    if (radio != null)
-                    {
-                        return radio;
-                    }
-                }
-            }
-            catch
-            {
-                // Continue with next command
-            }
-        }
-
-        return null;
-    }
+    public static Task<IRadio?> AutoDetectRadioAsync(ISerialPort serialPort) =>
+        throw new NotSupportedException("Automatic detection is unavailable during session migration. Select a model explicitly; probing cannot own a second serial reader.");
 
     /// <summary>
     /// Identifies radio type from ID response

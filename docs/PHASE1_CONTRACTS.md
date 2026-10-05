@@ -1,12 +1,12 @@
 # SharpCAT2 Phase 1 contract boundary
 
-Phase 1 introduces additive types for later migration. Existing IRadio, string RadioCommand, BaseRadio, wrappers and console/TCP routes still execute unchanged. The new types have no hardware-support evidence yet. The preview operation subset and independent fixtures are described in FT991A_PROTOCOL.md; version 1 envelopes are described in WIRE_PROTOCOL.md.
+Phase 1 introduced additive types for migration. At that phase, IRadio, string RadioCommand, BaseRadio, wrappers and console/TCP routes executed unchanged. Phase 2 now introduces the session owner and legacy ASCII adapters; see [PHASE2_SESSION.md](PHASE2_SESSION.md). The new types have no hardware-support evidence yet. The preview operation subset and independent fixtures are described in FT991A_PROTOCOL.md; version 1 envelopes are described in WIRE_PROTOCOL.md.
 
 ## Owners and migration
 
 The session owns a transferred byte transport: opening, reads, writes, queue, timeouts, recovery, close and disposal. The transport preserves payload bytes exactly. A successful transport write proves local completion only; an exception/cancellation may follow a partial physical write. A profile owns command creation, incremental frame classification, reply matching and parsing. It never accepts a port, starts a reader/timer, reconnects or disposes transport.
 
-Phase 2 introduces those owners into the active runtime. Supported old radio APIs automatically adapt into the session, including known ASCII ISerialPort connections; the adapter cannot promise lossless binary behavior from string writes. Supported old bool/string calls delegate to the typed operation completion policy, and unsupported operations fail explicitly. Phase 4 similarly maps old client-library methods into versioned envelopes. No compatibility fallback writes through the old reader/retry path. Phase 5 migrates recognized config schemas with backup, validated atomic replacement and repeat-startup idempotence. These adapters are specified here and are not implemented in Phase 1.
+Phase 2 introduces those owners into the active runtime. Supported old radio APIs automatically adapt into the session, including known ASCII ISerialPort connections; the adapter cannot promise lossless binary behavior from string writes. Supported old bool/string calls delegate to the typed operation completion policy, and unsupported operations fail explicitly. Phase 4 similarly maps old client-library methods into versioned envelopes. No compatibility fallback writes through the old reader/retry path. Phase 5 migrates recognized config schemas with backup, validated atomic replacement and repeat-startup idempotence. Those adapters were specified in Phase 1. The radio/session migration is implemented in Phase 2; client wire and config migration remain future work.
 
 ## Completion and observations
 
