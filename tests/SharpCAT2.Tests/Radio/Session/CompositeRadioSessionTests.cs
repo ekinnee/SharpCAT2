@@ -267,4 +267,44 @@ public class CompositeRadioSessionTests
             (await session.ExecuteTransactionAsync([Step("R;"), Step("R;"), Step("R;")], TimeSpan.FromSeconds(2))).Outcome);
         Assert.Equal(new[] { "S;" }, transport.Written);
     }
+
+    [Fact]
+    public async Task FailedVerificationWriteCannotEraseCompletedSetterWriteEvidence()
+    {
+        var transport = new ControlledByteTransport();
+        await using var session = new RadioSession(transport, Parse);
+        await Connect(session, transport);
+        transport.OnWrite = (payload, _) => Encoding.ASCII.GetString(payload) == "R;"
+            ? ValueTask.FromException(new IOException("Verification write failed")) : ValueTask.CompletedTask;
+        var setter = new CommandSpecification("W;"u8.ToArray(), ResponsePolicy.WriteThenReadBack,
+            TimeSpan.FromSeconds(1), "R", "R;"u8.ToArray());
+        var result = await session.ExecuteAsync(setter, Match("R"), verify: value => value is 1L);
+        Assert.Equal(RadioOutcome.OutcomeUnknown, result.Outcome);
+        Assert.Equal(CompletionEvidence.Written, result.Evidence);
+        Assert.Null(result.Observation);
+        Assert.Equal(new[] { "S;", "W;", "R;" }, transport.Written);
+    }
+
+    [Fact]
+    public async Task FailedPostSwapQueryCannotEraseCompletedSwapWriteEvidence()
+    {
+        var transport = new ControlledByteTransport();
+        await using var session = new RadioSession(transport, Parse);
+        await Connect(session, transport);
+        var aQueries = 0;
+        transport.OnWrite = (payload, _) =>
+        {
+            var text = Encoding.ASCII.GetString(payload);
+            if (text == "FA;" && ++aQueries == 2)
+                return ValueTask.FromException(new IOException("Post-swap write failed"));
+            if (text == "FA;") transport.Send("FA10;");
+            if (text == "FB;") transport.Send("FB20;");
+            return ValueTask.CompletedTask;
+        };
+        var result = await session.ExecuteTransactionAsync(Swap(), TimeSpan.FromSeconds(1), VerifySwap);
+        Assert.Equal(RadioOutcome.OutcomeUnknown, result.Outcome);
+        Assert.Equal(CompletionEvidence.Written, result.Evidence);
+        Assert.Null(result.Observation);
+        Assert.Equal(new[] { "S;", "FA;", "FB;", "SV;", "FA;" }, transport.Written);
+    }
 }

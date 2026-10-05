@@ -554,7 +554,9 @@ public sealed class RadioSession : IAsyncDisposable
                 else
                 {
                     if (mutation) operation.MutationStarted = true;
-                    operation.Evidence = CompletionEvidence.WriteAttempted;
+                    // A later read-back attempt cannot erase a confirmed mutation write.
+                    operation.Evidence = operation.MutationWritten
+                        ? CompletionEvidence.Written : CompletionEvidence.WriteAttempted;
                     operation.Observation = null;
                     operation.CurrentReply = expectsReply ? new ReplyExpectation(operation, matcher) : null;
                     if (drainAfterWrite)
@@ -581,7 +583,10 @@ public sealed class RadioSession : IAsyncDisposable
             return false;
         }
         lock (_gate)
+        {
+            if (mutation) operation.MutationWritten = true;
             if (operation.Evidence == CompletionEvidence.WriteAttempted) operation.Evidence = CompletionEvidence.Written;
+        }
         return true;
     }
 
@@ -869,6 +874,7 @@ public sealed class RadioSession : IAsyncDisposable
         public LinkedListNode<Operation>? Node { get; set; }
         public CompletionEvidence Evidence { get; set; } = CompletionEvidence.NotSent;
         public bool MutationStarted { get; set; }
+        public bool MutationWritten { get; set; }
         public ReplyExpectation? CurrentReply { get; set; }
         public RadioObservation<object>? Observation { get; set; }
         public TaskCompletionSource<RadioOperationResult<object>> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
