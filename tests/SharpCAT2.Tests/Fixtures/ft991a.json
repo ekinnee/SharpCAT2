@@ -1,0 +1,179 @@
+{
+  "source": {
+    "title": "FT-991 CAT Operation Reference Book",
+    "revision": "1711-D (filename suffix)",
+    "url": "https://www.yaesu.com/Files/4CB893D7-1018-01AF-FA97E9E9AD48B50C/FT-991A_CAT_OM_ENG_1711-D.pdf"
+  },
+  "cases": [
+    {
+      "id": "identity-ft991a",
+      "operation": "identity",
+      "kind": "query",
+      "request": "ID;",
+      "response": "ID0670;",
+      "expected": { "classification": "valid", "identity": "FT-991A" },
+      "page": { "printed": 10, "pdfIndex": 10 },
+      "note": "ID is read-only in the command table; 0670 is the FT-991A identifier."
+    },
+    {
+      "id": "identity-mismatch",
+      "operation": "identity",
+      "kind": "reply",
+      "request": "ID;",
+      "response": "ID0671;",
+      "expected": { "classification": "identityMismatch", "identity": null },
+      "page": { "printed": 10, "pdfIndex": 10 },
+      "note": "Well-formed ID answer, but it does not identify the requested model."
+    },
+    {
+      "id": "frequency-a-read-example",
+      "operation": "frequencyA",
+      "kind": "query",
+      "request": "FA;",
+      "response": "FA014250000;",
+      "expected": { "classification": "valid", "frequencyHz": 14250000 },
+      "page": { "printed": 2, "pdfIndex": 2 },
+      "note": "Exact manufacturer example: 14.25 MHz represented as nine decimal Hz digits."
+    },
+    {
+      "id": "frequency-a-lowercase-opcode",
+      "operation": "frequencyA",
+      "kind": "query",
+      "request": "fa;",
+      "response": "FA014250000;",
+      "expected": { "classification": "valid", "frequencyHz": 14250000 },
+      "page": { "printed": 2, "pdfIndex": 2 },
+      "note": "CAT command letters accept lower or upper case; response uses the canonical opcode spelling."
+    },
+    {
+      "id": "frequency-a-lower-bound-set",
+      "operation": "frequencyA",
+      "kind": "setter",
+      "request": "FA000030000;",
+      "response": null,
+      "expected": { "classification": "valid", "frequencyHz": 30000, "completion": "writeThenReadBack", "verificationRequest": "FA;", "verificationResponse": "FA000030000;" },
+      "page": { "printed": 9, "pdfIndex": 9 },
+      "note": "Lower documented set-range boundary; the subsequent query is the verification evidence."
+    },
+    {
+      "id": "frequency-b-upper-bound-set",
+      "operation": "frequencyB",
+      "kind": "setter",
+      "request": "FB470000000;",
+      "response": null,
+      "expected": { "classification": "valid", "frequencyHz": 470000000, "completion": "writeThenReadBack", "verificationRequest": "FB;", "verificationResponse": "FB470000000;" },
+      "page": { "printed": 9, "pdfIndex": 9 },
+      "note": "Upper documented set-range boundary; the subsequent query is the verification evidence."
+    },
+    {
+      "id": "frequency-outside-range-nine-digits",
+      "operation": "frequencyA",
+      "kind": "setter",
+      "request": "FA470000001;",
+      "response": null,
+      "expected": { "classification": "invalidArgument", "reason": "outsideDocumentedSetRange", "wireSyntaxValid": true, "transmitted": false },
+      "page": { "printed": 9, "pdfIndex": 9 },
+      "note": "Nine decimal digits are syntactically valid, but the value exceeds the manual's stated set range."
+    },
+    {
+      "id": "frequency-short-width",
+      "operation": "frequencyA",
+      "kind": "command",
+      "request": "FA3000000;",
+      "response": null,
+      "expected": { "classification": "malformed", "reason": "frequencyWidthMustBeNineDigits", "transmitted": false },
+      "page": { "printed": 9, "pdfIndex": 9 },
+      "note": "Complete frame with only seven frequency digits."
+    },
+    {
+      "id": "frequency-long-width",
+      "operation": "frequencyA",
+      "kind": "command",
+      "request": "FA0000030000;",
+      "response": null,
+      "expected": { "classification": "malformed", "reason": "frequencyWidthMustBeNineDigits", "transmitted": false },
+      "page": { "printed": 9, "pdfIndex": 9 },
+      "note": "Complete frame with ten frequency digits."
+    },
+    {
+      "id": "frequency-nondigit",
+      "operation": "frequencyA",
+      "kind": "command",
+      "request": "FA00003A000;",
+      "response": null,
+      "expected": { "classification": "malformed", "reason": "frequencyMustContainDecimalDigits", "transmitted": false },
+      "page": { "printed": 9, "pdfIndex": 9 },
+      "note": "Complete frame has correct width but a non-decimal parameter character."
+    },
+    {
+      "id": "frequency-incomplete-missing-terminator",
+      "operation": "frequencyA",
+      "kind": "partialFrame",
+      "request": "FA014250000",
+      "response": null,
+      "expected": { "classification": "incomplete", "reason": "terminatorNotReceived", "dispatch": false },
+      "page": { "printed": 2, "pdfIndex": 2 },
+      "note": "The semicolon terminates a command; until it arrives the frame is incomplete."
+    },
+    {
+      "id": "mode-query-usb-main-rx",
+      "operation": "mode",
+      "kind": "query",
+      "request": "MD0;",
+      "response": "MD02;",
+      "expected": { "classification": "valid", "receiver": "main", "modeCode": "2", "mode": "USB" },
+      "page": { "printed": 11, "pdfIndex": 11 },
+      "note": "P1=0 selects MAIN RX; P2=2 is USB."
+    },
+    {
+      "id": "mode-set-c4fm",
+      "operation": "mode",
+      "kind": "setter",
+      "request": "MD0E;",
+      "response": null,
+      "expected": { "classification": "valid", "receiver": "main", "modeCode": "E", "mode": "C4FM", "completion": "writeThenReadBack", "verificationRequest": "MD0;", "verificationResponse": "MD0E;" },
+      "page": { "printed": 11, "pdfIndex": 11 },
+      "note": "Upper listed mode-code boundary; mode change is verified with a separate query."
+    },
+    {
+      "id": "mode-unknown-caller-setter",
+      "operation": "mode",
+      "kind": "setter",
+      "request": "MD0F;",
+      "response": null,
+      "expected": { "classification": "invalidArgument", "reason": "unknownModeCode", "transmitted": false },
+      "page": { "printed": 11, "pdfIndex": 11 },
+      "note": "Caller API rejects an unlisted mode before transmission."
+    },
+    {
+      "id": "mode-unknown-device-reply",
+      "operation": "mode",
+      "kind": "reply",
+      "request": "MD0;",
+      "response": "MD0F;",
+      "expected": { "classification": "malformed", "outcome": "ProtocolError", "reason": "unknownModeCode" },
+      "page": { "printed": 11, "pdfIndex": 11 },
+      "note": "An unlisted code from the device is malformed reply data, not a caller argument error."
+    },
+    {
+      "id": "mode-incomplete",
+      "operation": "mode",
+      "kind": "partialFrame",
+      "request": "MD0",
+      "response": null,
+      "expected": { "classification": "incomplete", "reason": "terminatorNotReceived", "dispatch": false },
+      "page": { "printed": 11, "pdfIndex": 11 },
+      "note": "Receiver and mode parameters are present, but the command terminator is absent."
+    },
+    {
+      "id": "swap-no-reply-read-back",
+      "operation": "swapVfos",
+      "kind": "setter",
+      "request": "SV;",
+      "response": null,
+      "expected": { "classification": "valid", "completion": "writeThenReadBack", "verificationRequests": ["FA;", "FB;"], "verificationResponses": ["FA014250000;", "FB007100000;"], "confirmableWhenFrequenciesDiffer": true },
+      "page": { "printed": 17, "pdfIndex": 17 },
+      "note": "SV has no reply. Read both VFO frequencies afterward; frequency-only verification is inconclusive if both pre-swap values were equal."
+    }
+  ]
+}

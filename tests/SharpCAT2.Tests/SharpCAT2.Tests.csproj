@@ -34,4 +34,8 @@
     <ProjectReference Include="..\..\src\SharpCAT2.ClientConsole\SharpCAT2.ClientConsole.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Fixtures/ft991a.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
